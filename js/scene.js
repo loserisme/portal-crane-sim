@@ -27,10 +27,10 @@
     var renderer = new THREE.WebGLRenderer({
       antialias: true, powerPreference: 'high-performance',
     });
-    renderer.setPixelRatio(Math.min(w.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(w.devicePixelRatio || 1, 1.4));
     renderer.setSize(width, height);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.06;
@@ -70,7 +70,7 @@
     var sun = new THREE.DirectionalLight(0xfff3e2, 1.28);
     sun.position.set(58, 76, 46);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(1024, 1024);
     sun.shadow.camera.left = -66;
     sun.shadow.camera.right = 66;
     sun.shadow.camera.top = 70;

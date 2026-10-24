@@ -148,6 +148,20 @@
     ST.sandFlowLen = len;
   }
 
+  /* ---------------- 帧率自适应 ---------------- */
+  var lowT = 0;
+
+  function autoQuality(dt, fps) {
+    if (SCENE.qualityManual) return;      // 手动选过就不再干预
+    if (fps < 26) lowT += 0.5;
+    else lowT = Math.max(0, lowT - 0.25);
+    if (lowT < 3) return;
+    lowT = 0;
+    if (SCENE.quality === 'high') { SCENE.setQuality('mid'); UI.setQuality('mid'); }
+    else if (SCENE.quality === 'mid') { SCENE.setQuality('low'); UI.setQuality('low'); }
+    else { SCENE.qualityManual = true; }   // 已经最低，停止继续判断
+  }
+
   /* ---------------- 主循环 ---------------- */
   var lastT = 0, fpsAcc = 0, fpsFrames = 0, fpsVal = 60;
 
@@ -181,6 +195,7 @@
     if (fpsAcc >= 0.5) {
       fpsVal = fpsFrames / fpsAcc;
       fpsAcc = 0; fpsFrames = 0;
+      autoQuality(dt, fpsVal);
     }
 
     UI.update(dt, fpsVal);

@@ -125,6 +125,18 @@
       });
     }
 
+    var qual = document.getElementById('seg-quality');
+    if (qual) {
+      qual.addEventListener('click', function (e) {
+        var b = e.target.closest('button');
+        if (!b) return;
+        [].forEach.call(qual.children, function (c) { c.classList.remove('on'); });
+        b.classList.add('on');
+        SCENE.setQuality(b.dataset.v);
+        SCENE.qualityManual = true;
+      });
+    }
+
     var sway = document.getElementById('seg-sway');
     sway.addEventListener('click', function (e) {
       var b = e.target.closest('button');
@@ -253,6 +265,14 @@
     el.travelV.textContent = (+KT.ST.cmd.travel).toFixed(1) + ' m';
   }
   UI.syncSliders = syncSliders;
+
+  UI.setQuality = function (name) {
+    var qual = document.getElementById('seg-quality');
+    if (!qual) return;
+    [].forEach.call(qual.children, function (c) {
+      c.classList.toggle('on', c.dataset.v === name);
+    });
+  };
 
   UI.setSpeed = function (v) {
     KT.setTimeScale(v);
