@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抓斗门座式起重机 · 运动仿真</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="stage"></div>
+<div id="tags"></div>
+
+<header id="topbar">
+  <div class="brand">
+    <div class="logo">GQ</div>
+    <div class="brandtxt">
+      <h1>抓斗门座式起重机 · 运动仿真</h1>
+      <p>四连杆水平变幅 · 象鼻梁 + 大拉杆 + 平衡重 · 船舱抓沙装车</p>
+    </div>
+  </div>
+  <nav class="views" id="views">
+    <button data-view="iso" class="on">轴测</button>
+    <button data-view="side">侧视</button>
+    <button data-view="front">端视</button>
+    <button data-view="top">俯视</button>
+    <button data-view="cab">抓斗特写</button>
+  </nav>
+</header>
+
+<aside id="panel-left" class="panel">
+  <section>
+    <h2>机构操控</h2>
+
+    <div class="ctrl">
+      <div class="ctrl-head"><label for="slew">回转机构</label><span class="val" id="slew-v">-90.0°</span></div>
+      <input type="range" id="slew" min="-180" max="180" step="0.2" value="-90">
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-head"><label for="radius">变幅机构</label><span class="val" id="radius-v">30.0 m</span></div>
+      <input type="range" id="radius" min="22.2" max="32.7" step="0.05" value="30">
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-head"><label for="hoist">起升机构</label><span class="val" id="hoist-v">3.0 m</span></div>
+      <input type="range" id="hoist" min="0.45" max="26" step="0.05" value="3">
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-head"><label for="grab">抓斗开合</label><span class="val" id="grab-v">100%</span></div>
+      <input type="range" id="grab" min="0" max="100" step="1" value="100">
+    </div>
+
+    <div class="ctrl">
+      <div class="ctrl-head"><label for="travel">大车行走</label><span class="val" id="travel-v">0.0 m</span></div>
+      <input type="range" id="travel" min="-26" max="26" step="0.1" value="0">
+    </div>
+
+    <div class="btnrow">
+      <button id="btn-demo" class="primary">▶ 作业循环</button>
+      <button id="btn-reset">复位</button>
+    </div>
+    <button id="code-open" class="widebtn">&lt;/&gt; 脚本控制</button>
+  </section>
+
+  <section>
+    <h2>仿真设置</h2>
+
+    <div class="row">
+      <span class="row-label">仿真倍速</span>
+      <div class="seg" id="seg-speed">
+        <button data-v="0.5">0.5×</button>
+        <button data-v="1" class="on">1×</button>
+        <button data-v="2">2×</button>
+        <button data-v="4">4×</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <span class="row-label">吊物摆动</span>
+      <div class="seg" id="seg-sway">
+        <button data-v="on" class="on">开</button>
+        <button data-v="off">关</button>
+      </div>
+    </div>
+
+    <div class="row toggles">
+      <span class="row-label">显示</span>
+      <div class="chips" id="chips">
+        <button data-k="grid" class="on">网格</button>
+        <button data-k="tags" class="on">标注</button>
+        <button data-k="radius" class="on">幅度尺</button>
+        <button data-k="trace">轨迹</button>
+      </div>
+    </div>
+
+    <div class="stateline">
+      <span>斗内 / 舱内</span>
+      <span class="barval"><b id="o-load">0%</b> / <b id="o-hold">100%</b></span>
+    </div>
+  </section>
+
+  <section class="hintbox">
+    <p><b>操作</b>：左键拖动旋转 · 滚轮缩放 · 右键平移</p>
+  </section>
+</aside>
+
+<aside id="panel-right" class="panel">
+  <section>
+    <h2>实时状态</h2>
+    <div class="bigs">
+      <div class="big"><b id="o-radius">30.0</b><i>工作幅度 R / m</i></div>
+      <div class="big"><b id="o-height">3.0</b><i>起升高度 H / m</i></div>
+    </div>
+
+    <table class="kv">
+      <tbody>
+        <tr><td>回转角 φ</td><td id="o-slew">-90.0°</td></tr>
+        <tr><td>臂架仰角 α</td><td id="o-alpha">40.0°</td></tr>
+        <tr><td>抓斗开度</td><td id="o-grab">100%</td></tr>
+        <tr><td>起升绳长</td><td id="o-rope">— m</td></tr>
+        <tr><td>起升 / 回转线速</td><td id="o-speed">0.00 / 0.00</td></tr>
+        <tr><td>抓斗摆角</td><td id="o-sway">0.0°</td></tr>
+        <tr><td>抓斗坐标</td><td id="o-pos">—</td></tr>
+        <tr><td>大车位置</td><td id="o-travel">0.00 m</td></tr>
+        <tr><td>卡车装载</td><td id="o-truck">0 / 3 斗</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>起重量 — 幅度特性</h2>
+    <canvas id="chart" width="480" height="230"></canvas>
+    <div class="loadrow">
+      <span>当前工作点</span>
+      <span id="o-loadstate" class="ok">安全</span>
+    </div>
+    <p class="caption" id="o-cap">Q(30.0 m) = 7.8 t ／ 载荷 9.8 t</p>
+  </section>
+</aside>
+
+<div id="code-panel" class="hidden">
+  <div class="code-head">
+    <span>脚本控制</span>
+    <button id="code-close" class="iconbtn">×</button>
+  </div>
+  <textarea id="code-text" spellcheck="false"></textarea>
+  <div class="code-foot">
+    <button id="code-run" class="primary">▶ 运行</button>
+    <button id="code-stop">停止</button>
+    <button id="code-sample">示例</button>
+    <span id="code-status">就绪</span>
+  </div>
+</div>
+
+<button id="ai-fab" title="AI 助手">AI</button>
+<div id="ai-panel" class="hidden">
+  <div class="ai-head">
+    <span>AI 助手</span>
+    <div>
+      <button id="ai-setup" class="iconbtn" title="接口设置">⚙</button>
+      <button id="ai-close" class="iconbtn" title="关闭">×</button>
+    </div>
+  </div>
+  <div id="ai-msgs"></div>
+  <div id="ai-input-row">
+    <textarea id="ai-input" rows="1" placeholder="例如：把抓斗转到船上，下到沙面抓一斗"></textarea>
+    <button id="ai-send">发送</button>
+  </div>
+  <div id="ai-setup-panel" class="hidden">
+    <label>API 地址<input id="ai-base" placeholder="https://api.deepseek.com/v1"></label>
+    <label>模型<input id="ai-model" placeholder="deepseek-chat"></label>
+    <label>API Key<input id="ai-key" type="password" placeholder="sk-..."></label>
+    <button id="ai-save">保存到本机</button>
+    <p class="hint">默认接 DeepSeek。也可填任何 OpenAI 兼容接口（如本地 Ollama、通义、Kimi）。Key 只写在浏览器 localStorage，不上传任何服务器。若接口不允许浏览器直连会报 CORS 错误，需换成允许跨域的地址。</p>
+  </div>
+</div>
+
+<footer id="statusbar">
+  <div class="st"><span class="dot" id="st-dot"></span><span id="st-mode">待机</span></div>
+  <div class="st"><span id="st-fps">60 fps</span></div>
+</footer>
+
+<script src="lib/three.min.js"></script>
+<script src="lib/OrbitControls.js"></script>
+<script src="lib/BufferGeometryUtils.js"></script>
+<script src="js/config.js"></script>
+<script src="js/util.js"></script>
+<script src="js/scene.js"></script>
+<script src="js/crane.js"></script>
+<script src="js/kinematics.js"></script>
+<script src="js/script.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
