@@ -63,6 +63,30 @@
     return S;
   };
 
+  /* ---------------- 画质档位 ---------------- */
+  S.QUALITY = {
+    high: { pr: 2.0, shadowSize: 2048, shadow: true },
+    mid:  { pr: 1.3, shadowSize: 1024, shadow: true },
+    low:  { pr: 1.0, shadowSize: 512,  shadow: false },
+  };
+  S.quality = 'mid';
+
+  S.setQuality = function (name) {
+    var q = S.QUALITY[name];
+    if (!q) return;
+    S.quality = name;
+    var r = S.renderer;
+    var dpr = w.devicePixelRatio || 1;
+    r.setPixelRatio(Math.min(dpr, q.pr));
+    r.setSize(r.domElement.clientWidth, r.domElement.clientHeight);
+    r.shadowMap.enabled = q.shadow;
+    if (S.sun) {
+      if (S.sun.shadow.map) { S.sun.shadow.map.dispose(); S.sun.shadow.map = null; }
+      S.sun.shadow.mapSize.set(q.shadowSize, q.shadowSize);
+      S.sun.castShadow = q.shadow;
+    }
+  };
+
   S._lights = function () {
     var scene = S.scene;
     scene.add(new THREE.HemisphereLight(0xeef5fd, 0x9aa7b4, 0.66));
