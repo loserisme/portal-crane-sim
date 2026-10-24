@@ -20,6 +20,7 @@
     </div>
   </div>
   <nav class="views" id="views">
+    <button id="train-open" class="trainbtn">实训</button>
     <button data-view="iso" class="on">轴测</button>
     <button data-view="side">侧视</button>
     <button data-view="front">端视</button>
@@ -152,6 +153,23 @@
   </section>
 </aside>
 
+<aside id="train-panel" class="hidden">
+  <div class="tp-head">
+    <span>实训任务</span>
+    <button id="train-close" class="iconbtn">×</button>
+  </div>
+  <div class="tp-student">
+    <input id="tp-name" placeholder="姓名" maxlength="12">
+    <input id="tp-no" placeholder="学号" maxlength="16">
+  </div>
+  <div id="tp-list"></div>
+  <div class="tp-foot">
+    <div class="tp-score"><b id="tp-total">0</b><i>/ 500</i></div>
+    <button id="train-report">生成报告</button>
+  </div>
+</aside>
+<textarea id="tp-report" class="hidden" readonly></textarea>
+
 <div id="code-panel" class="hidden">
   <div class="code-head">
     <span>脚本控制</span>
@@ -203,6 +221,7 @@
 <script src="js/kinematics.js"></script>
 <script src="js/script.js"></script>
 <script src="js/ai.js"></script>
+<script src="js/train.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>
 </body>

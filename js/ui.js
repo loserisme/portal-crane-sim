@@ -62,6 +62,7 @@
     bindChips();
     bindViews();
     bindScript();
+    bindTrain();
     buildTags();
     resizeChart();
     w.addEventListener('resize', resizeChart);
@@ -163,6 +164,81 @@
         if (w.CRANE) w.CRANE.resetTrace();
       }
     });
+  }
+
+  /* ---------------- 实训面板 ---------------- */
+  function bindTrain() {
+    var panel = document.getElementById('train-panel');
+    var list = document.getElementById('tp-list');
+    var total = document.getElementById('tp-total');
+    var nameIn = document.getElementById('tp-name');
+    var noIn = document.getElementById('tp-no');
+    var repBtn = document.getElementById('train-report');
+    var repBox = document.getElementById('tp-report');
+    var openBtn = document.getElementById('train-open');
+    if (!panel || !w.TRAIN) return;
+    var TR = w.TRAIN;
+
+    function render() {
+      var sc = list.scrollTop;
+      list.innerHTML = '';
+      TR.tasks.forEach(function (t, i) {
+        var cls = t.state === 'done' ? 'done' : (t.state === 'doing' ? 'doing' : '');
+        var badge = t.state === 'done' ? (t.score + ' 分')
+          : (t.state === 'doing' ? '进行中' : '未开始');
+        var d = document.createElement('div');
+        d.className = 'tp-task ' + cls;
+        d.innerHTML =
+          '<div class="tp-t"><b>' + t.title + '</b><span class="tp-badge">' + badge + '</span></div>' +
+          '<p class="tp-goal">' + t.goal + '</p>' +
+          (t.live && t.state === 'doing' ? '<div class="tp-live">' + t.live + '</div>' : '') +
+          (t.detail ? '<div class="tp-live">✓ ' + t.detail + '</div>' : '') +
+          '<div class="tp-actions"><button data-i="' + i + '"' +
+          (t.state === 'doing' ? ' class="primary"' : '') + '>' +
+          (t.state === 'done' ? '重做' : (t.state === 'doing' ? '重置' : '开始')) + '</button></div>' +
+          '<div class="tp-hint">' + t.hint + '</div>';
+        list.appendChild(d);
+      });
+      var tot = TR.total();
+      total.textContent = tot.sum;
+      list.scrollTop = sc;
+    }
+
+    list.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-i]');
+      if (!b) return;
+      TR.start(+b.dataset.i);
+    });
+
+    TR.onUpdate = render;
+
+    openBtn.addEventListener('click', function () {
+      var on = panel.classList.toggle('hidden');
+      openBtn.classList.toggle('on', !on);
+      var rp = document.getElementById('panel-right');
+      if (rp) rp.style.display = on ? '' : 'none';
+      if (!on) render();
+    });
+    document.getElementById('train-close').addEventListener('click', function () {
+      panel.classList.add('hidden');
+      openBtn.classList.remove('on');
+      var rp = document.getElementById('panel-right');
+      if (rp) rp.style.display = '';
+      if (repBox) repBox.classList.add('hidden');
+    });
+
+    nameIn.addEventListener('input', function () { TR.student.name = this.value; });
+    noIn.addEventListener('input', function () { TR.student.no = this.value; });
+
+    repBtn.addEventListener('click', function () {
+      repBox.value = TR.report();
+      repBox.classList.remove('hidden');
+      repBox.focus();
+      repBox.select();
+    });
+    repBox.addEventListener('blur', function () { repBox.classList.add('hidden'); });
+
+    render();
   }
 
   /* ---------------- 脚本控制面板 ---------------- */

@@ -177,6 +177,7 @@
     if (w.SCRIPT) w.SCRIPT.update(dtSim);
     KT.updateGrab(dtSim);
     updateUnload(dtSim);
+    if (w.TRAIN) w.TRAIN.update();
     if (!DEMO.running) ST.sandFlow = Math.max(0, ST.sandFlow - dtSim * 5);
 
     KT.update(dtSim);
@@ -235,6 +236,11 @@
     KT.set('travel', num('travel', 0));
     KT.set('grab', num('grab', 1));
     if (q.get('speed')) UI.setSpeed(num('speed', 1));
+    if (q.get('train') === '1') {
+      var tp = document.getElementById('train-panel');
+      var tb = document.getElementById('train-open');
+      if (tp) { tp.classList.remove('hidden'); if (tb) tb.classList.add('on'); }
+    }
     if (q.get('ai') === '1') {
       var apn = document.getElementById('ai-panel');
       if (apn) apn.classList.remove('hidden');

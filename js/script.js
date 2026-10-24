@@ -156,6 +156,7 @@
     if (w.DEMO && w.DEMO.running) w.DEMO.stop();
     S._next();
     S._notify();
+    if (w.TRAIN) w.TRAIN.onScriptEvent({ event: 'start' });
     return true;
   };
 
@@ -175,6 +176,7 @@
       S.running = false;
       S.status = '执行完毕（' + S.lines.length + ' 条）';
       S._notify();
+      if (w.TRAIN) w.TRAIN.onScriptEvent({ event: 'done' });
       return;
     }
     c.def.apply(c.val);
