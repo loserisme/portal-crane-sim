@@ -242,6 +242,7 @@
     if (q.get('demo') === '1') DEMO.start();
 
     KT.snap();
+    UI.syncSliders();
     CRANE.update(ST);
 
     requestAnimationFrame(loop);

@@ -254,7 +254,7 @@
   AI.init = function () {
     AI.loadCfg();
 
-    var fab = document.getElementById('ai-fab');
+    var fab = document.getElementById('ai-open');
     var panel = document.getElementById('ai-panel');
     var input = document.getElementById('ai-input');
     var send = document.getElementById('ai-send');
@@ -278,7 +278,7 @@
       }
     }
 
-    fab.addEventListener('click', function () { openPanel(panel.classList.contains('hidden')); });
+    fab.addEventListener('click', function () { openPanel(true); });
     btnClose.addEventListener('click', function () { openPanel(false); });
 
     btnSetup.addEventListener('click', function () {
