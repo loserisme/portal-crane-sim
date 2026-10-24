@@ -153,9 +153,9 @@
 
   function autoQuality(dt, fps) {
     if (SCENE.qualityManual) return;      // 手动选过就不再干预
-    if (fps < 26) lowT += 0.5;
+    if (fps < 22) lowT += 0.5;        // 只有明显掉帧才介入
     else lowT = Math.max(0, lowT - 0.25);
-    if (lowT < 3) return;
+    if (lowT < 6) return;             // 连续约 6 秒才降档，避免一瞬间抖动就降
     lowT = 0;
     if (SCENE.quality === 'high') { SCENE.setQuality('mid'); UI.setQuality('mid'); }
     else if (SCENE.quality === 'mid') { SCENE.setQuality('low'); UI.setQuality('low'); }
