@@ -62,9 +62,10 @@
       <button id="btn-demo" class="primary">▶ 作业循环</button>
       <button id="btn-reset">复位</button>
     </div>
-    <div class="btnrow2">
+    <div class="btnrow3">
       <button id="code-open">&lt;/&gt; 脚本</button>
-      <button id="ai-open">AI 助手</button>
+      <button id="py-open">Py</button>
+      <button id="ai-open">AI 控制</button>
     </div>
   </section>
 
@@ -170,6 +171,22 @@
 </aside>
 <textarea id="tp-report" class="hidden" readonly></textarea>
 
+<div id="py-panel" class="hidden">
+  <div class="code-head">
+    <span>Python 控制</span>
+    <button id="py-close" class="iconbtn">×</button>
+  </div>
+  <textarea id="py-text" spellcheck="false"></textarea>
+  <div class="code-foot">
+    <button id="py-run" class="primary">▶ 运行</button>
+    <button id="py-stop">停止</button>
+    <button id="py-sample">定量抓取</button>
+    <button id="py-sway">防摇摆</button>
+    <span id="py-status">未加载</span>
+  </div>
+  <pre id="py-console"></pre>
+</div>
+
 <div id="code-panel" class="hidden">
   <div class="code-head">
     <span>脚本控制</span>
@@ -186,7 +203,7 @@
 
 <div id="ai-panel" class="hidden">
   <div class="ai-head">
-    <span>AI 助手</span>
+    <span>AI 控制</span>
     <div>
       <button id="ai-setup" class="iconbtn" title="接口设置">⚙</button>
       <button id="ai-close" class="iconbtn" title="关闭">×</button>
@@ -194,7 +211,7 @@
   </div>
   <div id="ai-msgs"></div>
   <div id="ai-input-row">
-    <textarea id="ai-input" rows="1" placeholder="例如：把抓斗转到船上，下到沙面抓一斗"></textarea>
+    <textarea id="ai-input" rows="1" placeholder="例如：写一段定量抓取的 Python 控制"></textarea>
     <button id="ai-send">发送</button>
   </div>
   <div id="ai-setup-panel" class="hidden">
@@ -221,6 +238,7 @@
 <script src="js/kinematics.js"></script>
 <script src="js/script.js"></script>
 <script src="js/ai.js"></script>
+<script src="js/python.js"></script>
 <script src="js/train.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/main.js"></script>

@@ -41,11 +41,13 @@
 
   /* ---------------- 系统提示 ---------------- */
   var SYS = [
-    '你是门座式起重机（抓斗门机）的操作助手，可以直接控制当前网页里的仿真门机。',
+    '你是门座式起重机（抓斗门机）的控制助手，可以直接控制当前网页里的仿真门机，也能为学生编写控制程序。',
     '设备参数：轨距 10 m、基距 12.6 m、臂架 24 m、工作幅度 22.2~32.7 m、起升高度 0.45~26 m、回转 ±180°、大车 ±26 m。',
     '场景：散货船在正前方（回转 -90°、幅度 30 m 附近），船舱内沙面约 2.55 m 高；自卸卡车在 x=23 m 处（回转 0°、幅度 23 m）。',
     '抓斗开度 0~100：0 为闭合，100 为全开。抓取量取决于下放深度与开度，插得深、开得大才抓得满。',
-    '需要操作设备时调用工具，不要只在文字里描述。一次可以调用多个工具。',
+    '平台提供两套编程入口：脚本（行式指令，适合流程编排）与 Python（真 CPython，适合算法控制）。'
+    + '用户要算法、闭环、反馈、防摇摆、定量抓取时，写 Python；只是流程动作时，写脚本。'
+    + '需要操作设备时调用工具，不要只在文字里描述。一次可以调用多个工具。',
     '回答用简体中文，简短直接，不要复述参数表。',
   ].join('\n');
 
@@ -105,6 +107,36 @@
         },
       },
     },
+    {
+      type: 'function',
+      function: {
+        name: 'write_script',
+        description: '把行式指令脚本写入「脚本」页（不自动运行）。每行一条：回转/变幅/起升/抓斗/行走/装载/等待/速度/复位。',
+        parameters: {
+          type: 'object',
+          properties: {
+            code: { type: 'string', description: '脚本文本，# 开头为注释' },
+            run: { type: 'boolean', description: '是否立即运行，默认 false' },
+          },
+          required: ['code'],
+        },
+      },
+    },
+    {
+      type: 'function',
+      function: {
+        name: 'write_python',
+        description: '把 Python 控制程序写入「Python」页（不自动运行）。必须定义 control(dt) 作为每帧回调，可选 setup()。可用 crane.status()/crane.slew()/crane.hoist()/crane.grab()/crane.radius()/crane.log()。',
+        parameters: {
+          type: 'object',
+          properties: {
+            code: { type: 'string', description: 'Python 源码，需包含 control(dt)' },
+            run: { type: 'boolean', description: '是否立即运行，默认 false' },
+          },
+          required: ['code'],
+        },
+      },
+    },
   ];
 
   function execTool(name, args) {
@@ -139,6 +171,21 @@
       if (name === 'set_speed') {
         if (w.UI) w.UI.setSpeed(args.speed);
         return '倍速已设为 ' + args.speed + '×';
+      }
+      if (name === 'write_script') {
+        if (!w.UI || !w.UI.setScriptCode) return '脚本面板不可用';
+        w.UI.setScriptCode(args.code);
+        if (args.run && w.SCRIPT) { w.SCRIPT.run(args.code); return '已写入脚本页并开始运行'; }
+        return '已写入脚本页（未运行）';
+      }
+      if (name === 'write_python') {
+        if (!w.UI || !w.UI.setPyCode) return 'Python 面板不可用';
+        w.UI.setPyCode(args.code);
+        if (args.run && w.PY) {
+          w.PY.run(args.code);
+          return '已写入 Python 页并开始运行（首次会加载 Pyodide，约需数秒）';
+        }
+        return '已写入 Python 页（未运行）';
       }
       return '未知工具：' + name;
     } catch (e) {
@@ -317,8 +364,8 @@
       AI.msgs.push({
         role: 'assistant',
         content: AI.cfg.key
-          ? '你好，我可以直接操作这台门机。试试：「把抓斗转到船上，下到沙面抓一斗，再卸到卡车上」。'
-          : '你好。先点右上角齿轮填入 API Key（默认 DeepSeek），之后我就能帮你操作门机、解释参数或编写指令脚本。Key 只存在本机浏览器里。',
+          ? '你好，我可以直接操作这台门机，也能给你写控制程序。试试：「把抓斗转到船上抓一斗再卸到卡车上」，或者「写一段防摇摆的 Python 控制」。'
+          : '你好。先点右上角齿轮填入 API Key（默认 DeepSeek），之后我就能帮你操作门机、编写脚本或 Python 控制程序。Key 只存在本机浏览器里。',
       });
       render();
     }

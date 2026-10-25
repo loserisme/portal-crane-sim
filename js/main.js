@@ -178,6 +178,7 @@
     KT.updateGrab(dtSim);
     updateUnload(dtSim);
     if (w.TRAIN) w.TRAIN.update();
+    if (w.PY) w.PY.update(dtSim);
     if (!DEMO.running) ST.sandFlow = Math.max(0, ST.sandFlow - dtSim * 5);
 
     KT.update(dtSim);

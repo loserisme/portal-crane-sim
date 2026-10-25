@@ -62,6 +62,7 @@
     bindChips();
     bindViews();
     bindScript();
+    bindPython();
     bindTrain();
     buildTags();
     resizeChart();
@@ -166,6 +167,77 @@
     });
   }
 
+  /* ---------------- Python 控制面板 ---------------- */
+  function bindPython() {
+    var panel = document.getElementById('py-panel');
+    var ta = document.getElementById('py-text');
+    var run = document.getElementById('py-run');
+    var stop = document.getElementById('py-stop');
+    var close = document.getElementById('py-close');
+    var open = document.getElementById('py-open');
+    var st = document.getElementById('py-status');
+    var con = document.getElementById('py-console');
+    var s1 = document.getElementById('py-sample');
+    var s2 = document.getElementById('py-sway');
+    if (!panel || !w.PY) return;
+
+    ta.value = w.PY.SAMPLE;
+
+    w.PY.onPrint = function (line) {
+      con.textContent += line + '\n';
+      con.scrollTop = con.scrollHeight;
+    };
+    w.PY.onUpdate = function (p) {
+      if (p.running) {
+        st.textContent = '运行中 ' + p.elapsed.toFixed(1) + 's';
+        st.className = 'run';
+      } else if (p.error) {
+        st.textContent = p.error.slice(0, 28);
+        st.className = 'err';
+      } else {
+        st.textContent = p.ready ? '就绪' : '未加载';
+        st.className = '';
+      }
+    };
+
+    function showPanel(on) {
+      panel.classList.toggle('hidden', !on);
+      if (on) {
+        var cp = document.getElementById('code-panel');
+        var ap = document.getElementById('ai-panel');
+        if (cp) cp.classList.add('hidden');
+        if (ap) ap.classList.add('hidden');
+        ta.focus();
+      }
+    }
+
+    open.addEventListener('click', function () { showPanel(true); });
+    close.addEventListener('click', function () { showPanel(false); });
+
+    run.addEventListener('click', function () {
+      con.textContent = '';
+      st.textContent = '加载中…';
+      st.className = '';
+      w.PY.run(ta.value);
+    });
+    stop.addEventListener('click', function () { w.PY.stop(); });
+    s1.addEventListener('click', function () { ta.value = w.PY.SAMPLE; });
+    s2.addEventListener('click', function () { ta.value = w.PY.SAMPLE_SWAY; });
+
+    /* 供 AI 写入 */
+    UI.setPyCode = function (code) {
+      ta.value = code;
+      showPanel(true);
+    };
+
+    ta.addEventListener('keydown', function (e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        run.click();
+      }
+    });
+  }
+
   /* ---------------- 实训面板 ---------------- */
   function bindTrain() {
     var panel = document.getElementById('train-panel');
@@ -264,8 +336,19 @@
       panel.classList.remove('hidden');
       var ap = document.getElementById('ai-panel');
       if (ap) ap.classList.add('hidden');
+      var pp = document.getElementById('py-panel');
+      if (pp) pp.classList.add('hidden');
       ta.focus();
     });
+
+    UI.setScriptCode = function (code) {
+      ta.value = code;
+      panel.classList.remove('hidden');
+      var ap = document.getElementById('ai-panel');
+      if (ap) ap.classList.add('hidden');
+      var pp = document.getElementById('py-panel');
+      if (pp) pp.classList.add('hidden');
+    };
     close.addEventListener('click', function () { panel.classList.add('hidden'); });
 
     run.addEventListener('click', function () {
