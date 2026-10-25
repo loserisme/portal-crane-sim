@@ -152,9 +152,40 @@
       }),
       rail: U.paint(0x6c7884, { metalness: 0.65, roughness: 0.42 }),
       tie: U.paint(0xaab2bb, { metalness: 0.05, roughness: 0.9 }),
-      water: new THREE.MeshStandardMaterial({
-        color: 0x5c7f99, metalness: 0.70, roughness: 0.18,
-      }),
+      water: (function () {
+        var cv = document.createElement('canvas');
+        cv.width = cv.height = 512;
+        var g = cv.getContext('2d');
+        g.fillStyle = '#7f95a6';
+        g.fillRect(0, 0, 512, 512);
+        /* 波纹：多层随机短弧，模拟风浪 */
+        for (var i = 0; i < 900; i++) {
+          var x = Math.random() * 512, y = Math.random() * 512;
+          var r = 6 + Math.random() * 26;
+          var a0 = Math.random() * Math.PI * 2;
+          g.beginPath();
+          g.arc(x, y, r, a0, a0 + 0.5 + Math.random() * 0.7);
+          g.strokeStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.13) + ')';
+          g.lineWidth = 0.8 + Math.random() * 2.2;
+          g.stroke();
+        }
+        for (var j = 0; j < 500; j++) {
+          var x2 = Math.random() * 512, y2 = Math.random() * 512;
+          g.beginPath();
+          g.arc(x2, y2, 3 + Math.random() * 14, 0, Math.PI * 2);
+          g.fillStyle = 'rgba(38,66,84,' + (0.05 + Math.random() * 0.12) + ')';
+          g.fill();
+        }
+        var t = new THREE.CanvasTexture(cv);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.repeat.set(26, 26);
+        t.anisotropy = 4;
+        t.encoding = THREE.sRGBEncoding;
+        return new THREE.MeshStandardMaterial({
+          color: 0x5d7f96, metalness: 0.62, roughness: 0.30,
+          map: t, bumpMap: t, bumpScale: 0.35,
+        });
+      })(),
     };
 
     var water = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), M.water);
@@ -162,6 +193,7 @@
     water.position.set(0, -1.55, 0);
     water.receiveShadow = true;
     scene.add(water);
+    S.water = water;
 
     var quay = new THREE.Mesh(new THREE.BoxGeometry(170, 2.4, 46), M.concrete);
     quay.position.set(0, -1.2, -7.0);
@@ -267,26 +299,60 @@
   S._ship = function (scene) {
     var sh = C.scene.ship;
     var hullM = U.paint(C.colors.hull, { metalness: 0.55, roughness: 0.48 });
-    var deckM = U.paint(0x59636e, { metalness: 0.30, roughness: 0.68 });
+    var deckM = U.paint(0x46515c, { metalness: 0.32, roughness: 0.66 });
     var white = U.paint(0xe6eaee, { metalness: 0.15, roughness: 0.72 });
-    var sandM = new THREE.MeshStandardMaterial({ color: C.colors.sand, metalness: 0.02, roughness: 0.95, emissive: 0x4a3a1c, emissiveIntensity: 0.95 });
+    var sandM = new THREE.MeshStandardMaterial({ color: 0xb0905a, metalness: 0.02, roughness: 0.95, emissive: 0x3a2c14, emissiveIntensity: 0.45 });
 
     var L = sh.length, B = sh.width, Z = sh.z, X = sh.x;
     var deckY = sh.deckY;
 
-    /* 船体：底舱 + 舷侧（顶部开放，否则会遮住舱内物料） */
-    var hp = [];
-    hp.push(U.box(L, 6.4, B, X, -1.2, Z));
-    hp.push(U.box(L - 3.0, 2.0, B - 2.2, X, -4.2, Z));
-    for (var hsd = -1; hsd <= 1; hsd += 2) {
-      hp.push(U.box(L, 2.40, 0.40, X, 3.20, Z + hsd * (B / 2 - 0.20)));
+    /* 船体轮廓：首尾用二次曲线收窄的放样形（俯视轮廓挤出成型） */
+    function hullShape(len, wid, bow, stern) {
+      var hl = len / 2, hb = wid / 2;
+      var sp = new THREE.Shape();
+      sp.moveTo(-hl + stern, -hb);
+      sp.lineTo(hl - bow, -hb);
+      sp.quadraticCurveTo(hl - bow * 0.22, -hb, hl, -hb * 0.40);
+      sp.quadraticCurveTo(hl + bow * 0.18, 0, hl, hb * 0.40);
+      sp.quadraticCurveTo(hl - bow * 0.22, hb, hl - bow, hb);
+      sp.lineTo(-hl + stern, hb);
+      sp.quadraticCurveTo(-hl + stern * 0.30, hb, -hl, hb * 0.58);
+      sp.quadraticCurveTo(-hl - stern * 0.10, 0, -hl, -hb * 0.58);
+      sp.quadraticCurveTo(-hl + stern * 0.30, -hb, -hl + stern, -hb);
+      return sp;
     }
-    hp.push(U.box(0.40, 2.40, B, X - L / 2 + 0.20, 3.20, Z));
-    hp.push(U.box(0.40, 2.40, B, X + L / 2 - 0.20, 3.20, Z));
-    /* 首尾斜削 */
-    hp.push(U.box(4.2, 6.4, B * 0.72, X + L / 2 + 1.6, -1.2, Z));
-    hp.push(U.box(3.0, 6.4, B * 0.86, X - L / 2 - 1.0, -1.2, Z));
-    U.mesh(U.merge(hp), hullM, scene);
+
+    /* 水线以下：实心船体（红棕防污漆） */
+    var gUnder = new THREE.ExtrudeGeometry(
+      hullShape(L - 0.5, B - 0.7, 11.5, 5.5),
+      { depth: 6.4, bevelEnabled: false, curveSegments: 18 });
+    gUnder.rotateX(-Math.PI / 2);
+    gUnder.translate(X, -4.4, Z);
+    var underM = U.paint(0x7d4038, { metalness: 0.35, roughness: 0.72 });
+    var mUnder = new THREE.Mesh(gUnder, underM);
+    mUnder.castShadow = true; mUnder.receiveShadow = true;
+    scene.add(mUnder);
+
+    /* 水线以上舷侧：环形壳（挖去内部，保证舱口通透） */
+    var outerS = hullShape(L, B, 12.5, 6.0);
+    var innerPts = hullShape(L - 1.0, B - 1.0, 11.7, 5.4).getPoints(80).reverse();
+    var holeP = new THREE.Path();
+    holeP.setFromPoints(innerPts);
+    outerS.holes.push(holeP);
+    var gSide = new THREE.ExtrudeGeometry(outerS,
+      { depth: 2.45, bevelEnabled: false, curveSegments: 18 });
+    gSide.rotateX(-Math.PI / 2);
+    gSide.translate(X, 2.0, Z);
+    var mSide = new THREE.Mesh(gSide, hullM);
+    mSide.castShadow = true; mSide.receiveShadow = true;
+    scene.add(mSide);
+
+    /* 水线带（亮色分界） */
+    var blt = [];
+    for (var bsd = -1; bsd <= 1; bsd += 2) {
+      blt.push(U.box(L - 18, 0.28, 0.14, X, 2.05, Z + bsd * (B / 2 - 0.02)));
+    }
+    U.mesh(U.merge(blt), U.paint(0xd8dde2, { roughness: 0.6, metalness: 0.2 }), scene, false);
 
     /* 甲板：环绕舱口分块铺装，中间留出开口 */
     var hx0p = sh.holdX0, hx1p = sh.holdX1, hwp = sh.holdHalfW;
@@ -303,12 +369,37 @@
 
     U.mesh(U.merge(dk), deckM, scene);
 
-    /* 舷墙 */
-    var bw = [];
-    for (var s = -1; s <= 1; s += 2) {
-      bw.push(U.box(L, 1.25, 0.36, X, deckY + 0.72, Z + s * (B / 2 - 0.22)));
+    /* 舷墙：沿船体轮廓的薄环，首尾自然跟随曲线 */
+    var wOut = hullShape(L - 0.2, B - 0.2, 12.3, 5.9);
+    var wInPts = hullShape(L - 1.1, B - 1.1, 11.8, 5.5).getPoints(80).reverse();
+    var wHole = new THREE.Path();
+    wHole.setFromPoints(wInPts);
+    wOut.holes.push(wHole);
+    var gWall = new THREE.ExtrudeGeometry(wOut,
+      { depth: 0.92, bevelEnabled: false, curveSegments: 18 });
+    gWall.rotateX(-Math.PI / 2);
+    gWall.translate(X, deckY - 0.02, Z);
+    var mWall = new THREE.Mesh(gWall, hullM);
+    mWall.castShadow = true; mWall.receiveShadow = true;
+    scene.add(mWall);
+
+    /* 舷墙顶栏杆 */
+    var rail = [];
+    var railPts = hullShape(L - 0.55, B - 0.55, 12.1, 5.8).getPoints(64);
+    for (var ri = 0; ri < railPts.length - 1; ri += 2) {
+      var rp = railPts[ri];
+      rail.push(U.tube(
+        { x: X + rp.x, y: deckY + 0.90, z: Z - rp.y },
+        { x: X + rp.x, y: deckY + 1.32, z: Z - rp.y }, 0.035, 4));
     }
-    U.mesh(U.merge(bw), hullM, scene);
+    for (var rj = 0; rj < railPts.length - 1; rj++) {
+      var a1 = railPts[rj], a2 = railPts[rj + 1];
+      if (rj % 2) continue;
+      rail.push(U.tube(
+        { x: X + a1.x, y: deckY + 1.31, z: Z - a1.y },
+        { x: X + a2.x, y: deckY + 1.31, z: Z - a2.y }, 0.03, 4));
+    }
+    U.mesh(U.merge(rail), U.paint(0xd6dbe0, { metalness: 0.6, roughness: 0.45 }), scene, false);
 
     /* 货舱：开口 + 舱内沙堆 */
     var hx0 = sh.holdX0, hx1 = sh.holdX1;
@@ -346,7 +437,19 @@
     sb.push(U.box(13, 8.2, B - 2.4, X - L / 2 + 8, deckY + 4.1, Z));
     sb.push(U.box(15, 0.5, B - 1.8, X - L / 2 + 8, deckY + 8.5, Z));
     sb.push(U.box(2.8, 1.6, 2.8, X - L / 2 + 6, deckY + 11.0, Z));
+    /* 烟囱 */
+    var fun = new THREE.CylinderGeometry(0.95, 1.15, 4.2, 14);
+    fun.applyMatrix4(new THREE.Matrix4().makeTranslation(X - L / 2 + 3.4, deckY + 10.2, Z));
+    sb.push(fun);
+    /* 船楼前后围壁 */
+    sb.push(U.box(0.35, 3.2, B - 3.0, X - L / 2 + 1.4, deckY + 1.6, Z));
+    sb.push(U.box(0.35, 3.2, B - 3.0, X - L / 2 + 14.6, deckY + 1.6, Z));
     U.mesh(U.merge(sb), white, scene);
+    var cap = new THREE.CylinderGeometry(1.05, 1.05, 0.55, 14);
+    cap.applyMatrix4(new THREE.Matrix4().makeTranslation(X - L / 2 + 3.4, deckY + 12.5, Z));
+    var mCap = new THREE.Mesh(cap, U.paint(0x2b3542, { metalness: 0.4, roughness: 0.6 }));
+    mCap.castShadow = true;
+    scene.add(mCap);
 
     var wins = [];
     for (var k = 0; k < 3; k++) {
@@ -367,46 +470,88 @@
     var bodyM = U.paint(0x2f6fb5, { metalness: 0.45, roughness: 0.42 });
     var darkM = U.paint(0x2c3642, { metalness: 0.5, roughness: 0.55 });
     var tireM = U.paint(0x1e242b, { metalness: 0.1, roughness: 0.9 });
-    var sandM = new THREE.MeshStandardMaterial({ color: C.colors.sand, metalness: 0.02, roughness: 0.95, emissive: 0x4a3a1c, emissiveIntensity: 0.95 });
+    var sandM = new THREE.MeshStandardMaterial({ color: 0xb0905a, metalness: 0.02, roughness: 0.95, emissive: 0x3a2c14, emissiveIntensity: 0.45 });
 
     var X = tk.x, Z = tk.z;
     var g = [];
 
-    /* 车架 */
-    g.push(U.box(8.6, 0.42, 2.35, X, 0.86, Z));
+    /* 车架（大梁 + 横梁） */
+    g.push(U.box(10.8, 0.46, 2.46, X, 0.98, Z));
+    for (var cr = -1; cr <= 1; cr += 2) {
+      g.push(U.box(10.4, 0.30, 0.30, X, 1.30, Z + cr * 0.92));
+    }
 
-    /* 车轮 */
+    /* 车轮：前后各两轴，共 8 个 */
+    var wr = 0.74;
     for (var a = -1; a <= 1; a += 2) {
       for (var b = -1; b <= 1; b += 2) {
-        var wg = new THREE.CylinderGeometry(0.62, 0.62, 0.42, 18);
-        wg.applyMatrix4(new THREE.Matrix4()
-          .makeRotationX(Math.PI / 2)
-          .premultiply(new THREE.Matrix4()
-            .makeTranslation(X + a * 2.6 + (b > 0 ? 0 : -0.9), 0.62, Z + b * 0.95)));
-        g.push(wg);
+        for (var c2 = 0; c2 < 2; c2++) {
+          var wx = X + a * 3.30 + (a > 0 ? c2 * 1.42 : -c2 * 1.42);
+          var wg = new THREE.CylinderGeometry(wr, wr, 0.50, 20);
+          wg.applyMatrix4(new THREE.Matrix4()
+            .makeRotationX(Math.PI / 2)
+            .premultiply(new THREE.Matrix4()
+              .makeTranslation(wx, wr, Z + b * 1.02)));
+          g.push(wg);
+        }
       }
     }
     U.mesh(U.merge(g), darkM, scene);
 
+    /* 轮毂 */
+    var hub = [];
+    for (var ha = -1; ha <= 1; ha += 2) {
+      for (var hb = -1; hb <= 1; hb += 2) {
+        for (var hc = 0; hc < 2; hc++) {
+          var hx = X + ha * 3.30 + (ha > 0 ? hc * 1.42 : -hc * 1.42);
+          var hg = new THREE.CylinderGeometry(0.34, 0.34, 0.56, 14);
+          hg.applyMatrix4(new THREE.Matrix4()
+            .makeRotationX(Math.PI / 2)
+            .premultiply(new THREE.Matrix4()
+              .makeTranslation(hx, wr, Z + hb * 1.04)));
+          hub.push(hg);
+        }
+      }
+    }
+    U.mesh(U.merge(hub), U.paint(0x9aa4b0, { metalness: 0.75, roughness: 0.4 }), scene, false);
+
     /* 驾驶室 */
     var cabG = [];
-    cabG.push(U.box(2.3, 2.10, 2.35, X + 3.55, 2.15, Z));
-    cabG.push(U.box(2.4, 0.35, 2.45, X + 3.55, 3.30, Z));
+    cabG.push(U.box(2.55, 2.45, 2.52, X + 4.35, 2.42, Z));
+    cabG.push(U.box(2.68, 0.38, 2.62, X + 4.35, 3.78, Z));
+    /* 前保险杠与踏板 */
+    cabG.push(U.box(0.35, 0.55, 2.60, X + 5.68, 1.18, Z));
+    cabG.push(U.box(2.2, 0.16, 0.55, X + 4.35, 1.34, Z + 1.35));
     U.mesh(U.merge(cabG), bodyM, scene);
 
-    var win = U.box(0.05, 0.95, 2.0, X + 4.71, 2.55, Z);
+    var win = U.box(0.06, 1.12, 2.16, X + 5.66, 2.92, Z);
     U.mesh(win, U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), scene, false);
+    for (var wsd = -1; wsd <= 1; wsd += 2) {
+      U.mesh(U.box(2.1, 0.95, 0.05, X + 4.15, 2.92, Z + wsd * 1.27),
+        U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), scene, false);
+    }
+    /* 排气管 */
+    U.mesh(U.tube(
+      { x: X + 3.15, y: 3.35, z: Z - 1.28 },
+      { x: X + 3.15, y: 4.55, z: Z - 1.28 }, 0.11, 8),
+      U.paint(0x76808c, { metalness: 0.8, roughness: 0.42 }), scene);
 
     /* 车厢（开口斗） */
     var bedY = tk.bedY, bl = tk.bedL, bw2 = tk.bedW;
-    var bedX = X - 1.2;
+    var bedX = X - 1.35;
     var bed = [];
-    bed.push(U.box(bl, 0.20, bw2, bedX, bedY, Z));
-    bed.push(U.box(bl, 1.15, 0.14, bedX, bedY + 0.62, Z + bw2 / 2));
-    bed.push(U.box(bl, 1.15, 0.14, bedX, bedY + 0.62, Z - bw2 / 2));
-    bed.push(U.box(0.14, 1.15, bw2, bedX - bl / 2, bedY + 0.62, Z));
+    bed.push(U.box(bl, 0.22, bw2, bedX, bedY, Z));
+    bed.push(U.box(bl, 1.42, 0.16, bedX, bedY + 0.75, Z + bw2 / 2));
+    bed.push(U.box(bl, 1.42, 0.16, bedX, bedY + 0.75, Z - bw2 / 2));
+    bed.push(U.box(0.16, 1.42, bw2, bedX - bl / 2, bedY + 0.75, Z));
     /* 尾门 */
-    bed.push(U.box(0.16, 1.30, bw2, bedX + bl / 2, bedY + 0.66, Z));
+    bed.push(U.box(0.18, 1.58, bw2, bedX + bl / 2, bedY + 0.80, Z));
+    /* 侧板加强筋 */
+    for (var rb = -1; rb <= 1; rb += 2) {
+      for (var rk = -2; rk <= 2; rk++) {
+        bed.push(U.box(0.10, 1.30, 0.09, bedX + rk * bl / 6, bedY + 0.74, Z + rb * (bw2 / 2 + 0.03)));
+      }
+    }
     U.mesh(U.merge(bed), bodyM, scene);
 
     /* 斗内沙堆（高度随装载量变化） */

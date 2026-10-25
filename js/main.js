@@ -120,7 +120,7 @@
 
   function overTruck(gp) {
     var t = C.scene.truck;
-    return Math.abs(gp.x - t.x) < 5.0 && Math.abs(gp.z - t.z) < 2.2;
+    return Math.abs(gp.x - t.x) < 6.2 && Math.abs(gp.z - t.z) < 2.6;
   }
 
   function updateUnload(dt) {

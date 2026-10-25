@@ -98,14 +98,14 @@ window.CFG = {
       x: 0, z: 30.5, length: 92, width: 18.5,
       deckY: 4.2,            // 甲板面高度
       holdY: 2.55,           // 舱内沙面高度（接近满载）
-      holdHalfW: 5.4,        // 舱口半宽
-      holdX0: -26, holdX1: 26,
+      holdHalfW: 7.0,        // 舱口半宽（散货船舱口接近船宽）
+      holdX0: -30, holdX1: 30,
       capacity: 14,          // 舱容（满斗数），抓完约剩空舱
     },
     truck: {
       x: 23.0, z: 0.8,       // 车厢中心（世界坐标）
-      bedY: 1.62,            // 车厢底板高度
-      bedL: 7.2, bedW: 2.5,
+      bedY: 1.84,            // 车厢底板高度
+      bedL: 9.2, bedW: 2.62,
       capacity: 3,           // 装满所需抓斗数
     },
   },
