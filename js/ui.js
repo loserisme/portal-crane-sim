@@ -611,6 +611,23 @@
     nameIn.addEventListener('input', function () { TR.student.name = this.value; });
     noIn.addEventListener('input', function () { TR.student.no = this.value; });
 
+    var docxBtn = document.getElementById('train-docx');
+    if (docxBtn) {
+      docxBtn.addEventListener('click', function () {
+        if (!w.REPORT_DOCX) return;
+        docxBtn.disabled = true;
+        docxBtn.textContent = '生成中…';
+        w.REPORT_DOCX.export(TR).then(function (name) {
+          docxBtn.textContent = '已下载';
+          if (w.STATS) w.STATS.track('docx');
+          setTimeout(function () { docxBtn.textContent = '导出 Word'; docxBtn.disabled = false; }, 1800);
+        }).catch(function (e) {
+          docxBtn.textContent = '失败：' + e.message.slice(0, 10);
+          setTimeout(function () { docxBtn.textContent = '导出 Word'; docxBtn.disabled = false; }, 2400);
+        });
+      });
+    }
+
     repBtn.addEventListener('click', function () {
       if (w.STATS) {
         w.STATS.track('report');
