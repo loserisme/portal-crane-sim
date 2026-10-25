@@ -179,12 +179,70 @@ Key 只写在本机 `localStorage`（键名 `portalcrane.ai.cfg`），不经过�
 | `run_script` | 执行多行指令脚本（复用上面的脚本引擎） |
 | `get_status` | 读取当前机构位置、斗内物料、舱内余料、卡车装载 |
 | `set_speed` | 设置仿真倍速 |
+| `write_script` | 把脚本写入「脚本」页（可选立即运行） |
+| `write_python` | 把 Python 程序写入「Python」页（可选立即运行） |
 
 例如说「把抓斗转到船上，下到沙面抓一斗，再卸到卡车上」，它会连续调用 `set_crane` 与 `run_script`，并在两轮之间读状态确认。
 
 > 浏览器直连第三方 API 会遇到 CORS 限制。DeepSeek 官方接口允许跨域直连；若换成不支持的地址，面板会提示 CORS 错误，此时需要一个允许跨域的网关或本地代理。
 
-## 11. 实训模式
+## 11. Python 控制
+
+左侧「Py」按钮打开面板，在浏览器里跑**真正的 CPython**（Pyodide / WebAssembly），用于算法级控制。
+
+首次运行需下载运行时（约 8 MB，10~30 秒），之后走浏览器缓存。需要联网。
+
+### 接口
+
+```python
+crane.status()        # 返回 dict，见下表
+crane.slew(deg)       # 目标回转角
+crane.radius(m)       # 目标幅度
+crane.hoist(m)        # 目标起升高度
+crane.grab(v)         # 抓斗开度 0~1
+crane.travel(m)       # 大车位置
+crane.set(name, val)  # 通用设定
+crane.speed(x)        # 仿真倍速
+crane.log(*args)      # 输出到控制台
+crane.reset()         # 复位
+```
+
+`status()` 返回字段：
+
+| 字段 | 含义 |
+|---|---|
+| `slew` / `alpha` | 回转角、臂架仰角（度） |
+| `radius` / `hoist` | 工作幅度、起升高度（m） |
+| `grab` / `load` | 抓斗开度、斗内填充率（0~1） |
+| `holdLevel` / `holdRemain` | 舱内料面高度、剩余比例 |
+| `swayX` / `swayZ` | 吊物摆动偏角（rad） |
+| `swayVX` / `swayVZ` | 吊物摆动角速度（rad/s） |
+| `travel` / `truckLoad` | 大车位置、卡车装载斗数 |
+| `grabPos` | 抓斗世界坐标 `{x,y,z}` |
+
+### 程序结构
+
+必须定义 `control(dt)`，引擎每帧调用一次（`dt` 为仿真时间步长）；`setup()` 可选，运行前执行一次。
+
+```python
+def setup():
+    crane.slew(-90)
+    crane.radius(30)
+
+def control(dt):
+    st = crane.status()
+    if st["hoist"] > 5:
+        crane.hoist(5)
+```
+
+### 两个内置示例
+
+- **定量抓取**：按 `holdLevel` 算出应下放的高度（料面以下 1.15 m），开斗—下放—闭斗—提升，保证每斗都抓满
+- **防摇摆**：用 `swayZ` / `swayVZ` 做 PD 反馈，把补偿量叠加到回转目标上抑制摆动
+
+Python 适合闭环与算法；纯流程动作仍建议用脚本引擎（更轻，无需下载运行时）。
+
+## 12. 实训模式
 
 顶部「实训」按钮打开任务面板，面向《港口机械电气控制》《运动控制》类课程的仿真实训。五个任务由易到难，实时判定、自动计分，满分 500。
 
@@ -206,7 +264,7 @@ Key 只写在本机 `localStorage`（键名 `portalcrane.ai.cfg`），不经过�
 
 填写姓名学号后点「生成报告」，输出一份纯文本实训报告（含各任务得分、完成情况、操作记录），可直接复制粘贴交作业。
 
-## 12. 文件结构
+## 13. 文件结构
 
 ```
 portal-crane-sim/
@@ -220,6 +278,7 @@ portal-crane-sim/
 │  ├─ kinematics.js      折臂解算 + 抓斗状态 + 摆动动力学
 │  ├─ script.js          指令解析与顺序执行
 │  ├─ ai.js              AI 助手（DeepSeek / 自定义接口 + function calling）
+│  ├─ python.js          Python 控制（Pyodide 运行时 + crane 接口）
 │  ├─ train.js           实训任务定义、实时判定与计分
 │  ├─ ui.js              控件绑定、数据面板、特性曲线、标注
 │  └─ main.js            主循环、作业循环状态机、跟随视角
@@ -230,7 +289,7 @@ portal-crane-sim/
 
 ---
 
-## 13. 调试参数
+## 14. 调试参数
 
 ```
 index.html?radius=30&slew=-90&hoist=3&grab=1
@@ -245,13 +304,13 @@ index.html?train=1          启动即展开实训面板
 index.html?cam=13,43,31,1,38,22   相机置于指定位置（近景检查）
 ```
 
-## 14. 倍速实现
+## 15. 倍速实现
 
 倍速只压缩**仿真时间轴**：，物理积分仍用固定 1/240 s 子步，所以摆动周期、阻尼衰减等动力学特性不会因倍速而失真（相当于整段录像快放）。相机过渡、面板刷新仍按真实时间，不受影响。
 
 倍速提高时每帧子步数同步增加（4× 约 16 步/帧），上限按 4×@20 fps 留了余量。
 
-## 15. 已知简化
+## 16. 已知简化
 
 - 臂架、象鼻梁按刚体处理，未计弹性变形
 - 钢丝绳按直线段处理，未考虑垂度与缠绕层数
