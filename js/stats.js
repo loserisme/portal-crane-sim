@@ -11,8 +11,8 @@
   'use strict';
 
   /* ============ 配置区：只改这两行 ============ */
-  var SUPABASE_URL = '';
-  var SUPABASE_KEY = '';
+  var SUPABASE_URL = 'https://nzzrpytebouloppehxfy.supabase.co';
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56enJweXRlYm91bG9wcGVoeGZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5MjI5MTAsImV4cCI6MjEwODQ5ODkxMH0.fa-KLGFnHKldHMlnhQOwX7X5sN50bnlZkAEu1tBClXY';
   /* =========================================== */
 
   var S = {
