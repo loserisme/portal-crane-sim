@@ -69,24 +69,41 @@
     S.enabled = true;
     S.sid = ensureSid();
 
-    /* 记录本次访问 */
-    api('visits', {
+    /* 记录本次访问（走 RPC，由数据库从请求头取客户端 IP） */
+    api('rpc/log_visit', {
       method: 'POST',
       body: JSON.stringify({
-        sid: S.sid,
-        ua: (navigator.userAgent || '').slice(0, 140),
-        path: location.pathname,
+        p_sid: S.sid,
+        p_ua: (navigator.userAgent || '').slice(0, 140),
+        p_path: location.pathname,
       }),
     }).then(function (r) {
-      if (!r.ok) console.warn('[stats] visit insert', r.status);
-      S.refresh();
+      if (r.ok) { S.refresh(); return; }
+      /* RPC 还没建（未执行增量 SQL）时退回直接插入，仅少 IP 字段 */
+      return api('visits', {
+        method: 'POST',
+        body: JSON.stringify({
+          sid: S.sid,
+          ua: (navigator.userAgent || '').slice(0, 140),
+          path: location.pathname,
+        }),
+      }).then(function (r2) {
+        if (!r2.ok) console.warn('[stats] visit insert', r2.status);
+        S.refresh();
+      });
     }).catch(function (e) { console.warn('[stats] visit', e.message); });
 
     /* 心跳：每 2 分钟一条，用于实时在线人数 */
     setInterval(function () {
-      api('visits', {
+      api('rpc/log_visit', {
         method: 'POST',
-        body: JSON.stringify({ sid: S.sid, ua: 'heartbeat', path: location.pathname }),
+        body: JSON.stringify({ p_sid: S.sid, p_ua: 'heartbeat', p_path: location.pathname }),
+      }).then(function (r) {
+        if (r.ok) return;
+        return api('visits', {
+          method: 'POST',
+          body: JSON.stringify({ sid: S.sid, ua: 'heartbeat', path: location.pathname }),
+        });
       }).catch(function () {});
     }, 120000);
   };
@@ -149,7 +166,7 @@
   /* ---------------- 后台数据 ---------------- */
 
   S.fetchAll = function () {
-    if (!S.enabled) return Promise.reject(new Error('未配置 Supabase'));
+    if (!ready()) return Promise.reject(new Error('未配置 Supabase'));
     var since = new Date(Date.now() - ONLINE_WINDOW).toISOString();
 
     return Promise.all([
@@ -160,6 +177,8 @@
       api('visits?select=sid&created_at=gte.' + encodeURIComponent(since)).then(function (r) { return r.json(); }),
       api('events?select=feature&limit=20000').then(function (r) { return r.json(); }),
       api('scores?select=*&order=created_at.desc&limit=500').then(function (r) { return r.json(); }),
+      api('visits?select=ip,sid,ua,path,created_at&ua=neq.heartbeat&order=created_at.desc&limit=40')
+        .then(function (r) { return r.json(); }),
     ]).then(function (res) {
       var set = {};
       (res[1] || []).forEach(function (x) { set[x.sid] = 1; });
@@ -171,11 +190,13 @@
         events: cnt,
         eventTotal: (res[2] || []).length,
         scores: res[3] || [],
+        recent: res[4] || [],
       };
     });
   };
 
-  S.isEnabled = function () { return S.enabled; };
+  /* 配置齐了就能读，不需要先 init（后台页面用） */
+  S.isEnabled = function () { return ready(); };
   S.cfg = function () { return { url: SUPABASE_URL, hasKey: !!SUPABASE_KEY }; };
 
   w.STATS = S;

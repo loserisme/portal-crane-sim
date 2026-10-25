@@ -83,6 +83,8 @@
   tbody tr:hover td{background:#fafbfd;}
   td.sc{font-family:ui-monospace,monospace;font-weight:600;}
   td.tm{color:var(--sub);font-size:11.5px;font-family:ui-monospace,monospace;}
+  td.ip{font-family:ui-monospace,monospace;font-size:11.5px;color:#1f4f78;}
+  td.ua{color:var(--sub);font-size:11px;}
   .empty{padding:26px;text-align:center;color:var(--sub);font-size:12.5px;}
   .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;
     background:#eef1f5;color:#5a6675;margin-right:4px;}
@@ -120,6 +122,11 @@
   <section>
     <h2>功能使用率 <i id="feat-note"></i></h2>
     <div class="feat" id="feat"><div class="empty">加载中…</div></div>
+  </section>
+
+  <section>
+    <h2>最近访问 <i id="visit-note"></i></h2>
+    <div id="visitbox"><div class="empty">加载中…</div></div>
   </section>
 
   <section>
@@ -209,6 +216,30 @@
         }).join('');
         el('feat').innerHTML = html;
         el('feat-note').textContent = '按点击次数统计';
+      }
+
+      /* 最近访问 */
+      var rc = d.recent || [];
+      if (!rc.length) {
+        el('visitbox').innerHTML = '<div class="empty">还没有访问记录。</div>';
+        el('visit-note').textContent = '';
+      } else {
+        var vrows = rc.map(function (r) {
+          var ua = r.ua || '';
+          var short = ua.indexOf('Mobile') >= 0 ? '移动端'
+            : ua.indexOf('Windows') >= 0 ? 'Windows'
+            : ua.indexOf('Mac') >= 0 ? 'macOS'
+            : ua.indexOf('Linux') >= 0 ? 'Linux' : (ua.slice(0, 18) || '—');
+          return '<tr><td class="ip">' + (r.ip || '<span style="color:#c9ced6">未记录</span>') + '</td>'
+            + '<td class="tm">' + fmtTime(r.created_at) + '</td>'
+            + '<td class="ua">' + short + '</td>'
+            + '<td class="ua">' + (r.path || '—') + '</td></tr>';
+        }).join('');
+        el('visitbox').innerHTML =
+          '<table><thead><tr><th style="width:26%">IP 地址</th><th style="width:20%">时间</th>'
+          + '<th style="width:18%">设备</th><th>页面</th></tr></thead>'
+          + '<tbody>' + vrows + '</tbody></table>';
+        el('visit-note').textContent = '最近 ' + rc.length + ' 条（不含心跳）';
       }
 
       /* 成绩表 */
