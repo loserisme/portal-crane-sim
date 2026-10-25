@@ -178,7 +178,13 @@
       api('events?select=feature&limit=20000').then(function (r) { return r.json(); }),
       api('scores?select=*&order=created_at.desc&limit=500').then(function (r) { return r.json(); }),
       api('visits?select=ip,sid,ua,path,created_at&ua=neq.heartbeat&order=created_at.desc&limit=40')
-        .then(function (r) { return r.json(); }),
+        .then(function (r) {
+          if (r.ok) return r.json();
+          /* ip 列还没加（未执行增量 SQL）→ 退回不带 ip 的查询 */
+          return api('visits?select=sid,ua,path,created_at&ua=neq.heartbeat&order=created_at.desc&limit=40')
+            .then(function (r2) { return r2.json(); })
+            .catch(function () { return []; });
+        }),
     ]).then(function (res) {
       var set = {};
       (res[1] || []).forEach(function (x) { set[x.sid] = 1; });

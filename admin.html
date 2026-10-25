@@ -84,6 +84,7 @@
   td.sc{font-family:ui-monospace,monospace;font-weight:600;}
   td.tm{color:var(--sub);font-size:11.5px;font-family:ui-monospace,monospace;}
   td.ip{font-family:ui-monospace,monospace;font-size:11.5px;color:#1f4f78;}
+  td.geo{font-size:11.5px;color:#33404f;}
   td.ua{color:var(--sub);font-size:11px;}
   .empty{padding:26px;text-align:center;color:var(--sub);font-size:12.5px;}
   .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;
@@ -135,7 +136,7 @@
   </section>
 </div>
 
-<script src="js/stats.js?v=20261025a"></script>
+<script src="js/stats.js?v=20261025b"></script>
 <script>
 (function () {
   var USER = 'njitzdh';
@@ -153,6 +154,33 @@
     report: '生成报告',
     hover: '结构悬停',
   };
+
+  /* ---- IP 归属地（ipwho.is，免费、支持 CORS、可出中文） ---- */
+  var GEO_CACHE = {};
+  try { GEO_CACHE = JSON.parse(localStorage.getItem('crane.geo') || '{}') || {}; } catch (e) { GEO_CACHE = {}; }
+
+  function isPrivate(ip) {
+    return /^(10\.|192\.168\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(ip);
+  }
+
+  function geoOf(ip) {
+    if (!ip) return Promise.resolve('—');
+    if (GEO_CACHE[ip]) return Promise.resolve(GEO_CACHE[ip]);
+    if (ip.indexOf(':') >= 0) return Promise.resolve('IPv6');
+    if (isPrivate(ip)) return Promise.resolve('内网地址');
+
+    return fetch('https://ipwho.is/' + encodeURIComponent(ip) + '?lang=zh-CN', { cache: 'force-cache' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var txt = (d && d.success)
+          ? [d.country, d.region, d.city].filter(Boolean).join(' ')
+          : '未解析';
+        GEO_CACHE[ip] = txt;
+        try { localStorage.setItem('crane.geo', JSON.stringify(GEO_CACHE)); } catch (e) {}
+        return txt;
+      })
+      .catch(function () { return '解析失败'; });
+  }
 
   function fmtTime(s) {
     if (!s) return '—';
@@ -230,16 +258,36 @@
             : ua.indexOf('Windows') >= 0 ? 'Windows'
             : ua.indexOf('Mac') >= 0 ? 'macOS'
             : ua.indexOf('Linux') >= 0 ? 'Linux' : (ua.slice(0, 18) || '—');
+          var idx = rc.indexOf(r);
           return '<tr><td class="ip">' + (r.ip || '<span style="color:#c9ced6">未记录</span>') + '</td>'
+            + '<td class="geo" id="geo-' + idx + '" data-ip="' + (r.ip || '') + '">…</td>'
             + '<td class="tm">' + fmtTime(r.created_at) + '</td>'
             + '<td class="ua">' + short + '</td>'
             + '<td class="ua">' + (r.path || '—') + '</td></tr>';
         }).join('');
         el('visitbox').innerHTML =
-          '<table><thead><tr><th style="width:26%">IP 地址</th><th style="width:20%">时间</th>'
-          + '<th style="width:18%">设备</th><th>页面</th></tr></thead>'
+          '<table><thead><tr><th style="width:20%">IP 地址</th><th style="width:24%">归属地</th>'
+          + '<th style="width:16%">时间</th><th style="width:14%">设备</th><th>页面</th></tr></thead>'
           + '<tbody>' + vrows + '</tbody></table>';
         el('visit-note').textContent = '最近 ' + rc.length + ' 条（不含心跳）';
+
+        /* 异步补归属地：相同 IP 只查一次，结果缓存在 localStorage */
+        var seen = {};
+        rc.forEach(function (r, i) {
+          if (!r.ip || seen[r.ip]) {
+            if (r.ip && seen[r.ip]) {
+              var dup = document.getElementById('geo-' + i);
+              if (dup) dup.textContent = seen[r.ip];
+            }
+            return;
+          }
+          seen[r.ip] = '…';
+          geoOf(r.ip).then(function (txt) {
+            seen[r.ip] = txt;
+            var cell = document.getElementById('geo-' + i);
+            if (cell) cell.textContent = txt;
+          });
+        });
       }
 
       /* 成绩表 */
