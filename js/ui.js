@@ -581,6 +581,8 @@
       });
       var tot = TR.total();
       total.textContent = tot.sum;
+      var maxEl = document.getElementById('tp-max');
+      if (maxEl && TR.maxScore) maxEl.textContent = '/ ' + TR.maxScore();
       list.scrollTop = sc;
     }
 

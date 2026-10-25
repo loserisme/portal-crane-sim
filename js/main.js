@@ -246,6 +246,7 @@
         tipEl.style.left = x + 'px';
         tipEl.style.top = y + 'px';
         tipEl.classList.remove('hidden');
+        if (w.TRAIN) w.TRAIN.notePart(d.part);
         if (!hovering) { stage.style.cursor = 'help'; hovering = true; }
       } else if (hovering) {
         tipEl.classList.add('hidden');

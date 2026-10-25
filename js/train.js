@@ -148,6 +148,64 @@
       },
       check: function () { this.live = this.t0 ? '脚本执行中…' : '等待启动脚本'; return { ok: false }; },
     },
+    {
+      id: 't6',
+      title: '任务六 · 结构认知',
+      goal: '用鼠标依次悬停到塔架、人字架、大拉杆、平衡重四个部件，读完弹出的说明。',
+      hint: '鼠标移到部件上会弹出名称与作用说明。这四个都在门机上部，回转或变幅时可以观察它们是否跟着动。',
+      point: '四个全部识别得满分，缺一个扣 25 分',
+      state: 'idle', score: 0, detail: '',
+      init: function () { this.seen = {}; },
+      check: function () {
+        var need = ['塔架', '人字架', '大拉杆', '平衡重'];
+        var seen = this.seen || {};
+        var got = [];
+        for (var i = 0; i < need.length; i++) if (seen[need[i]]) got.push(need[i]);
+        this.live = '已识别 ' + got.length + ' / 4：' + (got.length ? got.join('、') : '—');
+        if (got.length === need.length) {
+          return { ok: true, score: 100, detail: '四个部件全部识别' };
+        }
+        return { ok: false };
+      },
+    },
+    {
+      id: 't7',
+      title: '任务七 · 算法抑摆',
+      goal: '用 Python 写控制程序，把抓斗摆动的峰值压到 0.03 rad（约 1.7°）以下，并稳定保持 2 秒以上。',
+      hint: '参考「防摇摆」示例：读 swayZ / swayVZ 做 PD 反馈，把补偿量叠加到回转目标角上。KP、KD 要自己调。',
+      point: '峰值 <0.02 rad 满分；<0.03 rad 得 85；<0.05 rad 得 70',
+      state: 'idle', score: 0, detail: '',
+      init: function () { this.lowT = 0; },
+      check: function () {
+        if (!w.PY || !w.PY.rec || w.PY.rec.length < 40) {
+          this.live = (w.PY && w.PY.running) ? '采样中…' : '等待启动 Python 程序';
+          return { ok: false };
+        }
+        var rec = w.PY.rec;
+        var from = Math.max(0, rec.length - 120);      // 最近约 2 秒
+        var pk = 0;
+        for (var i = from; i < rec.length; i++) {
+          var v = rec[i].swayMag;
+          if (isFinite(v) && v > pk) pk = v;
+        }
+        this.live = '近 2 秒摆幅峰值 ' + (pk * 57.3).toFixed(2) + '°' +
+          (w.PY.running ? '' : '（程序已停止）');
+
+        if (pk < 0.05) {
+          this.lowT += 0.15;
+          if (pk < 0.03 && this.lowT > 2.4) {
+            var sc = pk < 0.02 ? 100 : 85;
+            return { ok: true, score: sc, detail: '峰值 ' + (pk * 57.3).toFixed(2) + '°' };
+          }
+          if (this.lowT > 6 && pk < 0.05) {
+            return { ok: true, score: 70, detail: '峰值 ' + (pk * 57.3).toFixed(2) + '°（未达 0.03）' };
+          }
+        } else {
+          this.lowT = 0;
+        }
+        return { ok: false };
+      },
+    },
   ];
 
   /* ---------------- 状态 ---------------- */
@@ -183,6 +241,17 @@
     T.log = [];
     T.startTime = 0;
     T.emit();
+  };
+
+  /* 由悬停提示调用：记录玩家识别到的部件（任务六用） */
+  T.notePart = function (name) {
+    var t = T.tasks[T.active];
+    if (!t || t.id !== 't6' || t.state !== 'doing') return;
+    t.seen = t.seen || {};
+    if (!t.seen[name]) {
+      t.seen[name] = 1;
+      T.emit();
+    }
   };
 
   T.push = function (msg) {
@@ -222,6 +291,8 @@
   };
 
   /* ---------------- 计分与报告 ---------------- */
+  T.maxScore = function () { return T.tasks.length * 100; };
+
   T.total = function () {
     var s = 0, done = 0;
     T.tasks.forEach(function (t) {
@@ -249,7 +320,7 @@
     });
     var tot = T.total();
     lines.push('-'.repeat(46));
-    lines.push('总分：' + tot.sum + ' / ' + (T.tasks.length * 100) +
+    lines.push('总分：' + tot.sum + ' / ' + T.maxScore() +
       '    完成：' + tot.done + '/' + T.tasks.length + ' 项');
     lines.push('');
     lines.push('操作记录');
