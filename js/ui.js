@@ -246,7 +246,10 @@
       });
     }
     var aiBtn = document.getElementById('chart-ai');
-    if (aiBtn) aiBtn.addEventListener('click', function () { UI.evalChart(); });
+    if (aiBtn) aiBtn.addEventListener('click', function () {
+      if (w.STATS) w.STATS.track('ai_eval');
+      UI.evalChart();
+    });
   }
 
   /* ---- 性能指标计算 ---- */
@@ -513,7 +516,10 @@
       }
     }
 
-    open.addEventListener('click', function () { showPanel(true); });
+    open.addEventListener('click', function () {
+      showPanel(true);
+      if (w.STATS) w.STATS.track('python');
+    });
     close.addEventListener('click', function () { showPanel(false); });
 
     run.addEventListener('click', function () {
@@ -587,6 +593,7 @@
     TR.onUpdate = render;
 
     openBtn.addEventListener('click', function () {
+      if (w.STATS) w.STATS.track('train');
       var on = panel.classList.toggle('hidden');
       openBtn.classList.toggle('on', !on);
       var rp = document.getElementById('panel-right');
@@ -605,6 +612,14 @@
     noIn.addEventListener('input', function () { TR.student.no = this.value; });
 
     repBtn.addEventListener('click', function () {
+      if (w.STATS) {
+        w.STATS.track('report');
+        var tot = TR.total();
+        var det = TR.tasks.map(function (t) {
+          return { id: t.id, title: t.title, score: t.score, state: t.state };
+        });
+        w.STATS.reportScore(TR.student.name, TR.student.no, tot.sum, det);
+      }
       repBox.value = TR.report();
       repBox.classList.remove('hidden');
       repBox.focus();
@@ -636,6 +651,7 @@
 
     open.addEventListener('click', function () {
       panel.classList.remove('hidden');
+      if (w.STATS) w.STATS.track('script');
       var ap = document.getElementById('ai-panel');
       if (ap) ap.classList.add('hidden');
       var pp = document.getElementById('py-panel');

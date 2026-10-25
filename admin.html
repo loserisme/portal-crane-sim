@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>数据看板 · 港口门座式起重机仿真平台</title>
+<style>
+  :root{
+    --bg:#f5f7fa; --card:#ffffff; --border:#e3e8ef; --text:#16202e;
+    --sub:#6b7684; --blue:#2b6fb0; --green:#2e8b57; --red:#c0392b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
+    font-size:14px;line-height:1.6;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px;}
+
+  /* 登录 */
+  #login{
+    max-width:340px;margin:14vh auto 0;background:var(--card);
+    border:1px solid var(--border);border-radius:14px;padding:26px 24px;
+    box-shadow:0 8px 30px rgba(20,30,45,.08);
+  }
+  #login h1{font-size:16px;margin:0 0 4px;font-weight:600;}
+  #login p{font-size:12px;color:var(--sub);margin:0 0 20px;}
+  #login label{display:block;font-size:12px;color:var(--sub);margin-bottom:12px;}
+  #login input{
+    width:100%;height:36px;margin-top:5px;border:1px solid var(--border);
+    border-radius:8px;padding:0 11px;font:inherit;font-size:13px;outline:none;
+  }
+  #login input:focus{border-color:rgba(43,111,176,.5);box-shadow:0 0 0 3px rgba(43,111,176,.08);}
+  #login button{
+    width:100%;height:38px;margin-top:6px;border:0;border-radius:9px;cursor:pointer;
+    background:linear-gradient(160deg,#3d7fb8,#2b6fb0);color:#fff;font:inherit;font-size:13.5px;
+  }
+  #login button:hover{filter:brightness(1.06);}
+  #login .err{color:var(--red);font-size:12px;margin-top:10px;display:none;}
+
+  /* 看板 */
+  .hidden{display:none!important;}
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+  header h1{font-size:18px;margin:0;font-weight:600;}
+  header .sub{font-size:12px;color:var(--sub);}
+  header .sp{flex:1;}
+  header button{
+    padding:7px 16px;border-radius:8px;border:1px solid var(--border);
+    background:#fff;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;
+  }
+  header button:hover{background:#f2f5f9;}
+  #logout{color:var(--sub);}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+  .card{
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:16px 18px;
+  }
+  .card b{display:block;font-size:27px;font-weight:600;line-height:1.1;letter-spacing:-.01em;}
+  .card span{font-size:11.5px;color:var(--sub);}
+  .card.g b{color:var(--green);}
+  .card.r b{color:var(--red);}
+
+  section{margin-bottom:26px;}
+  section h2{
+    font-size:13px;margin:0 0 10px;font-weight:600;color:#33404f;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  section h2 i{font-style:normal;font-size:11px;color:var(--sub);font-weight:400;}
+
+  .feat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
+  .frow{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:12.5px;}
+  .frow .fn{width:96px;flex:none;color:#33404f;}
+  .frow .fb{flex:1;height:9px;background:#eef1f5;border-radius:5px;overflow:hidden;}
+  .frow .fb i{display:block;height:100%;background:linear-gradient(90deg,#7fb0d9,#2b6fb0);border-radius:5px;}
+  .frow .fv{width:96px;flex:none;text-align:right;font-family:ui-monospace,monospace;font-size:11.5px;color:var(--sub);}
+
+  table{width:100%;border-collapse:collapse;background:var(--card);
+    border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  th,td{padding:9px 12px;text-align:left;font-size:12.5px;border-bottom:1px solid #eef1f5;}
+  th{background:#f7f9fb;font-weight:600;color:#4a5666;font-size:11.5px;letter-spacing:.02em;}
+  tbody tr:last-child td{border-bottom:0;}
+  tbody tr:hover td{background:#fafbfd;}
+  td.sc{font-family:ui-monospace,monospace;font-weight:600;}
+  td.tm{color:var(--sub);font-size:11.5px;font-family:ui-monospace,monospace;}
+  .empty{padding:26px;text-align:center;color:var(--sub);font-size:12.5px;}
+  .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;
+    background:#eef1f5;color:#5a6675;margin-right:4px;}
+</style>
+</head>
+<body>
+
+<!-- 登录 -->
+<div id="login">
+  <h1>数据看板</h1>
+  <p>港口门座式起重机运动控制仿真实验</p>
+  <label>账号<input id="u" autocomplete="username" placeholder="请输入账号"></label>
+  <label>密码<input id="p" type="password" autocomplete="current-password" placeholder="请输入密码"></label>
+  <button id="go">登录</button>
+  <div class="err" id="err">账号或密码不正确</div>
+</div>
+
+<!-- 看板 -->
+<div class="wrap hidden" id="dash">
+  <header>
+    <h1>数据看板</h1>
+    <span class="sub" id="meta">—</span>
+    <span class="sp"></span>
+    <button id="refresh">刷新数据</button>
+    <button id="logout">退出</button>
+  </header>
+
+  <div class="cards">
+    <div class="card"><b id="k-total">—</b><span>累计访问人次</span></div>
+    <div class="card g"><b id="k-online">—</b><span>当前在线（5 分钟内）</span></div>
+    <div class="card"><b id="k-events">—</b><span>功能使用总次数</span></div>
+    <div class="card"><b id="k-scores">—</b><span>实训成绩记录</span></div>
+  </div>
+
+  <section>
+    <h2>功能使用率 <i id="feat-note"></i></h2>
+    <div class="feat" id="feat"><div class="empty">加载中…</div></div>
+  </section>
+
+  <section>
+    <h2>实训成绩 <i id="score-note"></i></h2>
+    <div id="scorebox"><div class="empty">加载中…</div></div>
+  </section>
+</div>
+
+<script src="js/stats.js"></script>
+<script>
+(function () {
+  var USER = 'njitzdh';
+  var PASS = 'njitzdh';
+  var KEY = 'crane.admin';
+
+  var el = function (id) { return document.getElementById(id); };
+
+  var FEAT_NAME = {
+    script: '脚本控制',
+    python: 'Python 控制',
+    ai: 'AI 控制',
+    ai_eval: 'AI 评估',
+    train: '实训面板',
+    report: '生成报告',
+    hover: '结构悬停',
+  };
+
+  function fmtTime(s) {
+    if (!s) return '—';
+    var d = new Date(s);
+    return d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit' });
+  }
+
+  function show(bool) {
+    el('login').classList.toggle('hidden', bool);
+    el('dash').classList.toggle('hidden', !bool);
+  }
+
+  el('go').addEventListener('click', function () {
+    if (el('u').value.trim() === USER && el('p').value === PASS) {
+      try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+      el('err').style.display = 'none';
+      show(true);
+      load();
+    } else {
+      el('err').style.display = 'block';
+    }
+  });
+  el('p').addEventListener('keydown', function (e) { if (e.key === 'Enter') el('go').click(); });
+
+  el('logout').addEventListener('click', function () {
+    try { sessionStorage.removeItem(KEY); } catch (e) {}
+    show(false);
+  });
+  el('refresh').addEventListener('click', load);
+
+  function load() {
+    if (!window.STATS) return;
+    if (!STATS.isEnabled()) {
+      el('feat').innerHTML = '<div class="empty">统计未启用：请在 js/stats.js 里填入 Supabase 的 URL 与 anon key。</div>';
+      el('scorebox').innerHTML = '<div class="empty">统计未启用。</div>';
+      return;
+    }
+    STATS.fetchAll().then(function (d) {
+      el('k-total').textContent = (d.totalVisits || 0).toLocaleString('zh-CN');
+      el('k-online').textContent = d.online || 0;
+      el('k-events').textContent = (d.eventTotal || 0).toLocaleString('zh-CN');
+      el('k-scores').textContent = (d.scores || []).length;
+      el('meta').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
+
+      /* 功能使用率 */
+      var cnt = d.events || {};
+      var keys = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; });
+      var max = keys.length ? cnt[keys[0]] : 1;
+      var total = d.eventTotal || 1;
+      if (!keys.length) {
+        el('feat').innerHTML = '<div class="empty">还没有功能使用记录。</div>';
+        el('feat-note').textContent = '';
+      } else {
+        var html = keys.map(function (k) {
+          var pct = (cnt[k] / total * 100).toFixed(1);
+          var w = Math.max(2, cnt[k] / max * 100);
+          return '<div class="frow"><span class="fn">' + (FEAT_NAME[k] || k) + '</span>'
+            + '<span class="fb"><i style="width:' + w + '%"></i></span>'
+            + '<span class="fv">' + cnt[k] + ' 次 · ' + pct + '%</span></div>';
+        }).join('');
+        el('feat').innerHTML = html;
+        el('feat-note').textContent = '按点击次数统计';
+      }
+
+      /* 成绩表 */
+      var sc = d.scores || [];
+      if (!sc.length) {
+        el('scorebox').innerHTML = '<div class="empty">还没有学生提交成绩（学生点「生成报告」后自动记录）。</div>';
+        el('score-note').textContent = '';
+      } else {
+        var rows = sc.map(function (r) {
+          var det = r.detail || [];
+          var done = det.filter(function (t) { return t.state === 'done'; }).length;
+          return '<tr><td>' + (r.name || '—') + '</td><td>' + (r.no || '—') + '</td>'
+            + '<td class="sc">' + (r.total || 0) + '<span style="color:#9aa5b4;font-weight:400"> / 500</span></td>'
+            + '<td>' + done + ' / ' + det.length + ' 项</td>'
+            + '<td class="tm">' + fmtTime(r.created_at) + '</td></tr>';
+        }).join('');
+        el('scorebox').innerHTML =
+          '<table><thead><tr><th style="width:18%">姓名</th><th style="width:22%">学号</th>'
+          + '<th style="width:18%">总分</th><th style="width:18%">完成</th><th>时间</th></tr></thead>'
+          + '<tbody>' + rows + '</tbody></table>';
+        el('score-note').textContent = '共 ' + sc.length + ' 条';
+      }
+    }).catch(function (e) {
+      el('feat').innerHTML = '<div class="empty">读取失败：' + e.message + '</div>';
+    });
+  }
+
+  /* 会话内保持登录 */
+  try {
+    if (sessionStorage.getItem(KEY) === '1') { show(true); load(); }
+  } catch (e) {}
+})();
+</script>
+</body>
+</html>

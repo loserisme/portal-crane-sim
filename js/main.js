@@ -309,6 +309,21 @@
     if (q.get('trace') === '1') ST.showTrace = true;
     if (q.get('demo') === '1') DEMO.start();
 
+    if (w.STATS) {
+      w.STATS.onTotal = function (n) {
+        var el = document.getElementById('visit-count');
+        if (el) el.textContent = n.toLocaleString('zh-CN');
+        var on = document.getElementById('visit-online');
+        if (on && w.STATS.online) on.textContent = w.STATS.online;
+      };
+      w.STATS.init();
+      setInterval(function () { w.STATS.refresh(); }, 30000);
+      setInterval(function () {
+        var on = document.getElementById('visit-online');
+        if (on) on.textContent = w.STATS.online || 0;
+      }, 5000);
+    }
+
     KT.snap();
     UI.syncSliders();
     CRANE.update(ST);
