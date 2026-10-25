@@ -240,11 +240,115 @@
 
   function bindChart() {
     var btn = document.getElementById('chart-close');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
-      document.getElementById('chart-panel').classList.add('hidden');
-    });
+    if (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('chart-panel').classList.add('hidden');
+      });
+    }
+    var aiBtn = document.getElementById('chart-ai');
+    if (aiBtn) aiBtn.addEventListener('click', function () { UI.evalChart(); });
   }
+
+  /* ---- 曲线数据摘要（供 AI 评估） ---- */
+  function buildSummary() {
+    var rec = (w.PY && w.PY.rec) || [];
+    if (rec.length < 5) return null;
+    var L = [];
+    var dur = rec[rec.length - 1].t - rec[0].t;
+    var segCount = {};
+    for (var i = 0; i < rec.length; i++) {
+      var sg = rec[i].seg || 0;
+      segCount[sg] = (segCount[sg] || 0) + 1;
+    }
+    var segIds = Object.keys(segCount).sort();
+    L.push('采样 ' + rec.length + ' 帧，时长 ' + dur.toFixed(1) + ' 秒，分 ' + segIds.length + ' 段。');
+    L.push('');
+    L.push('【各通道统计】');
+
+    ALL_FIELDS.forEach(function (k) {
+      var vals = [];
+      for (var j = 0; j < rec.length; j++) {
+        var v = rec[j][k];
+        if (typeof v === 'number' && isFinite(v)) vals.push(v);
+      }
+      if (!vals.length) return;
+      var mn = vals.reduce(function (a, b) { return a < b ? a : b; }, Infinity);
+      var mx = vals.reduce(function (a, b) { return a > b ? a : b; }, -Infinity);
+      var sum = vals.reduce(function (a, b) { return a + b; }, 0);
+      var meta = FIELD_META[k] || [k, ''];
+      L.push(meta[0] + (meta[1] ? '（' + meta[1] + '）' : '') +
+        '：起 ' + vals[0].toFixed(3) + '，终 ' + vals[vals.length - 1].toFixed(3) +
+        '，范围 ' + mn.toFixed(3) + ' ~ ' + mx.toFixed(3) +
+        '，均值 ' + (sum / vals.length).toFixed(3));
+    });
+
+    if (segIds.length > 1) {
+      L.push('');
+      L.push('【分段对比】');
+      segIds.forEach(function (sid) {
+        var sub = [];
+        for (var i2 = 0; i2 < rec.length; i2++) if ((rec[i2].seg || 0) === +sid) sub.push(rec[i2]);
+        var nm = (w.PY.segNames && w.PY.segNames[+sid]) || ('段' + sid);
+        var sw = [];
+        for (var i3 = 0; i3 < sub.length; i3++) if (isFinite(sub[i3].swayMag)) sw.push(sub[i3].swayMag);
+        var txt = nm + '（' + sub.length + ' 帧）';
+        if (sw.length) {
+          var pk = sw.reduce(function (a, b) { return a > b ? a : b; }, -Infinity);
+          var av = sw.reduce(function (a, b) { return a + b; }, 0) / sw.length;
+          txt += '：合摆角峰值 ' + pk.toFixed(4) + ' rad，均值 ' + av.toFixed(4) + ' rad';
+        }
+        var ld = [];
+        for (var i4 = 0; i4 < sub.length; i4++) if (isFinite(sub[i4].load)) ld.push(sub[i4].load);
+        if (ld.length) {
+          var lp = ld.reduce(function (a, b) { return a > b ? a : b; }, -Infinity);
+          txt += '；斗内物料最大 ' + (lp * 100).toFixed(0) + '%';
+        }
+        L.push(txt);
+      });
+    }
+    return L.join('\n');
+  }
+
+  function escHtml(t) {
+    return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  UI.evalChart = function () {
+    var box = document.getElementById('chart-eval');
+    var btn = document.getElementById('chart-ai');
+    if (!box) return;
+
+    var summary = buildSummary();
+    box.classList.remove('hidden');
+
+    if (!summary) {
+      box.innerHTML = '<span class="ev-title">AI 评估</span>还没有采集到数据，先运行一段 Python 控制程序。';
+      return;
+    }
+    if (!w.AI || !w.AI.cfg || !w.AI.cfg.key) {
+      box.innerHTML = '<span class="ev-title">AI 评估</span>尚未配置 API Key。点左侧「AI 控制」→ 齿轮，填入 DeepSeek 或其他兼容接口的 Key。';
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+    box.innerHTML = '<span class="ev-title">AI 评估</span>正在分析曲线数据…';
+
+    var SYS = '你是港口机械控制课程的实验评阅教师。学生刚做完门座式起重机抓斗控制仿真，'
+      + '下面是他采集到的各通道数据。请用中文给出简明评估：\n'
+      + '1. 控制效果如何（抓取是否充分、摆动是否被抑制），引用具体数字；\n'
+      + '2. 若有多段对比，判断算法段相对基线段的改善程度；\n'
+      + '3. 指出 2~3 个可改进之处（可涉及 PD 参数、下放深度、时序安排）；\n'
+      + '4. 最后给一个 0~100 的主观评分。\n'
+      + '总字数控制在 350 字以内，不要铺垫，直接给结论。';
+
+    w.AI.askText(SYS, summary).then(function (txt) {
+      box.innerHTML = '<span class="ev-title">AI 评估</span>' + escHtml(txt);
+    }).catch(function (e) {
+      box.innerHTML = '<span class="ev-title">AI 评估</span>调用失败：' + escHtml(e.message);
+    }).then(function () {
+      if (btn) btn.disabled = false;
+    });
+  };
 
   /* ---------------- Python 控制面板 ---------------- */
   function bindPython() {
@@ -507,11 +611,30 @@
   /* ---------------- 控制曲线 ---------------- */
   var CHART_COLORS = ['#c0392b', '#2b6fb0', '#2e8b57', '#b8860b', '#7a4fa8', '#0f7b8a'];
 
+  /* 曲线字段：英文键 → 中文名（单位） */
+  var FIELD_META = {
+    hoist:   ['起升高度', 'm'],
+    radius:  ['工作幅度', 'm'],
+    slew:    ['回转角', '°'],
+    load:    ['斗内物料', ''],
+    grab:    ['抓斗开度', ''],
+    swayMag: ['合摆角', 'rad'],
+    swayZ:   ['横向摆角', 'rad'],
+    swayVZ:  ['横向角速度', 'rad/s'],
+    swayX:   ['纵向摆角', 'rad'],
+  };
+  var ALL_FIELDS = ['hoist', 'radius', 'slew', 'load', 'grab', 'swayMag', 'swayZ', 'swayVZ', 'swayX'];
+
   UI.showChart = function (keys, compare) {
     var panel = document.getElementById('chart-panel');
     var cv = document.getElementById('py-chart');
     if (!panel || !cv || !w.PY) return;
     panel.classList.remove('hidden');
+
+    /* 画布高度随字段数变化，每行 52 px */
+    var flds = (keys && keys.length) ? keys : ALL_FIELDS;
+    var wantH = Math.max(150, flds.length * 46);
+    cv.style.height = wantH + 'px';
 
     var rec = w.PY.rec || [];
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -529,7 +652,7 @@
       return;
     }
 
-    if (!keys || !keys.length) keys = ['hoist', 'load'];
+    if (!keys || !keys.length) keys = ALL_FIELDS;
     var n = keys.length;
     var ph = H / n;
     var x0 = 46, x1 = W - 12;
@@ -587,13 +710,14 @@
         drawSeg(null, CHART_COLORS[i % CHART_COLORS.length]);
       }
 
-      /* 标注 */
+      /* 标注：中文名 + 单位 */
+      var meta = FIELD_META[k] || [k, ''];
       ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
-      ctx.font = '600 10.5px ui-monospace, monospace';
-      ctx.fillText(k, 8, y0 + 6);
+      ctx.font = '600 10px "SimHei","Microsoft YaHei",sans-serif';
+      ctx.fillText(meta[0], 8, y0 + 7);
       ctx.fillStyle = '#8b96a4';
-      ctx.font = '9.5px ui-monospace, monospace';
-      ctx.fillText(max.toFixed(2), 8, y0 + 18);
+      ctx.font = '9px ui-monospace, monospace';
+      ctx.fillText(max.toFixed(2) + (meta[1] ? ' ' + meta[1] : ''), 8, y0 + 18);
       ctx.fillText(min.toFixed(2), 8, y1);
     });
 

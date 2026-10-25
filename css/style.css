@@ -465,7 +465,8 @@ table.kv tr:last-child td{border-bottom:0;}
 /* ---------- 控制曲线 ---------- */
 #chart-panel{
   position:fixed;left:50%;bottom:56px;transform:translateX(-50%);
-  width:min(620px,calc(100vw - 620px));min-width:440px;z-index:33;
+  width:min(660px,calc(100vw - 600px));min-width:440px;z-index:33;
+  max-height:calc(100vh - 120px);overflow-y:auto;
   background:var(--card);backdrop-filter:blur(14px);
   border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
   padding:10px 12px 12px;
@@ -473,7 +474,7 @@ table.kv tr:last-child td{border-bottom:0;}
 #chart-panel.hidden{display:none;}
 .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
 .chart-head span{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);}
-#py-chart{width:100%;height:196px;display:block;border-radius:8px;background:#fbfcfe;
+#py-chart{width:100%;display:block;border-radius:8px;background:#fbfcfe;
   border:1px solid var(--border);}
 
 /* 两行按钮布局 */
@@ -509,3 +510,24 @@ table.kv tr:last-child td{border-bottom:0;}
   margin-left:4px;border-radius:5px;color:#5a6675!important;
 }
 .minbtn:hover{background:rgba(24,36,52,.1)!important;color:#16202e!important;}
+
+
+/* 曲线工具与 AI 评估 */
+.chart-tools{display:flex;align-items:center;gap:6px;}
+.chartbtn{
+  padding:3px 10px;border-radius:6px;border:1px solid rgba(46,139,87,.45);
+  background:rgba(46,139,87,.10);color:#1f6b45;font:inherit;font-size:10.5px;
+  cursor:pointer;transition:.15s;
+}
+.chartbtn:hover{background:rgba(46,139,87,.2);}
+.chartbtn:disabled{opacity:.55;cursor:default;}
+#chart-eval{
+  margin-top:8px;padding:9px 11px;border-radius:8px;
+  background:#f4f8f5;border:1px solid rgba(46,139,87,.22);
+  font-size:11px;line-height:1.7;color:#243040;white-space:pre-wrap;
+  max-height:170px;overflow-y:auto;
+}
+#chart-eval.hidden{display:none;}
+#chart-eval::-webkit-scrollbar{width:6px;}
+#chart-eval::-webkit-scrollbar-thumb{background:rgba(24,36,52,.16);border-radius:3px;}
+#chart-eval .ev-title{font-weight:600;color:#1f6b45;margin-bottom:4px;display:block;}

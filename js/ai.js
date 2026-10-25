@@ -220,6 +220,36 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  /* 通用一次性请求（供曲线评估等外部功能调用） */
+  AI.askText = function (system, user) {
+    if (!AI.cfg.key) return Promise.reject(new Error('尚未配置 API Key'));
+    var body = {
+      model: AI.cfg.model,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+      temperature: 0.4,
+      max_tokens: 900,
+    };
+    return fetch(AI.cfg.base.replace(/\/+$/, '') + '/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + AI.cfg.key },
+      body: JSON.stringify(body),
+    }).then(function (r) {
+      return r.text().then(function (t) {
+        if (!r.ok) {
+          var msg = 'HTTP ' + r.status;
+          try { msg += '：' + (JSON.parse(t).error.message || ''); } catch (e) {}
+          throw new Error(msg);
+        }
+        var d = JSON.parse(t);
+        var m = d.choices && d.choices[0] && d.choices[0].message;
+        return (m && m.content) || '(空回复)';
+      });
+    });
+  };
+
   /* ---------------- 请求 ---------------- */
   AI.send = function (text) {
     if (AI.busy) return;
