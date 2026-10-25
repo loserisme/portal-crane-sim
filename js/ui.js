@@ -249,6 +249,118 @@
     if (aiBtn) aiBtn.addEventListener('click', function () { UI.evalChart(); });
   }
 
+  /* ---- 性能指标计算 ---- */
+  function analyzeSeg(rows) {
+    var n = rows.length;
+    if (n < 8) return null;
+    var out = {};
+
+    /* 摆动：峰值、衰减到 10% 的时间、稳态残余、过零次数 */
+    var sw = [], sz = [], ts = [];
+    for (var i = 0; i < n; i++) {
+      sw.push(isFinite(rows[i].swayMag) ? rows[i].swayMag : 0);
+      sz.push(isFinite(rows[i].swayZ) ? rows[i].swayZ : 0);
+      ts.push(rows[i].t);
+    }
+    var pk = -Infinity, pkIdx = 0;
+    for (var a = 0; a < n; a++) if (sw[a] > pk) { pk = sw[a]; pkIdx = a; }
+
+    /* 衰减时间：按振荡峰值包络判断（直接看瞬时值会被过零点误判） */
+    var decayT = null;
+    if (pk > 1e-6) {
+      var peaks = [];
+      for (var pp = 1; pp < n - 1; pp++) {
+        if (sw[pp] > sw[pp - 1] && sw[pp] >= sw[pp + 1]) peaks.push({ i: pp, v: sw[pp] });
+      }
+      if (peaks.length >= 2) {
+        /* 从最大峰所在位置开始，找第一个跌到 10% 以下的后续峰 */
+        var refIdx = 0;
+        for (var pq = 0; pq < peaks.length; pq++) if (peaks[pq].v >= pk * 0.999) { refIdx = pq; break; }
+        for (var pr = refIdx + 1; pr < peaks.length; pr++) {
+          if (peaks[pr].v < pk * 0.10) {
+            decayT = ts[peaks[pr].i] - ts[peaks[refIdx].i];
+            break;
+          }
+        }
+      } else {
+        for (var b = pkIdx; b < n; b++) {
+          if (sw[b] < pk * 0.10) { decayT = ts[b] - ts[pkIdx]; break; }
+        }
+      }
+    }
+    /* 稳态残余：最后 20% 的 RMS */
+    var tailN = Math.max(3, Math.floor(n * 0.2));
+    var acc = 0, cnt = 0;
+    for (var c = n - tailN; c < n; c++) { acc += sw[c] * sw[c]; cnt++; }
+    var rms = cnt ? Math.sqrt(acc / cnt) : 0;
+
+    /* 过零次数（带死区，避免噪声抖动计数） */
+    var dead = Math.max(pk * 0.02, 1e-4);
+    var zc = 0, lastSign = 0;
+    for (var d = 0; d < n; d++) {
+      if (Math.abs(sz[d]) < dead) continue;
+      var sg = sz[d] > 0 ? 1 : -1;
+      if (lastSign !== 0 && sg !== lastSign) zc++;
+      lastSign = sg;
+    }
+
+    out.swayPeak = pk;
+    out.swayDecay = decayT;
+    out.swayRms = rms;
+    out.zeroCross = zc;
+
+    /* 回转定位：以末段为"目标"，算稳态误差与超调 */
+    var sl = [];
+    for (var e = 0; e < n; e++) sl.push(isFinite(rows[e].slew) ? rows[e].slew : 0);
+    var tgtN = Math.max(3, Math.floor(n * 0.1));
+    var tgt = 0;
+    for (var f = n - tgtN; f < n; f++) tgt += sl[f];
+    tgt /= tgtN;
+    var errAcc = 0;
+    for (var g = n - tgtN; g < n; g++) errAcc += Math.abs(sl[g] - tgt);
+
+    out.slewTarget = tgt;
+    out.slewErr = errAcc / tgtN;
+
+    /* 超调：朝目标移动时越过目标的最大量 */
+    var startVal = sl[0];
+    var dir = tgt - startVal;
+    var ov = 0;
+    if (Math.abs(dir) > 0.5) {
+      for (var h = 0; h < n; h++) {
+        var over = dir > 0 ? (sl[h] - tgt) : (tgt - sl[h]);
+        if (over > ov) ov = over;
+      }
+    }
+    out.slewOvershoot = ov;
+
+    /* 抓取效率：最大填充率与单斗耗时（load 从 <5% 到峰值的时间） */
+    var ld = [];
+    for (var j2 = 0; j2 < n; j2++) ld.push(isFinite(rows[j2].load) ? rows[j2].load : 0);
+    var lmax = -Infinity;
+    for (var k2 = 0; k2 < n; k2++) if (ld[k2] > lmax) lmax = ld[k2];
+    out.loadMax = lmax;
+
+    /* 单斗耗时：物料从 5% 升到 90% 所用时间 */
+    if (lmax > 0.1) {
+      var tLow = null, tHigh = null;
+      for (var m3 = 0; m3 < n; m3++) {
+        if (tLow === null && ld[m3] > 0.05) tLow = ts[m3];
+        if (ld[m3] > lmax * 0.9) { tHigh = ts[m3]; break; }
+      }
+      out.grabTime = (tLow !== null && tHigh !== null) ? Math.max(0, tHigh - tLow) : null;
+    } else {
+      out.grabTime = null;
+    }
+
+    return out;
+  }
+
+  function fmtNum(v, d, unit) {
+    if (v === null || v === undefined || !isFinite(v)) return '—';
+    return v.toFixed(d || 2) + (unit || '');
+  }
+
   /* ---- 曲线数据摘要（供 AI 评估） ---- */
   function buildSummary() {
     var rec = (w.PY && w.PY.rec) || [];
@@ -282,6 +394,21 @@
         '，均值 ' + (sum / vals.length).toFixed(3));
     });
 
+    var A = analyzeSeg(rec);
+    if (A) {
+      L.push('');
+      L.push('【性能指标（整体）】');
+      L.push('摆动：峰值 ' + fmtNum(A.swayPeak, 4, ' rad') + '（' + fmtNum(A.swayPeak * 57.3, 2, '°') + '）'
+        + '，衰减到峰值 10% 用时 ' + (A.swayDecay === null ? '未衰减到位' : fmtNum(A.swayDecay, 2, ' s'))
+        + '，稳态残余 RMS ' + fmtNum(A.swayRms, 4, ' rad')
+        + '，过零 ' + A.zeroCross + ' 次');
+      L.push('回转定位：目标 ' + fmtNum(A.slewTarget, 1, '°')
+        + '，稳态误差 ' + fmtNum(A.slewErr, 2, '°')
+        + '，超调 ' + fmtNum(A.slewOvershoot, 2, '°'));
+      L.push('抓取：最大填充率 ' + fmtNum(A.loadMax * 100, 0, '%')
+        + '，单斗耗时 ' + (A.grabTime === null ? '—' : fmtNum(A.grabTime, 1, ' s')));
+    }
+
     if (segIds.length > 1) {
       L.push('');
       L.push('【分段对比】');
@@ -289,21 +416,13 @@
         var sub = [];
         for (var i2 = 0; i2 < rec.length; i2++) if ((rec[i2].seg || 0) === +sid) sub.push(rec[i2]);
         var nm = (w.PY.segNames && w.PY.segNames[+sid]) || ('段' + sid);
-        var sw = [];
-        for (var i3 = 0; i3 < sub.length; i3++) if (isFinite(sub[i3].swayMag)) sw.push(sub[i3].swayMag);
-        var txt = nm + '（' + sub.length + ' 帧）';
-        if (sw.length) {
-          var pk = sw.reduce(function (a, b) { return a > b ? a : b; }, -Infinity);
-          var av = sw.reduce(function (a, b) { return a + b; }, 0) / sw.length;
-          txt += '：合摆角峰值 ' + pk.toFixed(4) + ' rad，均值 ' + av.toFixed(4) + ' rad';
-        }
-        var ld = [];
-        for (var i4 = 0; i4 < sub.length; i4++) if (isFinite(sub[i4].load)) ld.push(sub[i4].load);
-        if (ld.length) {
-          var lp = ld.reduce(function (a, b) { return a > b ? a : b; }, -Infinity);
-          txt += '；斗内物料最大 ' + (lp * 100).toFixed(0) + '%';
-        }
-        L.push(txt);
+        var sa = analyzeSeg(sub);
+        if (!sa) return;
+        L.push(nm + '（' + sub.length + ' 帧）：摆动峰值 ' + fmtNum(sa.swayPeak, 4, ' rad')
+          + '，衰减到 10% ' + (sa.swayDecay === null ? '未到位' : fmtNum(sa.swayDecay, 2, ' s'))
+          + '，残余 ' + fmtNum(sa.swayRms, 4, ' rad')
+          + '，过零 ' + sa.zeroCross + ' 次'
+          + '，填充率 ' + fmtNum(sa.loadMax * 100, 0, '%'));
       });
     }
     return L.join('\n');
@@ -720,6 +839,21 @@
       ctx.fillText(max.toFixed(2) + (meta[1] ? ' ' + meta[1] : ''), 8, y0 + 18);
       ctx.fillText(min.toFixed(2), 8, y1);
     });
+
+    /* 顶部指标条 */
+    var mbox = document.getElementById('chart-metrics');
+    if (mbox) {
+      var A2 = analyzeSeg(rec);
+      if (A2) {
+        mbox.innerHTML =
+          '<b>摆动</b> 峰值 ' + (A2.swayPeak * 57.3).toFixed(2) + '° · 衰减 '
+          + (A2.swayDecay === null ? '未到位' : A2.swayDecay.toFixed(1) + 's')
+          + ' · 残余 ' + A2.swayRms.toFixed(4) + ' · 过零 ' + A2.zeroCross
+          + ' <i>|</i> <b>回转</b> 误差 ' + A2.slewErr.toFixed(2) + '° · 超调 ' + A2.slewOvershoot.toFixed(2) + '°'
+          + ' <i>|</i> <b>抓取</b> ' + (A2.loadMax * 100).toFixed(0) + '% · '
+          + (A2.grabTime === null ? '—' : A2.grabTime.toFixed(1) + 's');
+      }
+    }
 
     /* 图例与时间轴 */
     var hasS1 = false;

@@ -531,3 +531,11 @@ table.kv tr:last-child td{border-bottom:0;}
 #chart-eval::-webkit-scrollbar{width:6px;}
 #chart-eval::-webkit-scrollbar-thumb{background:rgba(24,36,52,.16);border-radius:3px;}
 #chart-eval .ev-title{font-weight:600;color:#1f6b45;margin-bottom:4px;display:block;}
+
+/* 曲线顶部指标条 */
+#chart-metrics{
+  font-family:var(--mono);font-size:10px;line-height:1.5;color:#4a5666;
+  padding:2px 2px 5px;border-bottom:1px dashed rgba(24,36,52,.12);margin-bottom:5px;
+}
+#chart-metrics b{color:#2b5d85;font-weight:600;margin-right:2px;}
+#chart-metrics i{color:#c9ced6;font-style:normal;margin:0 6px;}
