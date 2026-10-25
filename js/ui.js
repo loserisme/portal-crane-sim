@@ -66,6 +66,7 @@
     bindTrain();
     bindChart();
     buildTags();
+    applyFloating();
     resizeChart();
     w.addEventListener('resize', resizeChart);
 
@@ -165,6 +166,75 @@
         KT.ST.showTrace = on;
         if (w.CRANE) w.CRANE.resetTrace();
       }
+    });
+  }
+
+  /* ---------------- 浮动面板：拖动 + 最小化 ---------------- */
+  var _zTop = 40;
+
+  UI.makeFloating = function (panel, head) {
+    if (!panel || !head || head.dataset.floatReady) return;
+    head.dataset.floatReady = '1';
+    head.classList.add('panel-head-drag');
+
+    /* 最小化按钮 */
+    var btn = document.createElement('button');
+    btn.className = 'iconbtn minbtn';
+    btn.textContent = '—';
+    btn.title = '最小化 / 展开';
+    head.appendChild(btn);
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      panel.classList.toggle('collapsed');
+      btn.textContent = panel.classList.contains('collapsed') ? '＋' : '—';
+    });
+
+    /* 拖动 */
+    var dragging = false, sx = 0, sy = 0, sl = 0, stp = 0;
+    head.addEventListener('mousedown', function (e) {
+      if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+      var r = panel.getBoundingClientRect();
+      panel.style.left = r.left + 'px';
+      panel.style.top = r.top + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      panel.style.transform = 'none';
+      panel.style.zIndex = ++_zTop;
+      dragging = true;
+      sx = e.clientX; sy = e.clientY; sl = r.left; stp = r.top;
+      e.preventDefault();
+    });
+
+    window.addEventListener('mousemove', function (e) {
+      if (!dragging) return;
+      var w = panel.offsetWidth, h = panel.offsetHeight;
+      var nx = sl + e.clientX - sx;
+      var ny = stp + e.clientY - sy;
+      nx = Math.max(-w + 90, Math.min(window.innerWidth - 90, nx));
+      ny = Math.max(0, Math.min(window.innerHeight - 42, ny));
+      panel.style.left = nx + 'px';
+      panel.style.top = ny + 'px';
+    });
+
+    window.addEventListener('mouseup', function () { dragging = false; });
+
+    /* 点击面板时置顶 */
+    panel.addEventListener('mousedown', function () {
+      panel.style.zIndex = ++_zTop;
+    }, true);
+  };
+
+  function applyFloating() {
+    var pairs = [
+      ['code-panel', '.code-head'],
+      ['py-panel', '.code-head'],
+      ['ai-panel', '.ai-head'],
+      ['chart-panel', '.chart-head'],
+    ];
+    pairs.forEach(function (p) {
+      var panel = document.getElementById(p[0]);
+      if (!panel) return;
+      UI.makeFloating(panel, panel.querySelector(p[1]));
     });
   }
 

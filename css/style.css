@@ -475,3 +475,23 @@ table.kv tr:last-child td{border-bottom:0;}
 .chart-head span{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--sub);}
 #py-chart{width:100%;height:196px;display:block;border-radius:8px;background:#fbfcfe;
   border:1px solid var(--border);}
+
+/* 两行按钮布局 */
+.btnrow3{display:flex;gap:6px;margin-top:6px;}
+.btnrow3 button{
+  flex:1;padding:7px 0;border-radius:8px;border:1px dashed var(--border-strong);
+  background:#fff;color:#43536a;font:inherit;font-size:11.5px;cursor:pointer;transition:.16s;
+}
+.btnrow3 button:hover{border-color:rgba(43,111,176,.5);color:var(--blue);background:#f7fafd;}
+.btnrow3 #py-open{border-color:rgba(53,114,165,.45);color:#2d6187;font-weight:600;}
+.widebtn.aiwide{
+  margin-top:6px;border-style:solid;border-color:rgba(53,114,165,.35);
+  background:linear-gradient(160deg,#f4f8fc,#eaf1f8);color:#2b5d85;font-weight:600;
+}
+.widebtn.aiwide:hover{background:linear-gradient(160deg,#eaf2fa,#dfeaf5);border-color:rgba(53,114,165,.6);}
+
+/* 面板可折叠 */
+.collapsed > *:not(:first-child){display:none!important;}
+.collapsed{width:auto!important;min-width:190px!important;}
+.panel-head-drag{cursor:move;user-select:none;}
+.minbtn{font-size:13px!important;line-height:1;padding:0 5px!important;margin-left:4px;}
