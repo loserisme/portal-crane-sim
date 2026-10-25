@@ -492,6 +492,20 @@ table.kv tr:last-child td{border-bottom:0;}
 
 /* 面板可折叠 */
 .collapsed > *:not(:first-child){display:none!important;}
-.collapsed{width:auto!important;min-width:190px!important;}
+.collapsed{width:auto!important;min-width:190px!important;height:auto!important;max-height:none!important;min-height:40px!important;}
 .panel-head-drag{cursor:move;user-select:none;}
 .minbtn{font-size:13px!important;line-height:1;padding:0 5px!important;margin-left:4px;}
+
+/* 拖动提示 */
+.panel-head-drag::before{
+  content:'⠿';margin-right:6px;color:#9aa5b4;font-size:11px;letter-spacing:-1px;
+}
+.panel-head-drag:hover{background:rgba(43,111,176,.06);border-radius:6px;}
+.panel-head-drag{transition:background .15s;padding:2px 4px;margin:-2px -4px;}
+#code-panel .code-head.panel-head-drag,
+#py-panel .code-head.panel-head-drag{padding-bottom:4px;margin-bottom:2px;}
+.minbtn{
+  font-size:15px!important;line-height:1!important;padding:0 6px!important;
+  margin-left:4px;border-radius:5px;color:#5a6675!important;
+}
+.minbtn:hover{background:rgba(24,36,52,.1)!important;color:#16202e!important;}

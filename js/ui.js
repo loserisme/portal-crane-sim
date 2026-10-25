@@ -180,13 +180,13 @@
     /* 最小化按钮 */
     var btn = document.createElement('button');
     btn.className = 'iconbtn minbtn';
-    btn.textContent = '—';
+    btn.textContent = '−';
     btn.title = '最小化 / 展开';
     head.appendChild(btn);
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       panel.classList.toggle('collapsed');
-      btn.textContent = panel.classList.contains('collapsed') ? '＋' : '—';
+      btn.textContent = panel.classList.contains('collapsed') ? '+' : '−';
     });
 
     /* 拖动 */
@@ -507,7 +507,7 @@
   /* ---------------- 控制曲线 ---------------- */
   var CHART_COLORS = ['#c0392b', '#2b6fb0', '#2e8b57', '#b8860b', '#7a4fa8', '#0f7b8a'];
 
-  UI.showChart = function (keys) {
+  UI.showChart = function (keys, compare) {
     var panel = document.getElementById('chart-panel');
     var cv = document.getElementById('py-chart');
     if (!panel || !cv || !w.PY) return;
@@ -558,17 +558,34 @@
       ctx.stroke();
 
       /* 曲线 */
-      ctx.beginPath();
-      for (var m = 0; m < rec.length; m++) {
-        var val = rec[m][k];
-        if (typeof val !== 'number' || !isFinite(val)) continue;
-        var px = x0 + (rec.length > 1 ? (m / (rec.length - 1)) * (x1 - x0) : 0);
-        var py = y1 - ((val - min) / (max - min)) * (y1 - y0);
-        if (m === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      function drawSeg(segFilter, color, dash) {
+        ctx.beginPath();
+        var started = false;
+        for (var m = 0; m < rec.length; m++) {
+          if (segFilter !== null && (rec[m].seg || 0) !== segFilter) { started = false; continue; }
+          var val = rec[m][k];
+          if (typeof val !== 'number' || !isFinite(val)) { started = false; continue; }
+          var px = x0 + (rec.length > 1 ? (m / (rec.length - 1)) * (x1 - x0) : 0);
+          var py = y1 - ((val - min) / (max - min)) * (y1 - y0);
+          if (!started) { ctx.moveTo(px, py); started = true; }
+          else ctx.lineTo(px, py);
+        }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = dash ? 1.4 : 1.8;
+        ctx.setLineDash(dash || []);
+        ctx.stroke();
+        ctx.setLineDash([]);
       }
-      ctx.strokeStyle = CHART_COLORS[i % CHART_COLORS.length];
-      ctx.lineWidth = 1.6;
-      ctx.stroke();
+
+      var hasSeg1 = false;
+      for (var q = 0; q < rec.length; q++) { if ((rec[q].seg || 0) === 1) { hasSeg1 = true; break; } }
+
+      if (compare && hasSeg1) {
+        drawSeg(0, '#9aa5b4', [5, 3]);                       // 基线：灰虚线
+        drawSeg(1, CHART_COLORS[i % CHART_COLORS.length]);   // 算法：彩色实线
+      } else {
+        drawSeg(null, CHART_COLORS[i % CHART_COLORS.length]);
+      }
 
       /* 标注 */
       ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
@@ -580,10 +597,27 @@
       ctx.fillText(min.toFixed(2), 8, y1);
     });
 
-    /* 时间轴 */
+    /* 图例与时间轴 */
+    var hasS1 = false;
+    for (var z = 0; z < rec.length; z++) { if ((rec[z].seg || 0) === 1) { hasS1 = true; break; } }
+    if (compare && hasS1) {
+      var names = (w.PY.segNames || ['基线', '算法']);
+      ctx.font = '9.5px ui-monospace, monospace';
+      ctx.strokeStyle = '#9aa5b4'; ctx.lineWidth = 1.4;
+      ctx.setLineDash([5, 3]);
+      ctx.beginPath(); ctx.moveTo(x1 - 132, H - 7); ctx.lineTo(x1 - 112, H - 7); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#7b8695';
+      ctx.fillText(names[0], x1 - 108, H - 4);
+
+      ctx.strokeStyle = CHART_COLORS[0]; ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(x1 - 62, H - 7); ctx.lineTo(x1 - 42, H - 7); ctx.stroke();
+      ctx.fillStyle = '#7b8695';
+      ctx.fillText(names[1], x1 - 38, H - 4);
+    }
     ctx.fillStyle = '#9aa5b4';
     ctx.font = '9.5px ui-monospace, monospace';
-    ctx.fillText('t = ' + rec[rec.length - 1].t.toFixed(1) + ' s', x1 - 52, H - 3);
+    ctx.fillText('t = ' + rec[rec.length - 1].t.toFixed(1) + ' s', x0, H - 4);
   };
 
   UI.setQuality = function (name) {

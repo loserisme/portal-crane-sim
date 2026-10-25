@@ -14,8 +14,10 @@
   var KT = w.KT, U = w.U, C = w.CFG;
 
   var PY = {
-    rec: [],          // 曲线记录：{t, hoist, load, swayZ, swayVZ, slew, radius, grab}
-    recMax: 2400,
+    rec: [],          // 曲线记录
+    seg: 0,           // 当前数据段（0=基线，1=对比组）
+    segNames: ['基线', '算法'],
+    recMax: 3600,
     chart: null,
     ready: false,
     loading: false,
@@ -88,8 +90,22 @@
       plot: function (keysJson) {
         var keys = ['hoist', 'load'];
         try { var k = JSON.parse(keysJson); if (k && k.length) keys = k; } catch (e) {}
-        if (w.UI && w.UI.showChart) w.UI.showChart(keys);
+        if (w.UI && w.UI.showChart) w.UI.showChart(keys, false);
         return 'chart ' + keys.join(',') + ' / ' + PY.rec.length + ' samples';
+      },
+      /* 切到下一段（对比模式）：0=基线 1=算法 */
+      mark: function (name) {
+        PY.seg = Math.min(PY.seg + 1, 1);
+        if (name) PY.segNames[PY.seg] = String(name);
+        PY.print('— 分段 ' + PY.seg + '：' + PY.segNames[PY.seg] + ' —');
+        return PY.seg;
+      },
+      resetSeg: function () { PY.seg = 0; return 0; },
+      plotCompare: function (keysJson) {
+        var keys = ['swayMag'];
+        try { var k = JSON.parse(keysJson); if (k && k.length) keys = k; } catch (e) {}
+        if (w.UI && w.UI.showChart) w.UI.showChart(keys, true);
+        return 'compare ' + keys.join(',');
       },
       clearPlot: function () { PY.rec = []; return 'cleared'; },
     };
@@ -142,6 +158,14 @@
     '    def plot(self, keys=None):',
     '        """绘制曲线。keys 为字段名列表，如 ["hoist","load","swayZ"]"""',
     '        __pybridge__.plot(json.dumps(keys or ["hoist", "load"]))',
+    '',
+    '    def mark(self, name=None):',
+    '        """切换到对比组，之后的数据与之前的基线分开画"""',
+    '        __pybridge__.mark(name)',
+    '',
+    '    def plot_compare(self, keys=None):',
+    '        """对比绘制：基线段与算法段用不同线型"""',
+    '        __pybridge__.plotCompare(json.dumps(keys or ["swayMag"]))',
     '',
     '    def clear_plot(self):',
     '        __pybridge__.clearPlot()',
@@ -218,6 +242,8 @@
       PY.elapsed = 0;
       PY.ticks = 0;
       PY.rec = [];
+      PY.seg = 0;
+      PY.segNames = ['基线', '算法'];
       PY.print('开始运行');
       PY.notify();
       return true;
@@ -253,6 +279,8 @@
       swayZ: +st.thz.toFixed(4),
       swayVZ: +st.thvz.toFixed(4),
       swayX: +st.thx.toFixed(4),
+      swayMag: +Math.hypot(st.thx, st.thz).toFixed(4),
+      seg: PY.seg,
     });
     if (PY.rec.length > PY.recMax) PY.rec.shift();
   }
@@ -276,87 +304,114 @@
 
   /* ---------------- 示例 ---------------- */
   PY.SAMPLE = [
-    '# 定量抓取：按料面高度自动决定下放深度，保证抓满',
-    '# crane.status() 读状态；crane.hoist(m) / crane.grab(v) 控制',
+    '# 定量抓取对比：固定浅插 vs 按料面自适应',
+    '# 基线组固定插 0.55 m（抓不满），算法组按料面算深度（抓满）',
     '',
-    'PHASE_INIT, PHASE_DOWN, PHASE_CLOSE, PHASE_UP = 0, 1, 2, 3',
-    'phase = PHASE_INIT',
+    'PH_INIT, PH_DOWN, PH_CLOSE, PH_UP, PH_DONE = 0, 1, 2, 3, 4',
+    'phase = PH_INIT',
     'timer = 0.0',
+    'rnd = 0            # 0=基线组 1=算法组',
     '',
     'def setup():',
-    '    """运行前执行一次"""',
-    '    crane.log("定量抓取演示启动")',
+    '    crane.log("定量抓取对比实验启动")',
     '    crane.slew(-90)',
     '    crane.radius(30)',
     '    crane.grab(1.0)',
     '',
     'def control(dt):',
-    '    global phase, timer',
+    '    global phase, timer, rnd',
     '    st = crane.status()',
     '',
-    '    if phase == PHASE_INIT:',
+    '    if phase == PH_INIT:',
+    '        if rnd == 1:',
+    '            crane.mark("自适应")     # 从这里开始算算法组',
     '        crane.hoist(6.0)',
-    '        if abs(st["hoist"] - 6.0) < 0.3:',
-    '            phase = PHASE_DOWN',
+    '        if st["hoist"] > 5.7:',
+    '            phase = PH_DOWN',
     '',
-    '    elif phase == PHASE_DOWN:',
-    '        # 目标：插到料面以下 1.15 m，抓斗高 2.55 m',
-    '        target = st["holdLevel"] - 1.15',
-    '        target = max(target, 0.6)',
+    '    elif phase == PH_DOWN:',
+    '        if rnd == 0:',
+    '            target = 2.00            # 基线：固定浅插，只抓到一半',
+    '        else:',
+    '            target = max(st["holdLevel"] - 1.15, 0.60)   # 算法：插到料面下 1.15 m',
     '        crane.hoist(target)',
     '        if abs(st["hoist"] - target) < 0.12:',
-    '            phase = PHASE_CLOSE',
+    '            phase = PH_CLOSE',
     '            timer = 0.0',
     '',
-    '    elif phase == PHASE_CLOSE:',
-    '        crane.grab(0.0)          # 闭斗',
+    '    elif phase == PH_CLOSE:',
+    '        crane.grab(0.0)',
     '        timer += dt',
     '        if timer > 1.6:',
-    '            crane.log("抓取完成，填充率 %.0f%%" % (st["load"] * 100))',
-    '            phase = PHASE_UP',
+    '            crane.log("第 %d 轮填充率 %.0f%%" % (rnd + 1, st["load"] * 100))',
+    '            phase = PH_UP',
     '',
-    '    elif phase == PHASE_UP:',
-    '        crane.hoist(16.0)',
-    '        if st["hoist"] > 15.5:',
-    '            crane.slew(0)',
-    '            crane.radius(23)',
-    '            if abs(st["slew"]) < 3 and abs(st["radius"] - 23) < 0.6:',
-    '                crane.log("已到卡车上方")',
-    '                crane.stop_hint = True',
+    '    elif phase == PH_UP:',
+    '        crane.grab(1.0)              # 卸掉，便于下一轮',
+    '        crane.hoist(9.0)',
+    '        if st["load"] < 0.05 and st["hoist"] > 8.5:',
+    '            if rnd == 0:',
+    '                rnd = 1',
+    '                phase = PH_INIT',
+    '                crane.log("--- 切换到自适应策略 ---")',
+    '            else:',
+    '                crane.plot_compare(["load", "hoist"])',
+    '                crane.log("对比曲线已生成")',
+    '                phase = PH_DONE',
     '',
   ].join('\n');
 
-  /* 防摇摆示例 */
+  /* 防摇摆对比示例 */
   PY.SAMPLE_SWAY = [
-    '# 防摇摆：用回转速度反馈抑制吊物摆动（PD 控制）',
-    '# 摆动状态：swayX/swayZ（偏角，rad）、swayVX/swayVZ（角速度）',
+    '# 防摇摆对比：无补偿 vs PD 反馈补偿',
+    '# 基线组直接给目标角，算法组用摆动角/角速度做反馈修正',
     '',
     'KP = 1.8',
     'KD = 0.55',
-    'BASE_SLEW = 0.0     # 目标回转角',
-    'TARGET = 45.0       # 本次回转目标',
+    'SWING_ANGLE = 45.0',
     '',
+    'PH_BASE, PH_RESET, PH_PD, PH_DONE = 0, 1, 2, 3',
+    'phase = PH_BASE',
     'k = 0.0',
     '',
     'def setup():',
-    '    crane.log("防摇摆控制启动：目标回转 %.0f°" % TARGET)',
+    '    crane.log("防摇摆对比实验启动")',
     '    crane.grab(0.0)',
     '    crane.hoist(14.0)',
+    '    crane.slew(0)',
     '',
     'def control(dt):',
-    '    global k',
+    '    global phase, k',
     '    st = crane.status()',
     '',
-    '    # 摆动偏差量：用横向偏角与角速度构造回调',
-    '    err = -(KP * st["swayZ"] + KD * st["swayVZ"])',
+    '    if phase == PH_BASE:',
+    '        # 基线：直接给目标，不做任何补偿',
+    '        crane.slew(SWING_ANGLE)',
+    '        k += dt',
+    '        if k > 9.0:',
+    '            crane.mark("PD 补偿")',
+    '            phase = PH_RESET',
+    '            k = 0.0',
+    '            crane.log("基线段结束，摆幅峰值 %.2f°" % (st["swayMag"] * 57.3))',
     '',
-    '    # 限制最大补偿量，避免饱和',
-    '    err = max(-6.0, min(6.0, err))',
+    '    elif phase == PH_RESET:',
+    '        crane.slew(0)',
+    '        k += dt',
+    '        if k > 7.0:',
+    '            phase = PH_PD',
+    '            k = 0.0',
     '',
-    '    # 前馈：目标角 + 摆动补偿',
-    '    k += dt',
-    '    feed = TARGET if k > 1.0 else 0.0',
-    '    crane.slew(feed + err)',
+    '    elif phase == PH_PD:',
+    '        # PD 补偿：用摆动偏角与角速度生成反向修正量',
+    '        err = -(KP * st["swayZ"] + KD * st["swayVZ"])',
+    '        err = max(-6.0, min(6.0, err))',
+    '        crane.slew(SWING_ANGLE + err)',
+    '        k += dt',
+    '        if k > 12.0:',
+    '            crane.plot_compare(["swayMag", "slew"])',
+    '            crane.log("算法段摆幅峰值 %.2f°" % (st["swayMag"] * 57.3))',
+    '            crane.log("对比曲线已生成")',
+    '            phase = PH_DONE',
     '',
   ].join('\n');
 
