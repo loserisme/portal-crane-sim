@@ -33,7 +33,7 @@
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.06;
+    renderer.toneMappingExposure = 0.96;
     container.appendChild(renderer.domElement);
     S.renderer = renderer;
 
@@ -252,6 +252,7 @@
     ));
 
     this._yard(scene);
+    this._portExtra(scene);
     this._ship(scene);
     this._truck(scene);
 
@@ -267,6 +268,146 @@
   };
 
   /* ---------------- 后方堆场 ---------------- */
+  /* ---------------- 码头附属设施 ---------------- */
+  S._portExtra = function (scene) {
+    var M = {
+      steel: U.paint(0x8b96a3, { metalness: 0.62, roughness: 0.46 }),
+      dark: U.paint(0x39434f, { metalness: 0.42, roughness: 0.6 }),
+      conc: U.paint(0x9aa3ac, { metalness: 0.04, roughness: 0.92 }),
+      wall: U.paint(0xc4ccd4, { metalness: 0.08, roughness: 0.86 }),
+      roof: U.paint(0x5d6a76, { metalness: 0.3, roughness: 0.7 }),
+      glass: U.paint(0x33414f, { metalness: 0.72, roughness: 0.22 }),
+      line: new THREE.MeshStandardMaterial({ color: 0xd8a83c, metalness: 0.1, roughness: 0.85 }),
+      coal: U.paint(0x2f3339, { metalness: 0.04, roughness: 0.96 }),
+      ore: U.paint(0x6b5240, { metalness: 0.04, roughness: 0.95 }),
+      green: U.paint(0x3f6b4a, { metalness: 0.05, roughness: 0.9 }),
+    };
+    var buckets = {};
+    function put(mat, geo) {
+      (buckets[mat] = buckets[mat] || []).push(geo);
+    }
+
+    /* ---- 高杆灯 ---- */
+    [-58, -26, 26, 58].forEach(function (lx) {
+      var z = 13.4;
+      put('steel', U.tube({ x: lx, y: 0, z: z }, { x: lx, y: 16.5, z: z }, 0.20, 8));
+      put('conc', U.box(1.3, 0.55, 1.3, lx, 0.28, z));
+      put('dark', U.box(2.9, 0.22, 2.9, lx, 16.7, z));
+      for (var a = -1; a <= 1; a += 2) {
+        for (var b = -1; b <= 1; b += 2) {
+          put('line', U.box(0.72, 0.30, 0.72, lx + a * 1.05, 16.45, z + b * 1.05));
+        }
+      }
+      /* 斜撑 */
+      for (var c = -1; c <= 1; c += 2) {
+        put('steel', U.tube({ x: lx + c * 1.5, y: 15.8, z: z }, { x: lx + c * 1.5, y: 16.6, z: z }, 0.07, 5));
+      }
+    });
+
+    /* ---- 后方仓库 ---- */
+    put('wall', U.box(46, 8.4, 16, -36, 4.2, -25));
+    put('roof', U.box(47.2, 0.6, 17.2, -36, 8.7, -25));
+    put('roof', U.box(47.6, 0.35, 0.9, -36, 9.1, -16.6));
+    /* 卷帘门 */
+    for (var dm = 0; dm < 4; dm++) {
+      put('dark', U.box(5.2, 5.4, 0.24, -55 + dm * 12, 2.7, -16.85));
+      put('line', U.box(5.4, 0.26, 0.30, -55 + dm * 12, 5.5, -16.85));
+    }
+    /* 办公小楼（两层） */
+    put('wall', U.box(13, 7.2, 9, 12, 3.6, -26));
+    put('glass', U.box(13.2, 1.2, 9.2, 12, 4.9, -26));
+    put('glass', U.box(13.2, 1.2, 9.2, 12, 2.4, -26));
+    put('roof', U.box(13.8, 0.5, 9.8, 12, 7.5, -26));
+
+    /* ---- 筒仓（散货码头标志物） ---- */
+    for (var si = 0; si < 3; si++) {
+      var sx = 38 + si * 11.5;
+      var cyl = new THREE.CylinderGeometry(5.0, 5.0, 15, 18);
+      cyl.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 7.5, -25));
+      put('wall', cyl);
+      var cone = new THREE.ConeGeometry(5.3, 2.6, 18);
+      cone.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 16.3, -25));
+      put('roof', cone);
+      /* 支腿环 */
+      var ring = new THREE.CylinderGeometry(5.15, 5.15, 0.4, 18);
+      ring.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 8.6, -25));
+      put('steel', ring);
+    }
+
+    /* ---- 散货堆 ---- */
+    var pileC = new THREE.ConeGeometry(9.5, 6.4, 22);
+    pileC.applyMatrix4(new THREE.Matrix4().makeTranslation(-70, 3.2, -22));
+    put('coal', pileC);
+    var pileO = new THREE.ConeGeometry(7.6, 4.8, 20);
+    pileO.applyMatrix4(new THREE.Matrix4().makeTranslation(-52, 2.4, -22.5));
+    put('ore', pileO);
+
+    /* ---- 隔离墩（沿码头边） ---- */
+    for (var bx = -46; bx <= 46; bx += 9.2) {
+      put('conc', U.box(0.9, 0.8, 0.55, bx, 0.4, 15.6));
+    }
+
+    /* ---- 地面标线：车道 + 停车位 ---- */
+    for (var lx2 = -74; lx2 < 74; lx2 += 6.4) {
+      put('line', U.box(3.4, 0.03, 0.2, lx2, 0.02, 8.6));
+      put('line', U.box(3.4, 0.03, 0.2, lx2, 0.02, -9.4));
+    }
+    for (var pk = 0; pk < 5; pk++) {
+      var pxp = 20 + pk * 4.2;
+      put('line', U.box(0.18, 0.03, 5.2, pxp, 0.02, -9.6));
+    }
+
+    /* ---- 叉车 ---- */
+    function forklift(fx, fz, ry) {
+      var g = [];
+      g.push(U.box(2.5, 1.5, 1.5, 0, 1.0, 0));
+      g.push(U.box(1.5, 0.28, 1.5, -0.55, 1.95, 0));
+      g.push(U.box(0.16, 3.0, 0.16, 1.15, 1.9, 0.52));
+      g.push(U.box(0.16, 3.0, 0.16, 1.15, 1.9, -0.52));
+      g.push(U.box(0.14, 0.14, 1.1, 1.5, 0.9, 0));
+      g.push(U.box(1.4, 0.10, 0.16, 1.9, 0.86, 0.42));
+      g.push(U.box(1.4, 0.10, 0.16, 1.9, 0.86, -0.42));
+      var wheels = [];
+      for (var w = -1; w <= 1; w += 2) {
+        var wg = new THREE.CylinderGeometry(0.42, 0.42, 0.34, 12);
+        wg.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)
+          .premultiply(new THREE.Matrix4().makeTranslation(0.75, 0.42, w * 0.72)));
+        wheels.push(wg);
+      }
+      /* 整体旋转平移 */
+      var mtx = new THREE.Matrix4().makeRotationY(ry)
+        .premultiply(new THREE.Matrix4().makeTranslation(fx, 0, fz));
+      g.forEach(function (geo) { geo.applyMatrix4(mtx); });
+      wheels.forEach(function (geo) { geo.applyMatrix4(mtx); });
+      g.forEach(function (geo) { put('line', geo); });
+      wheels.forEach(function (geo) { put('dark', geo); });
+    }
+    forklift(46, 9.6, -0.4);
+    forklift(-14, -9.2, 2.6);
+
+    /* ---- 绿化带 ---- */
+    [-64, -20, 22, 64].forEach(function (tx) {
+      put('conc', U.box(2.4, 0.30, 2.4, tx, 0.15, -13.5));
+      var trunk = new THREE.CylinderGeometry(0.22, 0.28, 2.6, 8);
+      trunk.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 1.6, -13.5));
+      put('ore', trunk);
+      var crown = new THREE.SphereGeometry(1.9, 10, 8);
+      crown.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 4.1, -13.5));
+      put('green', crown);
+    });
+
+    /* ---- 合并输出 ---- */
+    var matMap = { steel: M.steel, dark: M.dark, conc: M.conc, wall: M.wall,
+                   roof: M.roof, glass: M.glass, line: M.line, coal: M.coal,
+                   ore: M.ore, green: M.green };
+    for (var k in buckets) {
+      if (!buckets.hasOwnProperty(k) || !buckets[k].length) continue;
+      var mesh = U.mesh(U.merge(buckets[k]), matMap[k], scene);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+    }
+  };
+
   S._yard = function (scene) {
     var palette = [0x45637f, 0x8a5a45, 0x46705f, 0x74787f, 0x8a7a48];
     var mats = palette.map(function (c) {
@@ -301,7 +442,40 @@
     var hullM = U.paint(C.colors.hull, { metalness: 0.55, roughness: 0.48 });
     var deckM = U.paint(0x46515c, { metalness: 0.32, roughness: 0.66 });
     var white = U.paint(0xe6eaee, { metalness: 0.15, roughness: 0.72 });
-    var sandM = new THREE.MeshStandardMaterial({ color: 0xb0905a, metalness: 0.02, roughness: 0.95, emissive: 0x3a2c14, emissiveIntensity: 0.45 });
+    var sandM = (function () {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 256;
+      var g = cv.getContext('2d');
+      g.fillStyle = '#b0905a';
+      g.fillRect(0, 0, 256, 256);
+      /* 颗粒：明暗小点 */
+      for (var i = 0; i < 5200; i++) {
+        var x = Math.random() * 256, y = Math.random() * 256;
+        var r = 0.5 + Math.random() * 1.6;
+        var v = Math.random();
+        g.fillStyle = v > 0.55
+          ? 'rgba(214,188,140,' + (0.12 + Math.random() * 0.22) + ')'
+          : 'rgba(120,95,54,' + (0.10 + Math.random() * 0.20) + ')';
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      }
+      /* 堆痕：几道浅色弧 */
+      for (var j = 0; j < 26; j++) {
+        g.beginPath();
+        g.arc(Math.random() * 256, Math.random() * 256, 18 + Math.random() * 46,
+          Math.random() * 6.28, Math.random() * 6.28 + 0.6);
+        g.strokeStyle = 'rgba(150,124,80,0.10)';
+        g.lineWidth = 2 + Math.random() * 5;
+        g.stroke();
+      }
+      var t = new THREE.CanvasTexture(cv);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(7, 3);
+      t.anisotropy = 4;
+      return new THREE.MeshStandardMaterial({
+        color: 0xffffff, map: t, metalness: 0.02, roughness: 0.96,
+        emissive: 0x2e2210, emissiveIntensity: 0.22,
+      });
+    })();
 
     var L = sh.length, B = sh.width, Z = sh.z, X = sh.x;
     var deckY = sh.deckY;
@@ -470,7 +644,40 @@
     var bodyM = U.paint(0x2f6fb5, { metalness: 0.45, roughness: 0.42 });
     var darkM = U.paint(0x2c3642, { metalness: 0.5, roughness: 0.55 });
     var tireM = U.paint(0x1e242b, { metalness: 0.1, roughness: 0.9 });
-    var sandM = new THREE.MeshStandardMaterial({ color: 0xb0905a, metalness: 0.02, roughness: 0.95, emissive: 0x3a2c14, emissiveIntensity: 0.45 });
+    var sandM = (function () {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 256;
+      var g = cv.getContext('2d');
+      g.fillStyle = '#b0905a';
+      g.fillRect(0, 0, 256, 256);
+      /* 颗粒：明暗小点 */
+      for (var i = 0; i < 5200; i++) {
+        var x = Math.random() * 256, y = Math.random() * 256;
+        var r = 0.5 + Math.random() * 1.6;
+        var v = Math.random();
+        g.fillStyle = v > 0.55
+          ? 'rgba(214,188,140,' + (0.12 + Math.random() * 0.22) + ')'
+          : 'rgba(120,95,54,' + (0.10 + Math.random() * 0.20) + ')';
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      }
+      /* 堆痕：几道浅色弧 */
+      for (var j = 0; j < 26; j++) {
+        g.beginPath();
+        g.arc(Math.random() * 256, Math.random() * 256, 18 + Math.random() * 46,
+          Math.random() * 6.28, Math.random() * 6.28 + 0.6);
+        g.strokeStyle = 'rgba(150,124,80,0.10)';
+        g.lineWidth = 2 + Math.random() * 5;
+        g.stroke();
+      }
+      var t = new THREE.CanvasTexture(cv);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.repeat.set(7, 3);
+      t.anisotropy = 4;
+      return new THREE.MeshStandardMaterial({
+        color: 0xffffff, map: t, metalness: 0.02, roughness: 0.96,
+        emissive: 0x2e2210, emissiveIntensity: 0.22,
+      });
+    })();
 
     var X = tk.x, Z = tk.z;
     var g = [];
