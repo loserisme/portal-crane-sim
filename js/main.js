@@ -214,6 +214,52 @@
     UI.init();
     if (w.AI) w.AI.init();
 
+    /* ---- 部件悬停介绍 ---- */
+    var ray = new THREE.Raycaster();
+    var pointer = new THREE.Vector2();
+    var tipEl = document.getElementById('part-tip');
+    var tipName = document.getElementById('pt-name');
+    var tipDesc = document.getElementById('pt-desc');
+    var lastRay = 0;
+    var hovering = false;
+
+    stage.addEventListener('mousemove', function (e) {
+      var now = performance.now();
+      if (now - lastRay < 55) return;      // 节流，避免每帧都做射线检测
+      lastRay = now;
+      if (!CRANE.hotspots || !CRANE.hotspots.length) return;
+
+      var r = stage.getBoundingClientRect();
+      pointer.x = ((e.clientX - r.left) / r.width) * 2 - 1;
+      pointer.y = -((e.clientY - r.top) / r.height) * 2 + 1;
+      ray.setFromCamera(pointer, SCENE.camera);
+      var hits = ray.intersectObjects(CRANE.hotspots, false);
+
+      if (hits.length && hits[0].object.userData && hits[0].object.userData.part) {
+        var d = hits[0].object.userData;
+        tipName.textContent = d.part;
+        tipDesc.textContent = d.desc;
+        var tw = 300, th = 90;
+        var x = e.clientX + 16, y = e.clientY + 14;
+        if (x + tw > window.innerWidth) x = e.clientX - tw - 12;
+        if (y + th > window.innerHeight) y = e.clientY - th - 12;
+        tipEl.style.left = x + 'px';
+        tipEl.style.top = y + 'px';
+        tipEl.classList.remove('hidden');
+        if (!hovering) { stage.style.cursor = 'help'; hovering = true; }
+      } else if (hovering) {
+        tipEl.classList.add('hidden');
+        stage.style.cursor = '';
+        hovering = false;
+      }
+    });
+
+    stage.addEventListener('mouseleave', function () {
+      tipEl.classList.add('hidden');
+      stage.style.cursor = '';
+      hovering = false;
+    });
+
     stage.addEventListener('pointerdown', function () {
       if (SCENE._view === 'cab') {
         SCENE._view = 'free';

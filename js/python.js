@@ -14,6 +14,9 @@
   var KT = w.KT, U = w.U, C = w.CFG;
 
   var PY = {
+    rec: [],          // 曲线记录：{t, hoist, load, swayZ, swayVZ, slew, radius, grab}
+    recMax: 2400,
+    chart: null,
     ready: false,
     loading: false,
     running: false,
@@ -79,8 +82,16 @@
       /* 脚本引擎（复用行式 DSL） */
       runScript: function (code) {
         if (!w.SCRIPT) return 'no script engine';
-        return w.SCRIPT.run(code) ? 'ok' : W_SCRIPT_STATUS();
+        return w.SCRIPT.run(code) ? 'ok' : w.SCRIPT.status;
       },
+      /* 曲线：Python 传 JSON 数组 */
+      plot: function (keysJson) {
+        var keys = ['hoist', 'load'];
+        try { var k = JSON.parse(keysJson); if (k && k.length) keys = k; } catch (e) {}
+        if (w.UI && w.UI.showChart) w.UI.showChart(keys);
+        return 'chart ' + keys.join(',') + ' / ' + PY.rec.length + ' samples';
+      },
+      clearPlot: function () { PY.rec = []; return 'cleared'; },
     };
     function W_SCRIPT_STATUS() { return w.SCRIPT.status; }
   }
@@ -127,6 +138,13 @@
     '',
     '    def reset(self):',
     '        __pybridge__.reset()',
+    '',
+    '    def plot(self, keys=None):',
+    '        """绘制曲线。keys 为字段名列表，如 ["hoist","load","swayZ"]"""',
+    '        __pybridge__.plot(json.dumps(keys or ["hoist", "load"]))',
+    '',
+    '    def clear_plot(self):',
+    '        __pybridge__.clearPlot()',
     '',
     'crane = _Crane()',
     '',
@@ -199,6 +217,7 @@
       PY.running = true;
       PY.elapsed = 0;
       PY.ticks = 0;
+      PY.rec = [];
       PY.print('开始运行');
       PY.notify();
       return true;
@@ -221,12 +240,30 @@
   };
 
   /* ---------------- 每帧推进 ---------------- */
+  /* 采样：每帧记一条（只在 Python 运行时记录，避免无谓开销） */
+  function sample(dt) {
+    var st = KT.ST;
+    PY.rec.push({
+      t: +(PY.elapsed).toFixed(3),
+      hoist: +st.height.toFixed(3),
+      radius: +st.radius.toFixed(3),
+      slew: +U.deg(st.slew).toFixed(2),
+      load: +st.load.toFixed(3),
+      grab: +st.grabOpen.toFixed(3),
+      swayZ: +st.thz.toFixed(4),
+      swayVZ: +st.thvz.toFixed(4),
+      swayX: +st.thx.toFixed(4),
+    });
+    if (PY.rec.length > PY.recMax) PY.rec.shift();
+  }
+
   PY.update = function (dt) {
     if (!PY.running || !PY._ctrl) return;
     try {
       PY._ctrl(dt);
       PY.elapsed += dt;
       PY.ticks++;
+      sample(dt);
       if (PY.ticks % 20 === 0) PY.notify();
     } catch (e) {
       PY.stop('运行错误：' + String(e && e.message || e).split('\n')[0]);

@@ -65,6 +65,7 @@
     this._linkage(upper);
     this._ropes(upper, scene);
     this._grab(scene);
+    this._hotspots(upper, this.root);
     this._viz(scene);
     return K;
   };
@@ -520,6 +521,96 @@
   };
 
   /* ---------------- 可视化 ---------------- */
+  /* ---------------- 部件热点（用于鼠标悬停介绍） ---------------- */
+  var PARTS = {
+    gantry: ['门架', '四条箱形斜腿支承上部全部载荷，通过回转支承把力传到行走台车。腿间设横梁与斜撑提高整体刚度，净空高度 10.5 m 供车辆通行。'],
+    bogie: ['行走台车', '共四组，每组两台车架。轨距 10.0 m、基距 12.6 m，整机沿码头轨道行走，即"大车行走机构"。'],
+    slew: ['回转支承与转台', '大型滚动轴承连接门架与上部结构，承载垂直力与倾覆力矩。上部结构绕垂直轴 ±180° 回转，是调整作业方向的主运动。'],
+    tower: ['塔架', '从转台面升到臂架铰点的四柱桁架，承受臂架传来的压力与弯矩。没有它，臂架铰点就会悬空。'],
+    aframe: ['人字架', '塔顶上的 A 形桁架，顶点 E 就是大拉杆铰点。它把拉杆的拉力传回塔架，是四连杆的"机架"部分。'],
+    boom: ['主臂（臂架）', '长 24 m 的桁架结构，绕铰点 A 俯仰实现变幅。仰角 26°~50°，对应幅度 22.16~32.73 m。'],
+    head: ['象鼻梁', '臂架头部的三角桁架 B-C-D，前端 C 悬挂抓斗，中部 D 接大拉杆。它与主臂、拉杆共同构成四连杆。'],
+    tie: ['大拉杆', '连接象鼻梁 D 点与人字架顶 E 点。变幅时它与主臂、象鼻梁联动，使抓斗沿近似水平线移动。'],
+    cw: ['平衡重', '转台后上方的圆盘配重，经杠杆与连杆连到臂架根部。臂架抬起时配重下降，抵消倾覆力矩。'],
+    rack: ['齿条变幅机构', '臂架根部的扇形齿条与小齿轮啮合，齿轮由减速箱驱动，推动臂架俯仰。'],
+    cab: ['司机室', '悬在转台前部，随上部结构一起回转，操作员在此控制四大机构。'],
+    grab: ['抓斗', '双颚板抓取机构，自重 4.2 t、满斗物料 5.6 t。插入料堆后闭斗取料，张斗卸料。'],
+  };
+
+  K._hotspots = function (upper, root) {
+    var list = [];
+    function box(parent, key, cx, cy, cz, sx, sy, sz) {
+      var m = new THREE.Mesh(
+        new THREE.BoxGeometry(sx, sy, sz),
+        new THREE.MeshBasicMaterial({ visible: false }));
+      m.position.set(cx, cy, cz);
+      m.userData = PARTS[key] ? { part: PARTS[key][0], desc: PARTS[key][1] } : null;
+      parent.add(m);
+      list.push(m);
+      return m;
+    }
+    var up = C.upper;
+
+    /* 静态部件（随 upper 或 root） */
+    box(upper, 'tower', 0, 6.0, 0, 5.4, 11.4, 5.4);
+    box(upper, 'aframe', up.apex.x * 0.6, up.apex.y * 0.85, 0, 4.6, 5.6, 2.6);
+    box(upper, 'slew', 0, 0.4, 0, 13.0, 1.6, 11.0);
+    box(upper, 'cab', 2.95, 1.75, 2.60, 2.4, 2.3, 2.4);
+    box(upper, 'rack', 0.4, 10.4, 0, 4.2, 3.6, 1.6);
+    box(upper, 'cw', up.counterweight.pivotX - 2.2, up.counterweight.pivotY, 0, 5.0, 3.6, 3.0);
+
+    /* 门架 / 台车在 root 上 */
+    for (var sx = -1; sx <= 1; sx += 2) {
+      for (var sz = -1; sz <= 1; sz += 2) {
+        box(root, 'bogie', sx * 6.35, 0.5, sz * 5.0, 9.0, 1.4, 2.2);
+      }
+    }
+    box(root, 'gantry', 0, 6.0, 0, 13.4, 11.0, 10.6);
+
+    /* 动态部件（每帧跟随锚点，用球体近似） */
+    function sphere(key, r) {
+      var m = new THREE.Mesh(
+        new THREE.SphereGeometry(r, 10, 8),
+        new THREE.MeshBasicMaterial({ visible: false }));
+      m.userData = PARTS[key] ? { part: PARTS[key][0], desc: PARTS[key][1] } : null;
+      upper.add(m);
+      list.push(m);
+      return m;
+    }
+    K._dynHot = {
+      boom: sphere('boom', 3.2),
+      head: sphere('head', 2.6),
+      tie: sphere('tie', 2.2),
+      grab: sphere('grab', 2.6),
+    };
+
+    K.hotspots = list;
+  };
+
+  K.updateHotspots = function (st) {
+    if (!K._dynHot) return;
+    var y0 = C.machine.portalHeight + C.machine.slewBearingH;
+    var cs = Math.cos(st.slew), sn = Math.sin(st.slew);
+    function toLocal(wx, wy, wz) {
+      var dx = wx - st.travel, dy = wy - y0;
+      return { x: dx * cs - wz * sn * -1, y: dy, z: 0 };
+    }
+    /* 简化：直接在 upper 局部坐标里定位，避免反复换算 */
+    var up = C.upper;
+    var a = st.alpha;
+    K._dynHot.boom.position.set(
+      up.pivot.x + up.jibLength * 0.5 * Math.cos(a),
+      up.pivot.y + up.jibLength * 0.5 * Math.sin(a), 0);
+    K._dynHot.head.position.set((st.B.x + st.Cl.x) * 0.5, (st.B.y + st.Cl.y) * 0.5, 0);
+    K._dynHot.tie.position.set((st.D.x + up.apex.x) * 0.5, (st.D.y + up.apex.y) * 0.5, 0);
+
+    var gp = st.grabPos;
+    var dx = gp.x - st.travel, dz = gp.z;
+    var lx = dx * cs - dz * sn;
+    var ly = gp.y - y0;
+    K._dynHot.grab.position.set(lx, ly, 0);
+  };
+
   K._viz = function (scene) {
     var rg = new THREE.BufferGeometry();
     rg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(6), 3));
@@ -588,6 +679,7 @@
     var apex = up.apex;
 
     K.root.position.x = st.travel;
+    K.updateHotspots(st);
     K.upper.rotation.y = st.slew;
 
     /* 臂架俯仰 + 象鼻梁姿态（四连杆输出） */

@@ -64,6 +64,7 @@
     bindScript();
     bindPython();
     bindTrain();
+    bindChart();
     buildTags();
     resizeChart();
     w.addEventListener('resize', resizeChart);
@@ -164,6 +165,14 @@
         KT.ST.showTrace = on;
         if (w.CRANE) w.CRANE.resetTrace();
       }
+    });
+  }
+
+  function bindChart() {
+    var btn = document.getElementById('chart-close');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      document.getElementById('chart-panel').classList.add('hidden');
     });
   }
 
@@ -424,6 +433,88 @@
     el.travelV.textContent = (+KT.ST.cmd.travel).toFixed(1) + ' m';
   }
   UI.syncSliders = syncSliders;
+
+  /* ---------------- 控制曲线 ---------------- */
+  var CHART_COLORS = ['#c0392b', '#2b6fb0', '#2e8b57', '#b8860b', '#7a4fa8', '#0f7b8a'];
+
+  UI.showChart = function (keys) {
+    var panel = document.getElementById('chart-panel');
+    var cv = document.getElementById('py-chart');
+    if (!panel || !cv || !w.PY) return;
+    panel.classList.remove('hidden');
+
+    var rec = w.PY.rec || [];
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var W = cv.clientWidth || 620, H = cv.clientHeight || 240;
+    cv.width = Math.round(W * dpr);
+    cv.height = Math.round(H * dpr);
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    if (!rec.length) {
+      ctx.fillStyle = '#8b96a4';
+      ctx.font = '12px system-ui, sans-serif';
+      ctx.fillText('还没有数据，先运行 Python 程序', 20, 30);
+      return;
+    }
+
+    if (!keys || !keys.length) keys = ['hoist', 'load'];
+    var n = keys.length;
+    var ph = H / n;
+    var x0 = 46, x1 = W - 12;
+
+    keys.forEach(function (k, i) {
+      var min = Infinity, max = -Infinity;
+      for (var j = 0; j < rec.length; j++) {
+        var v = rec[j][k];
+        if (typeof v === 'number' && isFinite(v)) {
+          if (v < min) min = v;
+          if (v > max) max = v;
+        }
+      }
+      if (!isFinite(min)) return;
+      if (max - min < 1e-6) { min -= 0.5; max += 0.5; }
+      var pd = (max - min) * 0.14;
+      min -= pd; max += pd;
+
+      var y0 = i * ph + 16, y1 = (i + 1) * ph - 10;
+
+      /* 背景分隔线 */
+      ctx.strokeStyle = '#eceff4';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x0, y1); ctx.lineTo(x1, y1);
+      ctx.stroke();
+
+      /* 曲线 */
+      ctx.beginPath();
+      for (var m = 0; m < rec.length; m++) {
+        var val = rec[m][k];
+        if (typeof val !== 'number' || !isFinite(val)) continue;
+        var px = x0 + (rec.length > 1 ? (m / (rec.length - 1)) * (x1 - x0) : 0);
+        var py = y1 - ((val - min) / (max - min)) * (y1 - y0);
+        if (m === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.strokeStyle = CHART_COLORS[i % CHART_COLORS.length];
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      /* 标注 */
+      ctx.fillStyle = CHART_COLORS[i % CHART_COLORS.length];
+      ctx.font = '600 10.5px ui-monospace, monospace';
+      ctx.fillText(k, 8, y0 + 6);
+      ctx.fillStyle = '#8b96a4';
+      ctx.font = '9.5px ui-monospace, monospace';
+      ctx.fillText(max.toFixed(2), 8, y0 + 18);
+      ctx.fillText(min.toFixed(2), 8, y1);
+    });
+
+    /* 时间轴 */
+    ctx.fillStyle = '#9aa5b4';
+    ctx.font = '9.5px ui-monospace, monospace';
+    ctx.fillText('t = ' + rec[rec.length - 1].t.toFixed(1) + ' s', x1 - 52, H - 3);
+  };
 
   UI.setQuality = function (name) {
     var qual = document.getElementById('seg-quality');
