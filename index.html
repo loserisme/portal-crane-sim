@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>港口门座式起重机运动控制仿真实验</title>
-<link rel="stylesheet" href="css/style.css?v=20261026b">
+<link rel="stylesheet" href="css/style.css?v=20261026c">
 </head>
 <body>
 
@@ -25,6 +25,7 @@
     </div>
   </div>
   <nav class="views" id="views">
+    <button id="comp-open" class="trainbtn">综合实验</button>
     <button id="train-open" class="trainbtn">实训</button>
     <button data-view="iso" class="on">轴测</button>
     <button data-view="side">侧视</button>
@@ -177,6 +178,18 @@
 </aside>
 <textarea id="tp-report" class="hidden" readonly></textarea>
 
+<aside id="comp-panel" class="hidden">
+  <div class="tp-head">
+    <span>综合实验 · 全流程引导</span>
+    <button id="comp-close" class="iconbtn">×</button>
+  </div>
+  <div class="tp-student">
+    <input id="cp-name" placeholder="姓名" maxlength="12">
+    <input id="cp-no" placeholder="学号" maxlength="16">
+  </div>
+  <div id="cp-body"></div>
+</aside>
+
 <div id="py-panel" class="hidden">
   <div class="code-head">
     <span>Python 控制</span>
@@ -254,21 +267,22 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261026b"></script>
-<script src="lib/OrbitControls.js?v=20261026b"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261026b"></script>
-<script src="js/config.js?v=20261026b"></script>
-<script src="js/util.js?v=20261026b"></script>
-<script src="js/scene.js?v=20261026b"></script>
-<script src="js/crane.js?v=20261026b"></script>
-<script src="js/kinematics.js?v=20261026b"></script>
-<script src="js/script.js?v=20261026b"></script>
-<script src="js/ai.js?v=20261026b"></script>
-<script src="js/python.js?v=20261026b"></script>
-<script src="js/stats.js?v=20261026b"></script>
-<script src="js/report-docx.js?v=20261026b"></script>
-<script src="js/train.js?v=20261026b"></script>
-<script src="js/ui.js?v=20261026b"></script>
-<script src="js/main.js?v=20261026b"></script>
+<script src="lib/three.min.js?v=20261026c"></script>
+<script src="lib/OrbitControls.js?v=20261026c"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261026c"></script>
+<script src="js/config.js?v=20261026c"></script>
+<script src="js/util.js?v=20261026c"></script>
+<script src="js/scene.js?v=20261026c"></script>
+<script src="js/crane.js?v=20261026c"></script>
+<script src="js/kinematics.js?v=20261026c"></script>
+<script src="js/script.js?v=20261026c"></script>
+<script src="js/ai.js?v=20261026c"></script>
+<script src="js/python.js?v=20261026c"></script>
+<script src="js/stats.js?v=20261026c"></script>
+<script src="js/report-docx.js?v=20261026c"></script>
+<script src="js/train.js?v=20261026c"></script>
+<script src="js/comprehensive.js?v=20261026c"></script>
+<script src="js/ui.js?v=20261026c"></script>
+<script src="js/main.js?v=20261026c"></script>
 </body>
 </html>

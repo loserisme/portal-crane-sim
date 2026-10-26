@@ -78,6 +78,7 @@
     bindScript();
     bindPython();
     bindTrain();
+    bindComp();
     bindChart();
     buildTags();
     applyFloating();
@@ -663,6 +664,161 @@
     render();
   }
 
+  /* ---------------- 综合实验面板 ---------------- */
+  function bindComp() {
+    var panel = document.getElementById('comp-panel');
+    var body = document.getElementById('cp-body');
+    var openBtn = document.getElementById('comp-open');
+    if (!panel || !body || !w.COMP) return;
+    var CP = w.COMP;
+
+    function esc(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function stageName(id) {
+      for (var i = 0; i < CP.stages.length; i++)
+        if (CP.stages[i].id === id) return CP.stages[i].name;
+      return '';
+    }
+
+    function render() {
+      var cp = CP.CP;
+
+      /* ---- 未开始 ---- */
+      if (!cp.started) {
+        body.innerHTML =
+          '<div class="cp-intro">' +
+          '<p>从<b>结构认知</b>到<b>系统控制优化</b>的全流程引导实验，共 <b>' + CP.steps.length + ' 步</b>、6 个阶段：</p>' +
+          '<table class="cp-stage-table">' + CP.stages.map(function (g) {
+            return '<tr><td>' + g.name + '</td><td class="cp-w">' + g.weight + '%</td></tr>';
+          }).join('') + '</table>' +
+          '<p class="cp-note">每一步完成判定条件后，点击「下一步」继续。全部完成后自动汇总综合评分，可生成报告并导出 Word。</p>' +
+          '<button id="cp-start" class="primary cp-go">开始综合实验</button>' +
+          '</div>';
+        var sb = document.getElementById('cp-start');
+        if (sb) sb.addEventListener('click', function () {
+          if (w.STATS) w.STATS.track('comp');
+          CP.start();
+        });
+        return;
+      }
+
+      var idx = cp.step, step = CP.steps[idx];
+      var score, stageRows, i, g;
+
+      /* ---- 完成页 ---- */
+      if (cp.finished) {
+        var tot = CP.total();
+        stageRows = '';
+        for (i = 0; i < tot.stages.length; i++) {
+          g = tot.stages[i];
+          stageRows += '<tr><td>' + g.name + '</td><td>' + g.weight + '%</td><td>' +
+            g.avg + '</td><td>' + (g.weight * g.avg / 100).toFixed(1) + '</td></tr>';
+        }
+        body.innerHTML =
+          '<div class="cp-done">' +
+          '<p class="cp-done-label">综合评分</p>' +
+          '<div class="cp-bignum">' + tot.percent + '<i> / 100</i></div>' +
+          '<p class="cp-grade">' + tot.grade + ' · 完成 ' + tot.done + '/' + tot.total + ' 步' +
+          (CP.improve ? ' · 抑摆改善 ' + CP.improve.toFixed(0) + '%' : '') + '</p>' +
+          '<table class="cp-stage-table cp-score-table"><tr><th>阶段</th><th>权重</th><th>均分</th><th>加权</th></tr>' +
+          stageRows + '</table>' +
+          '<div class="cp-btnrow">' +
+          '<button id="cp-report" class="primary">生成报告</button>' +
+          '<button id="cp-docx" class="docxbtn">导出 Word</button>' +
+          '<button id="cp-restart">重新开始</button>' +
+          '</div>' +
+          '<textarea id="cp-report-text" class="hidden" readonly></textarea>' +
+          '</div>';
+
+        document.getElementById('cp-restart').addEventListener('click', function () { CP.reset(); });
+
+        document.getElementById('cp-report').addEventListener('click', function () {
+          var ta = document.getElementById('cp-report-text');
+          ta.value = CP.report();
+          ta.classList.remove('hidden');
+          ta.focus(); ta.select();
+        });
+
+        document.getElementById('cp-docx').addEventListener('click', function () {
+          if (!w.REPORT_DOCX) return;
+          var b = this;
+          b.disabled = true; b.textContent = '生成中…';
+          w.REPORT_DOCX.exportComp({
+            student: (w.TRAIN && w.TRAIN.student) || {},
+            steps: CP.steps, stages: CP.stages,
+            stepScore: CP.stepScore, total: CP.total,
+            basePeak: CP.basePeak, tunedPeak: CP.tunedPeak, improve: CP.improve,
+            CP: CP.CP,
+          }).then(function () {
+            b.textContent = '已下载';
+            if (w.STATS) w.STATS.track('comp_docx');
+            setTimeout(function () { b.textContent = '导出 Word'; b.disabled = false; }, 1800);
+          }).catch(function (e) {
+            b.textContent = '失败：' + String(e.message || e).slice(0, 10);
+            setTimeout(function () { b.textContent = '导出 Word'; b.disabled = false; }, 2400);
+          });
+        });
+        return;
+      }
+
+      /* ---- 进行中 ---- */
+      var dotHtml = '';
+      for (i = 0; i < CP.steps.length; i++) {
+        var cls = i < idx ? 'past' : (i === idx ? 'cur' : '');
+        if (i > idx && cp.scores[i]) cls = 'past';
+        dotHtml += '<i class="' + cls + '"></i>';
+      }
+      var last = idx >= CP.steps.length - 1;
+
+      body.innerHTML =
+        '<div class="cp-progress">' + dotHtml + '<span>' + (idx + 1) + ' / ' + CP.steps.length + '</span></div>' +
+        '<div class="cp-stage">' + esc(stageName(step.stage)) + '</div>' +
+        '<div class="cp-task' + (cp.passed ? ' passed' : '') + '">' +
+        '<div class="cp-t"><b>第 ' + (idx + 1) + ' 步 · ' + esc(step.title) + '</b>' +
+        '<span class="cp-badge">' + (cp.passed ? '✓ 已达成' : '进行中') + '</span></div>' +
+        '<p class="cp-goal">' + esc(step.goal) + '</p>' +
+        (cp.live ? '<div class="tp-live">' + esc(cp.live) + '</div>' : '') +
+        '<div class="tp-hint">' + esc(step.hint) + '</div>' +
+        '<div class="cp-next"><button id="cp-next" class="primary"' + (cp.passed ? '' : ' disabled') + '>' +
+        (last ? '完成实验' : '下一步 →') + '</button>' +
+        (cp.passed ? '' : '<span class="cp-wait">先完成本步判定条件</span>') + '</div>' +
+        '</div>';
+      document.getElementById('cp-next').addEventListener('click', function () { CP.next(); });
+    }
+
+    CP.onUpdate = render;
+
+    openBtn.addEventListener('click', function () {
+      var on = panel.classList.toggle('hidden');
+      openBtn.classList.toggle('on', !on);
+      var tp = document.getElementById('train-panel');
+      if (tp && !on) tp.classList.add('hidden');
+      if (w.STATS && !on) w.STATS.track('comp');
+      if (!on) render();
+    });
+    document.getElementById('comp-close').addEventListener('click', function () {
+      panel.classList.add('hidden');
+      openBtn.classList.remove('on');
+    });
+
+    var nameIn = document.getElementById('cp-name');
+    var noIn = document.getElementById('cp-no');
+    nameIn.addEventListener('input', function () {
+      if (!w.TRAIN) w.TRAIN = { student: {} };
+      if (!w.TRAIN.student) w.TRAIN.student = {};
+      w.TRAIN.student.name = this.value;
+    });
+    noIn.addEventListener('input', function () {
+      if (!w.TRAIN) w.TRAIN = { student: {} };
+      if (!w.TRAIN.student) w.TRAIN.student = {};
+      w.TRAIN.student.no = this.value;
+    });
+
+    render();
+  }
+
   /* ---------------- 脚本控制面板 ---------------- */
   function bindScript() {
     var panel = document.getElementById('code-panel');
@@ -804,6 +960,8 @@
     var cv = document.getElementById('py-chart');
     if (!panel || !cv || !w.PY) return;
     panel.classList.remove('hidden');
+    /* 综合实验第 17 步：观测控制曲线 */
+    if (w.COMP) w.COMP.noteChart();
 
     /* 画布高度随字段数变化，每行 52 px */
     var flds = (keys && keys.length) ? keys : ALL_FIELDS;

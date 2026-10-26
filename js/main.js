@@ -178,6 +178,7 @@
     KT.updateGrab(dtSim);
     updateUnload(dtSim);
     if (w.TRAIN) w.TRAIN.update();
+    if (w.COMP) w.COMP.update();
     if (w.PY) w.PY.update(dtSim);
     if (!DEMO.running) ST.sandFlow = Math.max(0, ST.sandFlow - dtSim * 5);
 
@@ -257,6 +258,7 @@
         if (w.UI) w.UI.focusTag(d.key);
         if (hintEl) hintEl.classList.remove('show');
         if (w.TRAIN) w.TRAIN.notePart(d.part);
+        if (w.COMP) w.COMP.notePart(d.part);
         if (!hovering) { stage.style.cursor = 'help'; hovering = true; }
       } else {
         if (w.UI) w.UI.focusTag(null);

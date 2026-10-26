@@ -157,6 +157,7 @@
     S._next();
     S._notify();
     if (w.TRAIN) w.TRAIN.onScriptEvent({ event: 'start' });
+    if (w.COMP) w.COMP.onScriptEvent({ event: 'start' });
     return true;
   };
 
@@ -177,6 +178,7 @@
       S.status = '执行完毕（' + S.lines.length + ' 条）';
       S._notify();
       if (w.TRAIN) w.TRAIN.onScriptEvent({ event: 'done' });
+      if (w.COMP) w.COMP.onScriptEvent({ event: 'done' });
       return;
     }
     c.def.apply(c.val);
