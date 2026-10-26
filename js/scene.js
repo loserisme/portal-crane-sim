@@ -14,10 +14,10 @@
 
   /* ---------------- 相机预设 ---------------- */
   S.views = {
-    iso:   { pos: [78, 54, 82], tgt: [6, 14, 17] },
-    side:  { pos: [104, 32, 6], tgt: [6, 22, 2] },
-    front: { pos: [6, 32, 100], tgt: [6, 22, 12] },
-    top:   { pos: [6, 128, 8], tgt: [6, 0, 8] },
+    iso:   { pos: [88, 66, 118], tgt: [0, 8, -6] },
+    side:  { pos: [124, 36, 10], tgt: [2, 20, 2] },
+    front: { pos: [6, 38, 118], tgt: [6, 18, 6] },
+    top:   { pos: [6, 168, -46], tgt: [6, 0, -46] },
     cab:   { follow: true },
   };
 
@@ -39,19 +39,19 @@
 
     var scene = new THREE.Scene();
     scene.background = new THREE.Color(0xccd9e6);
-    scene.fog = new THREE.Fog(0xccd9e6, 130, 320);
+    scene.fog = new THREE.Fog(0xccd9e6, 210, 540);
     S.scene = scene;
 
     var cam = new THREE.PerspectiveCamera(40, width / height, 0.4, 700);
-    cam.position.set(78, 54, 82);
+    cam.position.set(88, 66, 118);
     S.camera = cam;
 
     var ctl = new THREE.OrbitControls(cam, renderer.domElement);
-    ctl.target.set(6, 14, 17);
+    ctl.target.set(0, 8, -6);
     ctl.enableDamping = true;
     ctl.dampingFactor = 0.075;
     ctl.minDistance = 6;
-    ctl.maxDistance = 220;
+    ctl.maxDistance = 320;
     ctl.maxPolarAngle = Math.PI * 0.495;
     ctl.update();
     S.controls = ctl;
@@ -95,12 +95,12 @@
     sun.position.set(58, 76, 46);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
-    sun.shadow.camera.left = -66;
-    sun.shadow.camera.right = 66;
-    sun.shadow.camera.top = 70;
-    sun.shadow.camera.bottom = -46;
+    sun.shadow.camera.left = -104;
+    sun.shadow.camera.right = 104;
+    sun.shadow.camera.top = 120;
+    sun.shadow.camera.bottom = -96;
     sun.shadow.camera.near = 10;
-    sun.shadow.camera.far = 200;
+    sun.shadow.camera.far = 300;
     sun.shadow.bias = -0.0007;
     sun.shadow.normalBias = 0.035;
     scene.add(sun);
@@ -140,7 +140,7 @@
       ctx.stroke();
       var t = new THREE.CanvasTexture(cv);
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      t.repeat.set(28, 8);
+      t.repeat.set(64, 31);          // 与 392×192 的陆域匹配，约 6 m 一格
       t.anisotropy = 4;
       t.encoding = THREE.sRGBEncoding;
       return t;
@@ -148,7 +148,7 @@
 
     var M = {
       concrete: new THREE.MeshStandardMaterial({
-        color: 0xffffff, map: tex, metalness: 0.02, roughness: 0.94,
+        color: 0xb6bec7, map: tex, metalness: 0.02, roughness: 0.94,
       }),
       rail: U.paint(0x6c7884, { metalness: 0.65, roughness: 0.42 }),
       tie: U.paint(0xaab2bb, { metalness: 0.05, roughness: 0.9 }),
@@ -178,7 +178,7 @@
         }
         var t = new THREE.CanvasTexture(cv);
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
-        t.repeat.set(26, 26);
+        t.repeat.set(34, 12);
         t.anisotropy = 4;
         t.encoding = THREE.sRGBEncoding;
         return new THREE.MeshStandardMaterial({
@@ -188,26 +188,41 @@
       })(),
     };
 
-    var water = new THREE.Mesh(new THREE.PlaneGeometry(700, 700), M.water);
+    /* ---------------- 陆域与海域 ---------------- */
+    /* 坐标约定：+z 为海侧，-z 为陆侧；码头前沿在 z = 16 */
+    var LAND = { x0: -196, x1: 196, z0: -176, z1: 16 };
+    var landW = LAND.x1 - LAND.x0;
+    var landD = LAND.z1 - LAND.z0;
+    var land = new THREE.Mesh(new THREE.BoxGeometry(landW, 2.4, landD), M.concrete);
+    land.position.set((LAND.x0 + LAND.x1) / 2, -1.2, (LAND.z0 + LAND.z1) / 2);
+    land.receiveShadow = true;
+    land.castShadow = true;
+    scene.add(land);
+    S.land = land;
+
+    /* 海面只在码头前方，纵深收窄，不再铺满整个场景 */
+    var water = new THREE.Mesh(new THREE.PlaneGeometry(900, 300), M.water);
     water.rotation.x = -Math.PI / 2;
-    water.position.set(0, -1.55, 0);
+    water.position.set(0, -1.55, 166);      // z: 16 → 316
     water.receiveShadow = true;
     scene.add(water);
     S.water = water;
 
-    var quay = new THREE.Mesh(new THREE.BoxGeometry(170, 2.4, 46), M.concrete);
-    quay.position.set(0, -1.2, -7.0);
-    quay.receiveShadow = true;
-    quay.castShadow = true;
-    scene.add(quay);
-
+    /* 码头前沿压顶 */
     var edge = new THREE.Mesh(
-      new THREE.BoxGeometry(170, 0.55, 0.5),
+      new THREE.BoxGeometry(landW, 0.55, 0.6),
       U.paint(0x8f9aa5, { roughness: 0.8 })
     );
     edge.position.set(0, -0.62, 15.85);
     edge.receiveShadow = true;
     scene.add(edge);
+
+    /* 护舷（沿前沿均匀布置） */
+    var fend = [];
+    for (var fx = -250; fx <= 250; fx += 10) {
+      fend.push(U.box(0.72, 1.10, 0.55, fx, -0.78, 16.30));
+    }
+    U.mesh(U.merge(fend), U.paint(0x2f3438, { roughness: 0.95, metalness: 0.06 }), scene, false);
 
     /* 轨道与轨枕 */
     var tieGeoms = [];
@@ -224,7 +239,7 @@
 
     /* 铺面网格 */
     var gv = [];
-    var GX0 = -84, GX1 = 84, GZ0 = -29, GZ1 = 15.6, GS = 3.2;
+    var GX0 = -150, GX1 = 150, GZ0 = -160, GZ1 = 15.6, GS = 6.0;
     for (var gx = GX0; gx <= GX1; gx += GS) {
       gv.push(new V3(gx, 0.012, GZ0), new V3(gx, 0.012, GZ1));
     }
@@ -242,7 +257,7 @@
     var yellow = [];
     for (var ty = -1; ty <= 1; ty += 2) {
       var lz = ty * 11.5;
-      for (var tx = -40; tx <= 40; tx += 2.0) {
+      for (var tx = -158; tx <= 158; tx += 2.6) {
         yellow.push(new V3(tx, 0.016, lz), new V3(tx + 1.1, 0.016, lz));
       }
     }
@@ -256,15 +271,39 @@
     this._ship(scene);
     this._truck(scene);
 
-    for (var i = -2; i <= 2; i++) {
-      var bollard = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.22, 0.26, 0.75, 10),
-        U.paint(0x6b7683, { metalness: 0.5, roughness: 0.5 })
-      );
-      bollard.position.set(i * 14 - 3, 0.37, 15.0);
-      bollard.castShadow = true;
-      scene.add(bollard);
+    /* 港区围墙：界定陆域边界，同时让远处地平线有落点 */
+    (function () {
+      var W = [], H2 = 2.6;
+      function post(x, z) {
+        W.push(U.box(0.16, H2, 0.16, x, H2 / 2, z));
+      }
+      function rail(x1, z1, x2, z2, y) {
+        var len = Math.hypot(x2 - x1, z2 - z1);
+        var g = new THREE.BoxGeometry(len, 0.10, 0.07);
+        g.applyMatrix4(new THREE.Matrix4().makeRotationY(-Math.atan2(z2 - z1, x2 - x1)));
+        g.applyMatrix4(new THREE.Matrix4().makeTranslation((x1 + x2) / 2, y, (z1 + z2) / 2));
+        W.push(g);
+      }
+      var X0 = -194, X1 = 194, Z0 = -174, Z1 = 15.0;
+      for (var px = X0; px <= X1; px += 6.2) post(px, Z0);
+      for (var pz = Z0; pz <= Z1; pz += 6.2) { post(X0, pz); post(X1, pz); }
+      [0.9, 2.3].forEach(function (y) {
+        rail(X0, Z0, X1, Z0, y);
+        rail(X0, Z0, X0, Z1, y);
+        rail(X1, Z0, X1, Z1, y);
+      });
+      var m = U.mesh(U.merge(W), U.paint(0x5b6672, { metalness: 0.55, roughness: 0.5 }), scene, false);
+      m.receiveShadow = true;
+    })();
+
+    var bolG = [];
+    for (var i = -9; i <= 9; i++) {
+      var bg = new THREE.CylinderGeometry(0.22, 0.26, 0.75, 10);
+      bg.applyMatrix4(new THREE.Matrix4().makeTranslation(i * 14 - 3, 0.37, 15.0));
+      bolG.push(bg);
     }
+    var bolMesh = U.mesh(U.merge(bolG), U.paint(0x6b7683, { metalness: 0.5, roughness: 0.5 }), scene);
+    bolMesh.castShadow = true;
   };
 
   /* ---------------- 后方堆场 ---------------- */
@@ -304,54 +343,61 @@
       }
     });
 
-    /* ---- 后方仓库 ---- */
-    put('wall', U.box(46, 8.4, 16, -36, 4.2, -25));
-    put('roof', U.box(47.2, 0.6, 17.2, -36, 8.7, -25));
-    put('roof', U.box(47.6, 0.35, 0.9, -36, 9.1, -16.6));
+    /* ---- 后方仓库（后移到 z = -58，让出前沿作业面） ---- */
+    put('wall', U.box(46, 8.4, 16, -40, 4.2, -58));
+    put('roof', U.box(47.2, 0.6, 17.2, -40, 8.7, -58));
+    put('roof', U.box(47.6, 0.35, 0.9, -40, 9.1, -49.6));
     /* 卷帘门 */
     for (var dm = 0; dm < 4; dm++) {
-      put('dark', U.box(5.2, 5.4, 0.24, -55 + dm * 12, 2.7, -16.85));
-      put('line', U.box(5.4, 0.26, 0.30, -55 + dm * 12, 5.5, -16.85));
+      put('dark', U.box(5.2, 5.4, 0.24, -59 + dm * 12, 2.7, -49.85));
+      put('line', U.box(5.4, 0.26, 0.30, -59 + dm * 12, 5.5, -49.85));
     }
     /* 办公小楼（两层） */
-    put('wall', U.box(13, 7.2, 9, 12, 3.6, -26));
-    put('glass', U.box(13.2, 1.2, 9.2, 12, 4.9, -26));
-    put('glass', U.box(13.2, 1.2, 9.2, 12, 2.4, -26));
-    put('roof', U.box(13.8, 0.5, 9.8, 12, 7.5, -26));
+    put('wall', U.box(13, 7.2, 9, 16, 3.6, -74));
+    put('glass', U.box(13.2, 1.2, 9.2, 16, 4.9, -74));
+    put('glass', U.box(13.2, 1.2, 9.2, 16, 2.4, -74));
+    put('roof', U.box(13.8, 0.5, 9.8, 16, 7.5, -74));
 
     /* ---- 筒仓（散货码头标志物） ---- */
     for (var si = 0; si < 3; si++) {
-      var sx = 38 + si * 11.5;
+      var sx = 44 + si * 13.0;
       var cyl = new THREE.CylinderGeometry(5.0, 5.0, 15, 18);
-      cyl.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 7.5, -25));
+      cyl.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 7.5, -70));
       put('wall', cyl);
       var cone = new THREE.ConeGeometry(5.3, 2.6, 18);
-      cone.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 16.3, -25));
+      cone.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 16.3, -70));
       put('roof', cone);
       /* 支腿环 */
       var ring = new THREE.CylinderGeometry(5.15, 5.15, 0.4, 18);
-      ring.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 8.6, -25));
+      ring.applyMatrix4(new THREE.Matrix4().makeTranslation(sx, 8.6, -70));
       put('steel', ring);
     }
 
     /* ---- 散货堆 ---- */
     var pileC = new THREE.ConeGeometry(9.5, 6.4, 22);
-    pileC.applyMatrix4(new THREE.Matrix4().makeTranslation(-70, 3.2, -22));
+    pileC.applyMatrix4(new THREE.Matrix4().makeTranslation(-108, 3.2, -50));
     put('coal', pileC);
     var pileO = new THREE.ConeGeometry(7.6, 4.8, 20);
-    pileO.applyMatrix4(new THREE.Matrix4().makeTranslation(-52, 2.4, -22.5));
+    pileO.applyMatrix4(new THREE.Matrix4().makeTranslation(-88, 2.4, -51));
     put('ore', pileO);
 
     /* ---- 隔离墩（沿码头边） ---- */
-    for (var bx = -46; bx <= 46; bx += 9.2) {
+    for (var bx = -158; bx <= 158; bx += 9.2) {
       put('conc', U.box(0.9, 0.8, 0.55, bx, 0.4, 15.6));
     }
 
     /* ---- 地面标线：车道 + 停车位 ---- */
-    for (var lx2 = -74; lx2 < 74; lx2 += 6.4) {
+    for (var lx2 = -156; lx2 < 156; lx2 += 6.4) {
       put('line', U.box(3.4, 0.03, 0.2, lx2, 0.02, 8.6));
       put('line', U.box(3.4, 0.03, 0.2, lx2, 0.02, -9.4));
     }
+    /* 后方横向主干道（双黄线 + 边线） */
+    for (var lx3 = -156; lx3 < 156; lx3 += 7.2) {
+      put('line', U.box(4.0, 0.03, 0.22, lx3, 0.02, -33.6));
+      put('line', U.box(4.0, 0.03, 0.22, lx3, 0.02, -36.0));
+    }
+    put('line', U.box(312, 0.03, 0.18, 0, 0.02, -30.4));
+    put('line', U.box(312, 0.03, 0.18, 0, 0.02, -39.2));
     for (var pk = 0; pk < 5; pk++) {
       var pxp = 20 + pk * 4.2;
       put('line', U.box(0.18, 0.03, 5.2, pxp, 0.02, -9.6));
@@ -384,17 +430,23 @@
     }
     forklift(46, 9.6, -0.4);
     forklift(-14, -9.2, 2.6);
+    forklift(-96, -24, 1.2);
 
     /* ---- 绿化带 ---- */
-    [-64, -20, 22, 64].forEach(function (tx) {
-      put('conc', U.box(2.4, 0.30, 2.4, tx, 0.15, -13.5));
-      var trunk = new THREE.CylinderGeometry(0.22, 0.28, 2.6, 8);
-      trunk.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 1.6, -13.5));
-      put('ore', trunk);
-      var crown = new THREE.SphereGeometry(1.9, 10, 8);
-      crown.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 4.1, -13.5));
-      put('green', crown);
-    });
+    function treeRow(z, xs) {
+      xs.forEach(function (tx) {
+        put('conc', U.box(2.4, 0.30, 2.4, tx, 0.15, z));
+        var trunk = new THREE.CylinderGeometry(0.22, 0.28, 2.6, 8);
+        trunk.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 1.6, z));
+        put('ore', trunk);
+        var crown = new THREE.SphereGeometry(1.9, 10, 8);
+        crown.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 4.1, z));
+        put('green', crown);
+      });
+    }
+    treeRow(-13.5, [-150, -110, -64, -20, 22, 64, 110, 150]);
+    treeRow(-88, [-150, -110, -64, -20, 22, 64, 110, 150]);
+    treeRow(-150, [-150, -60, 10, 80, 150]);
 
     /* ---- 合并输出 ---- */
     var matMap = { steel: M.steel, dark: M.dark, conc: M.conc, wall: M.wall,
@@ -428,6 +480,16 @@
     stack(-50, -19.5, 5, 3);
     stack(-50, -22.7, 5, 2);
     stack(-16, -19.5, 4, 2);
+    /* 前沿堆场向两侧铺开 */
+    stack(44, -19.5, 4, 3);
+    stack(-136, -19.5, 5, 2);
+    /* 后方堆场 */
+    stack(-170, -46, 6, 3);
+    stack(-170, -49.2, 6, 2);
+    stack(6, -52, 5, 2);
+    stack(84, -60, 5, 3);
+    stack(-40, -96, 6, 3);
+    stack(30, -110, 5, 2);
 
     for (var i = 0; i < palette.length; i++) {
       if (!byMat[i].length) continue;
