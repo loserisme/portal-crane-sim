@@ -56,7 +56,8 @@
 
     timeScale: 1,         // 仿真倍速（时间缩放）
 
-    showRadius: true, showTrace: false, showTags: true, showGrid: true,
+    /* showTags：标注常显开关。默认关闭 —— 部件名称只在鼠标悬停到该部件时才出现 */
+    showRadius: true, showTrace: false, showTags: false, showGrid: true,
     traceDirty: false,
     swayOn: true,
   };

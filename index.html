@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>港口门座式起重机运动控制仿真实验</title>
-<link rel="stylesheet" href="css/style.css?v=20261026a">
+<link rel="stylesheet" href="css/style.css?v=20261026b">
 </head>
 <body>
 
@@ -108,7 +108,7 @@
       <span class="row-label">显示</span>
       <div class="chips" id="chips">
         <button data-k="grid" class="on">网格</button>
-        <button data-k="tags" class="on">标注</button>
+        <button data-k="tags" title="默认隐藏部件名称，鼠标悬停到部件上才显示；打开则全部常显">全部标注</button>
         <button data-k="radius" class="on">幅度尺</button>
         <button data-k="trace">轨迹</button>
       </div>
@@ -247,26 +247,28 @@
   <p id="pt-desc"></p>
 </div>
 
+<div id="hover-hint">将鼠标移到门机各部件上，即可显示部件名称与作用说明</div>
+
 <footer id="statusbar">
   <div class="st"><span class="dot" id="st-dot"></span><span id="st-mode">待机</span></div>
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261026a"></script>
-<script src="lib/OrbitControls.js?v=20261026a"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261026a"></script>
-<script src="js/config.js?v=20261026a"></script>
-<script src="js/util.js?v=20261026a"></script>
-<script src="js/scene.js?v=20261026a"></script>
-<script src="js/crane.js?v=20261026a"></script>
-<script src="js/kinematics.js?v=20261026a"></script>
-<script src="js/script.js?v=20261026a"></script>
-<script src="js/ai.js?v=20261026a"></script>
-<script src="js/python.js?v=20261026a"></script>
-<script src="js/stats.js?v=20261026a"></script>
-<script src="js/report-docx.js?v=20261026a"></script>
-<script src="js/train.js?v=20261026a"></script>
-<script src="js/ui.js?v=20261026a"></script>
-<script src="js/main.js?v=20261026a"></script>
+<script src="lib/three.min.js?v=20261026b"></script>
+<script src="lib/OrbitControls.js?v=20261026b"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261026b"></script>
+<script src="js/config.js?v=20261026b"></script>
+<script src="js/util.js?v=20261026b"></script>
+<script src="js/scene.js?v=20261026b"></script>
+<script src="js/crane.js?v=20261026b"></script>
+<script src="js/kinematics.js?v=20261026b"></script>
+<script src="js/script.js?v=20261026b"></script>
+<script src="js/ai.js?v=20261026b"></script>
+<script src="js/python.js?v=20261026b"></script>
+<script src="js/stats.js?v=20261026b"></script>
+<script src="js/report-docx.js?v=20261026b"></script>
+<script src="js/train.js?v=20261026b"></script>
+<script src="js/ui.js?v=20261026b"></script>
+<script src="js/main.js?v=20261026b"></script>
 </body>
 </html>

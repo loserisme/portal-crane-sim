@@ -44,6 +44,16 @@ body{
 }
 .tag.hide{opacity:0;}
 
+/* 鼠标悬停命中的部件：名称加深、放大一点，作为定位标识 */
+.tag.focus{
+  color:#fff;background:rgba(22,32,46,.92);
+  border-color:rgba(255,216,138,.55);
+  box-shadow:0 5px 16px rgba(10,18,30,.32);
+  font-size:12.5px;font-weight:600;
+  padding:3px 9px;
+}
+.tag.focus::before{background:rgba(255,216,138,.9);width:7px;left:-7px;}
+
 /* ---------- top bar ---------- */
 #topbar{
   position:fixed;top:16px;left:20px;right:20px;
@@ -452,6 +462,18 @@ table.kv tr:last-child td{border-bottom:0;}
   backdrop-filter:blur(6px);
 }
 #part-tip.hidden{display:none;}
+
+/* 入场提示：告诉学生部件名称是悬停才出现的 */
+#hover-hint{
+  position:fixed;left:50%;bottom:76px;transform:translateX(-50%);
+  z-index:34;pointer-events:none;white-space:nowrap;
+  background:rgba(22,32,46,.86);color:#eef3f9;
+  font-size:11.5px;letter-spacing:.02em;
+  padding:6px 15px;border-radius:20px;
+  box-shadow:0 6px 20px rgba(10,18,30,.24);
+  opacity:0;transition:opacity .55s;
+}
+#hover-hint.show{opacity:1;}
 #part-tip b{
   display:block;font-size:12px;font-weight:600;letter-spacing:.02em;
   color:#ffd88a;margin-bottom:3px;

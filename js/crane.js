@@ -544,7 +544,7 @@
         new THREE.BoxGeometry(sx, sy, sz),
         new THREE.MeshBasicMaterial({ visible: false }));
       m.position.set(cx, cy, cz);
-      m.userData = PARTS[key] ? { part: PARTS[key][0], desc: PARTS[key][1] } : null;
+      m.userData = PARTS[key] ? { key: key, part: PARTS[key][0], desc: PARTS[key][1] } : null;
       parent.add(m);
       list.push(m);
       return m;
@@ -572,7 +572,7 @@
       var m = new THREE.Mesh(
         new THREE.SphereGeometry(r, 10, 8),
         new THREE.MeshBasicMaterial({ visible: false }));
-      m.userData = PARTS[key] ? { part: PARTS[key][0], desc: PARTS[key][1] } : null;
+      m.userData = PARTS[key] ? { key: key, part: PARTS[key][0], desc: PARTS[key][1] } : null;
       upper.add(m);
       list.push(m);
       return m;
@@ -784,8 +784,8 @@
   K.anchors = function (st) {
     var y0 = C.machine.portalHeight + C.machine.slewBearingH;
     var tmp = new V3();
-    var toW = function (x, y) {
-      tmp.set(x, y, 0);
+    var toW = function (x, y, z) {
+      tmp.set(x, y, z || 0);
       tmp.applyAxisAngle(UP, st.slew);
       tmp.x += st.travel;
       tmp.y += y0;
@@ -793,13 +793,21 @@
     };
     var up = C.upper;
     return {
-      apex: toW(up.apex.x, up.apex.y),
+      /* 门架、台车属于下部结构，直接在世界坐标里给 */
+      gantry: new V3(st.travel + 4.4, 6.0, 5.6),
+      bogie: new V3(st.travel + 6.35, 1.4, 5.2),
+      slew: new V3(st.travel, C.machine.portalHeight + 0.4, 0),
+      /* 上部结构随回转运动，用局部坐标旋转到世界 */
+      tower: toW(0, 6.0, 2.7),
+      aframe: toW(up.apex.x * 0.6, up.apex.y * 0.85),
       boom: toW(up.pivot.x + up.jibLength * 0.5 * Math.cos(st.alpha),
                 up.pivot.y + up.jibLength * 0.5 * Math.sin(st.alpha)),
-      jib: toW((st.B.x + st.Cl.x) * 0.5, (st.B.y + st.Cl.y) * 0.5),
-      hook: st.grabPos.clone(),
-      slew: new V3(st.travel, C.machine.portalHeight + 0.4, 0),
-      gantry: new V3(st.travel + 4.4, 6.0, 5.6),
+      head: toW((st.B.x + st.Cl.x) * 0.5, (st.B.y + st.Cl.y) * 0.5),
+      tie: toW((st.D.x + up.apex.x) * 0.5, (st.D.y + up.apex.y) * 0.5),
+      cw: toW(up.counterweight.pivotX - 2.2, up.counterweight.pivotY),
+      rack: toW(0.4, 10.4),
+      cab: toW(2.95, 1.75, 2.60),
+      grab: st.grabPos.clone(),
     };
   };
 

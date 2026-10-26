@@ -12,14 +12,28 @@
   var dpr = Math.min(w.devicePixelRatio || 1, 2);
   var chartAcc = 0;
 
+  /* 三维标注：与 CRANE 热点 key 一一对应。默认全部隐藏，鼠标悬停到某部件时才显示它自己的名字；
+     "全部标注" 按钮打开则全部常显（讲解/截图时用）。 */
   var TAG_DEF = [
     { k: 'gantry', t: '门架' },
-    { k: 'slew', t: '回转中心' },
-    { k: 'apex', t: '人字架' },
+    { k: 'bogie', t: '行走台车' },
+    { k: 'slew', t: '回转支承' },
+    { k: 'tower', t: '塔架' },
+    { k: 'aframe', t: '人字架' },
     { k: 'boom', t: '主臂' },
-    { k: 'jib', t: '象鼻梁' },
-    { k: 'hook', t: '抓斗' },
+    { k: 'head', t: '象鼻梁' },
+    { k: 'tie', t: '大拉杆' },
+    { k: 'cw', t: '平衡重' },
+    { k: 'rack', t: '齿条变幅' },
+    { k: 'cab', t: '司机室' },
+    { k: 'grab', t: '抓斗' },
   ];
+
+  /* 当前鼠标悬停命中的部件 key（null 表示没有） */
+  var focusKey = null;
+  UI.focusTag = function (k) {
+    focusKey = k || null;
+  };
 
   UI.init = function () {
     el = {
@@ -735,13 +749,19 @@
   function updateTags(anchors) {
     var w2 = w.innerWidth, h2 = w.innerHeight;
     var cam = SCENE.camera;
+    var all = KT.ST.showTags;
     for (var i = 0; i < tags.length; i++) {
       var t = tags[i];
+      /* 只有 "全部标注" 打开，或鼠标正悬停在这个部件上，才显示它的名字 */
+      var hot = t.key === focusKey;
+      if (!all && !hot) { t.el.classList.add('hide'); t.el.classList.remove('focus'); continue; }
       var a = anchors[t.key];
-      if (!a) { t.el.classList.add('hide'); continue; }
+      if (!a) { t.el.classList.add('hide'); t.el.classList.remove('focus'); continue; }
       _v.copy(a).project(cam);
-      if (_v.z > 1 || !KT.ST.showTags) { t.el.classList.add('hide'); continue; }
+      if (_v.z > 1) { t.el.classList.add('hide'); continue; }
       t.el.classList.remove('hide');
+      if (hot && !all) t.el.classList.add('focus');
+      else t.el.classList.remove('focus');
       t.el.style.left = ((_v.x * 0.5 + 0.5) * w2) + 'px';
       t.el.style.top = ((-_v.y * 0.5 + 0.5) * h2) + 'px';
     }

@@ -223,6 +223,13 @@
     var lastRay = 0;
     var hovering = false;
 
+    /* 入场提示：部件名称改为悬停显示，这里给一次说明，6 秒后或首次悬停即淡出 */
+    var hintEl = document.getElementById('hover-hint');
+    if (hintEl) {
+      requestAnimationFrame(function () { hintEl.classList.add('show'); });
+      setTimeout(function () { hintEl.classList.remove('show'); }, 6000);
+    }
+
     stage.addEventListener('mousemove', function (e) {
       var now = performance.now();
       if (now - lastRay < 55) return;      // 节流，避免每帧都做射线检测
@@ -246,17 +253,24 @@
         tipEl.style.left = x + 'px';
         tipEl.style.top = y + 'px';
         tipEl.classList.remove('hidden');
+        /* 只有悬停到该部件，才把它自己的名称标注显示出来 */
+        if (w.UI) w.UI.focusTag(d.key);
+        if (hintEl) hintEl.classList.remove('show');
         if (w.TRAIN) w.TRAIN.notePart(d.part);
         if (!hovering) { stage.style.cursor = 'help'; hovering = true; }
-      } else if (hovering) {
-        tipEl.classList.add('hidden');
-        stage.style.cursor = '';
-        hovering = false;
+      } else {
+        if (w.UI) w.UI.focusTag(null);
+        if (hovering) {
+          tipEl.classList.add('hidden');
+          stage.style.cursor = '';
+          hovering = false;
+        }
       }
     });
 
     stage.addEventListener('mouseleave', function () {
       tipEl.classList.add('hidden');
+      if (w.UI) w.UI.focusTag(null);
       stage.style.cursor = '';
       hovering = false;
     });
