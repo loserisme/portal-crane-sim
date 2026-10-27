@@ -19,6 +19,7 @@
   var SRC_C = { x: 36.150, y: 41.591, z: -0.502 };
   var SRC_E = { x: -5.138, y: 41.100, z: -0.487 };
   var SRC_GRAB_TOP = { x: 35.782, y: 34.209, z: -0.484 };
+  var SRC_JAW_HINGE = { x: 35.782, y: 33.030, z: -0.484 };
   var OFFSET = {
     x: 0,
     y: C.machine.portalHeight + C.machine.slewBearingH + C.upper.pivot.y - S * SRC_A.y,
@@ -86,6 +87,55 @@
       group.add(mesh);
     });
     originals.forEach(function (g) { g.dispose(); });
+  }
+
+  /* 将源抓斗按 Z 向分成两个颚板；顶部横梁和吊耳不进入此函数 */
+  function splitJawNode(node, jawNeg, jawPos) {
+    node.updateWorldMatrix(true, true);
+    node.traverse(function (o) {
+      if (!o.isMesh || Array.isArray(o.material)) return;
+      var g = o.geometry.clone();
+      g.applyMatrix4(o.matrixWorld);
+      var pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv;
+      var idx = g.index ? g.index.array : null;
+      var total = idx ? idx.length : pos.count;
+      var data = {
+        neg: { p: [], n: [], u: [] },
+        pos: { p: [], n: [], u: [] },
+      };
+      for (var i = 0; i < total; i += 3) {
+        var ids = [idx ? idx[i] : i, idx ? idx[i + 1] : i + 1, idx ? idx[i + 2] : i + 2];
+        var zc = (pos.getZ(ids[0]) + pos.getZ(ids[1]) + pos.getZ(ids[2])) / 3;
+        var b = zc < SRC_JAW_HINGE.z ? data.neg : data.pos;
+        for (var j = 0; j < 3; j++) {
+          var vi = ids[j];
+          b.p.push(pos.getX(vi), pos.getY(vi), pos.getZ(vi));
+          if (nor) b.n.push(nor.getX(vi), nor.getY(vi), nor.getZ(vi));
+          if (uv) b.u.push(uv.getX(vi), uv.getY(vi));
+        }
+      }
+      ['neg', 'pos'].forEach(function (side) {
+        var d = data[side];
+        if (!d.p.length) return;
+        var ng = new THREE.BufferGeometry();
+        ng.setAttribute('position', new THREE.Float32BufferAttribute(d.p, 3));
+        if (d.n.length) ng.setAttribute('normal', new THREE.Float32BufferAttribute(d.n, 3));
+        else ng.computeVertexNormals();
+        if (d.u.length) ng.setAttribute('uv', new THREE.Float32BufferAttribute(d.u, 2));
+        var mesh = new THREE.Mesh(ng, o.material);
+        mesh.castShadow = true; mesh.receiveShadow = true;
+        (side === 'neg' ? jawNeg : jawPos).add(mesh);
+      });
+      g.dispose();
+    });
+  }
+
+  function rotateJaw(group, angle) {
+    var h = SRC_JAW_HINGE;
+    group.matrix.copy(_m.makeTranslation(h.x, h.y, h.z));
+    group.matrix.multiply(_r.makeRotationX(angle));
+    group.matrix.multiply(_t.makeTranslation(-h.x, -h.y, -h.z));
+    group.matrixWorldNeedsUpdate = true;
   }
 
   function tuneMaterials(root) {
@@ -267,6 +317,9 @@
     grab.scale.setScalar(grabScale);
     grab.position.set(-SRC_GRAB_TOP.x * grabScale, -SRC_GRAB_TOP.y * grabScale, -SRC_GRAB_TOP.z * grabScale);
     K.grabBody.add(grab);
+    var grabShell = new THREE.Group(), jawNeg = new THREE.Group(), jawPos = new THREE.Group();
+    grabShell.name = 'CAD_抓斗顶部'; jawNeg.name = 'CAD_左颚板'; jawPos.name = 'CAD_右颚板';
+    grab.add(grabShell); grab.add(jawNeg); grab.add(jawPos);
 
     var children = source.children.slice();
     children.forEach(function (node) {
@@ -275,14 +328,18 @@
       if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
-      else if (isGrabPart(name)) grab.add(node);
+      else if (name === '抓斗') splitJawNode(node, jawNeg, jawPos);
+      else if (isGrabPart(name)) grabShell.add(node);
       else if (isLower(name)) lower.add(node);
       else upper.add(node);
     });
 
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
-    mergeGroup(head); mergeGroup(tie); mergeGroup(grab);
-    groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie, grab: grab };
+    mergeGroup(head); mergeGroup(tie); mergeGroup(grabShell);
+    mergeGroup(jawNeg); mergeGroup(jawPos);
+    jawNeg.matrixAutoUpdate = false; jawPos.matrixAutoUpdate = false;
+    groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie,
+      grab: grab, jawNeg: jawNeg, jawPos: jawPos };
     adjustHotspots(K);
     wrapAnchors(K);
     CM.ready = true;
@@ -320,6 +377,11 @@
     applyHeadTransform(groups.head, st);
     retarget(groups.tie, SRC_E, SRC_D,
       { x: up.apex.x, y: up.apex.y, z: 0 }, { x: st.D.x, y: st.D.y, z: 0 }, S);
+
+    /* 颚板绕顶部 X 铰轴开合，闭合 2°、全开 30°；顶部吊点保持不动 */
+    var jawAngle = (2 + st.grabOpen * 28) * Math.PI / 180;
+    rotateJaw(groups.jawNeg, jawAngle);
+    rotateJaw(groups.jawPos, -jawAngle);
   };
 
   w.CRANE_MODEL = CM;
