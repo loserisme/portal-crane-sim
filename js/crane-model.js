@@ -18,8 +18,6 @@
   var SRC_D = { x: 16.400, y: 53.368, z: -0.502 };
   var SRC_C = { x: 36.150, y: 41.591, z: -0.502 };
   var SRC_E = { x: -5.138, y: 41.100, z: -0.487 };
-  var SRC_ROPE_REAR = { x: -7.899, y: 32.690, z: -0.487 };
-  var SRC_ROPE_HEAD = { x: 35.763, y: 52.138, z: -0.487 };
   var SRC_GRAB_TOP = { x: 35.782, y: 34.209, z: -0.484 };
   var OFFSET = {
     x: 0,
@@ -165,11 +163,6 @@
     group.matrixWorldNeedsUpdate = true;
   }
 
-  function mapHeadPoint(src, st) {
-    var h = headTransform(st);
-    return { x: h.a * src.x + h.b * src.y + h.tx, y: h.d * src.x + h.e * src.y + h.ty, z: 0 };
-  }
-
   function hideProcedural(K) {
     K.root.children.forEach(function (o) { if (o !== K.upper) o.visible = false; });
     K.upper.children.forEach(function (o) {
@@ -252,11 +245,11 @@
     var source = model.getObjectByName('RootNode') || model;
     var lower = new THREE.Group(), upper = new THREE.Group();
     var boom = new THREE.Group(), head = new THREE.Group(), tie = new THREE.Group();
-    var ropes = new THREE.Group(), grab = new THREE.Group();
+    var grab = new THREE.Group();
     lower.name = 'CAD_门架与行走机构';
     upper.name = 'CAD_回转上部';
     boom.name = 'CAD_主臂'; head.name = 'CAD_象鼻梁'; tie.name = 'CAD_大拉杆';
-    ropes.name = 'CAD_变幅钢丝绳'; grab.name = 'CAD_抓斗';
+    grab.name = 'CAD_抓斗';
 
     /* 行走机构独立对中：不能使用臂架偏移，否则车轮偏离轨道 */
     lower.position.set(0, 0, 0);
@@ -266,9 +259,9 @@
     upper.scale.setScalar(S);
     K.root.add(lower);
     K.upper.add(upper);
-    K.upper.add(boom); K.upper.add(head); K.upper.add(tie); K.upper.add(ropes);
+    K.upper.add(boom); K.upper.add(head); K.upper.add(tie);
     boom.matrixAutoUpdate = false; head.matrixAutoUpdate = false;
-    tie.matrixAutoUpdate = false; ropes.matrixAutoUpdate = false;
+    tie.matrixAutoUpdate = false;
 
     var grabScale = C.grab.height / (34.209 - 29.818);
     grab.scale.setScalar(grabScale);
@@ -278,19 +271,18 @@
     var children = source.children.slice();
     children.forEach(function (node) {
       var name = node.name || '';
-      if (name === '对象076') return;
+      if (name === '对象076' || isRope(name)) return;
       if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
-      else if (isRope(name)) ropes.add(node);
       else if (isGrabPart(name)) grab.add(node);
       else if (isLower(name)) lower.add(node);
       else upper.add(node);
     });
 
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
-    mergeGroup(head); mergeGroup(tie); mergeGroup(ropes); mergeGroup(grab);
-    groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie, ropes: ropes, grab: grab };
+    mergeGroup(head); mergeGroup(tie); mergeGroup(grab);
+    groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie, grab: grab };
     adjustHotspots(K);
     wrapAnchors(K);
     CM.ready = true;
@@ -328,8 +320,6 @@
     applyHeadTransform(groups.head, st);
     retarget(groups.tie, SRC_E, SRC_D,
       { x: up.apex.x, y: up.apex.y, z: 0 }, { x: st.D.x, y: st.D.y, z: 0 }, S);
-    retarget(groups.ropes, SRC_ROPE_REAR, SRC_ROPE_HEAD,
-      upperLocal(SRC_ROPE_REAR), mapHeadPoint(SRC_ROPE_HEAD, st), S);
   };
 
   w.CRANE_MODEL = CM;

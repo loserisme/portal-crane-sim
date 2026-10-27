@@ -716,9 +716,11 @@
     var Cwy = Cy + y0;
 
     var gp = st.grabPos;
+    /* 高精度抓斗的顶部吊点就在 gp；旧程序化抓斗吊耳高 0.9 m */
+    var ropeBottom = (w.CRANE_MODEL && w.CRANE_MODEL.ready) ? 0.03 : 0.9;
     for (var m = 0; m < K.ropeCG.length; m++) {
       var off = (m === 0 ? -0.28 : 0.28);
-      setSeg(K.ropeCG[m], Cwx, Cwy, Cwz + off, gp.x, gp.y + 0.9, gp.z + off);
+      setSeg(K.ropeCG[m], Cwx, Cwy, Cwz + off, gp.x, gp.y + ropeBottom, gp.z + off);
     }
 
     /* 抓斗姿态与开合 */
