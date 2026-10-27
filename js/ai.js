@@ -126,7 +126,9 @@
       type: 'function',
       function: {
         name: 'write_python',
-        description: '把 Python 控制程序写入「Python」页（不自动运行）。必须定义 control(dt) 作为每帧回调，可选 setup()。可用 crane.status()/crane.slew()/crane.hoist()/crane.grab()/crane.radius()/crane.log()。',
+        description: '把 Python 控制程序写入「Python」页（不自动运行）。必须定义 control(dt) 作为每帧回调，可选 setup()。'
+          + '可用接口：crane.status() 返回 dict，字段有 slew(回转角°)/alpha(臂架角°)/radius(幅度m)/hoist(起升m)/grab(开度0~1)/load(填充率0~1)/holdLevel(料面m)/holdRemain(舱内余料0~1)/swayX/swayZ(两向摆角,弧度)/swayVX/swayVZ(摆角速度)/swayMag(合成摆角,弧度)/travel(大车m)/grabPos{x,y,z}；'
+          + 'crane.slew(deg)/radius(m)/hoist(m)/grab(0~1)/travel(m)/speed(倍速)/snap()/reset()/log(...)/plot(keys)/plot_compare(keys)/mark(name)/clear_plot()。',
         parameters: {
           type: 'object',
           properties: {
@@ -270,7 +272,7 @@
       tools: TOOLS,
       tool_choice: 'auto',
       temperature: 0.3,
-      max_tokens: 900,
+      max_tokens: 4096,   // 生成完整程序经 tool_calls 返回，900 会被截断
     };
 
     fetch(AI.cfg.base.replace(/\/+$/, '') + '/chat/completions', {
@@ -297,6 +299,16 @@
         if (!m) throw new Error('返回格式异常');
 
         var calls = m.tool_calls || [];
+
+        /* 输出被截断且没有工具调用：提示重试而不是静默失败 */
+        if (choice.finish_reason === 'length' && !calls.length) {
+          AI.msgs.push({ role: 'assistant', content: m.content || '' });
+          AI.busy = false;
+          render();
+          pushMsg('assistant', '（回复因长度限制被截断，请把要求拆小一些再试，例如分两步生成）');
+          return;
+        }
+
         AI.msgs.push({
           role: 'assistant',
           content: m.content || '',
@@ -312,8 +324,25 @@
         /* 依次执行工具，结果回填 */
         for (var i = 0; i < calls.length; i++) {
           var c = calls[i];
-          var args = {};
-          try { args = JSON.parse(c.function.arguments || '{}'); } catch (e) {}
+          var args = null, parseErr = '';
+          try { args = JSON.parse(c.function.arguments || '{}'); }
+          catch (e) { parseErr = e.message; }
+          if (!args || typeof args !== 'object') {
+            /* 参数被截断/非法 JSON：让模型重发，绝不能拿 undefined 去写面板 */
+            AI.msgs.push({
+              role: 'tool', tool_call_id: c.id,
+              content: '参数 JSON 解析失败（' + (parseErr || '非对象') + '），通常是长度截断所致。'
+                + '请重新调用 ' + c.function.name + '，确保 arguments 是完整合法的 JSON；若代码很长请精简。',
+            });
+            continue;
+          }
+          if ((c.function.name === 'write_script' || c.function.name === 'write_python') && !args.code) {
+            AI.msgs.push({
+              role: 'tool', tool_call_id: c.id,
+              content: '缺少 code 参数，请重新调用并附上完整代码。',
+            });
+            continue;
+          }
           var res = execTool(c.function.name, args);
           AI.msgs.push({ role: 'tool', tool_call_id: c.id, content: res });
         }

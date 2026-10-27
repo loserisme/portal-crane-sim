@@ -64,6 +64,7 @@
           swayZ: +s.thz.toFixed(4),
           swayVX: +s.thvx.toFixed(4),
           swayVZ: +s.thvz.toFixed(4),
+          swayMag: +Math.hypot(s.thx, s.thz).toFixed(4),
           travel: +s.travel.toFixed(3),
           truckLoad: w.DEMO ? w.DEMO.truckLoad : 0,
           grabPos: { x: +s.grabPos.x.toFixed(3), y: +s.grabPos.y.toFixed(3), z: +s.grabPos.z.toFixed(3) },
@@ -222,8 +223,7 @@
       return false;
     }
     try {
-      /* 每次运行重建命名空间，避免残留 */
-      PY.pyodide.runPython('del control\ndel setup' in {} ? '' : '');
+      /* 每次运行清掉上一次的回调，避免残留 */
       PY.pyodide.runPython('try:\n    del control\nexcept NameError:\n    pass\ntry:\n    del setup\nexcept NameError:\n    pass\n');
       PY.pyodide.runPython(code);
 
@@ -248,7 +248,7 @@
       PY.notify();
       return true;
     } catch (e) {
-      PY.error = String(e && e.message || e).split('\n').slice(0, 2).join(' ');
+      PY.error = briefPyErr(e && e.message || e);
       PY.err(PY.error);
       PY.running = false;
       PY.notify();
@@ -285,6 +285,15 @@
     if (PY.rec.length > PY.recMax) PY.rec.shift();
   }
 
+  /* 从 Python traceback 中提取最后一行有效错误（如 KeyError: 'xxx'） */
+  function briefPyErr(raw) {
+    var lines = String(raw || '').split('\n').map(function (s) { return s.trim(); }).filter(Boolean);
+    for (var i = lines.length - 1; i >= 0; i--) {
+      if (/Error|Exception|错误/.test(lines[i])) return lines[i];
+    }
+    return lines[lines.length - 1] || '未知错误';
+  }
+
   PY.update = function (dt) {
     if (!PY.running || !PY._ctrl) return;
     try {
@@ -294,7 +303,7 @@
       sample(dt);
       if (PY.ticks % 20 === 0) PY.notify();
     } catch (e) {
-      PY.stop('运行错误：' + String(e && e.message || e).split('\n')[0]);
+      PY.stop('运行错误：' + briefPyErr(e && e.message || e));
     }
   };
 
