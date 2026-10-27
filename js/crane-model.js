@@ -13,13 +13,16 @@
   var CM = { ready: false, loading: false, K: null };
   var S = 0.82;                       // 源模型 → 仿真尺寸
   var SRC_A = { x: 0.065, y: 28.784, z: -0.506 };
-  var SRC_B = { x: 16.400, y: 53.368, z: -0.502 };
+  /* 象鼻梁三角：B=主臂铰点，D=大拉杆铰点，C=起升滑轮 */
+  var SRC_B = { x: 21.501, y: 48.800, z: -0.502 };
+  var SRC_D = { x: 16.400, y: 53.368, z: -0.502 };
   var SRC_C = { x: 36.150, y: 41.591, z: -0.502 };
   var SRC_E = { x: -5.138, y: 41.100, z: -0.487 };
-  var SRC_D = { x: 17.979, y: 53.114, z: -0.487 };
+  var SRC_ROPE_REAR = { x: -7.899, y: 32.690, z: -0.487 };
+  var SRC_ROPE_HEAD = { x: 35.763, y: 52.138, z: -0.487 };
   var SRC_GRAB_TOP = { x: 35.782, y: 34.209, z: -0.484 };
   var OFFSET = {
-    x: C.upper.pivot.x - S * SRC_A.x,
+    x: 0,
     y: C.machine.portalHeight + C.machine.slewBearingH + C.upper.pivot.y - S * SRC_A.y,
     z: -S * SRC_A.z,
   };
@@ -35,9 +38,12 @@
       /^(皮带机|传送带|溜筒|落料|漏斗|抖动给料|伸缩机构)/.test(name);
   }
 
-  function isUnused(name) {
-    return name === '钢丝绳1' || name === '钢丝绳3' || name === '钢丝绳4' ||
-      name === '对象079' || name === '对象076' || name === '对象078' ||
+  function isRope(name) {
+    return name === '钢丝绳1' || name === '钢丝绳3' || name === '钢丝绳4' || name === '对象079';
+  }
+
+  function isGrabPart(name) {
+    return name === '抓斗' || name === 'Circle004' || name === '对象078' ||
       name === 'Line029' || name === 'Line038';
   }
 
@@ -113,7 +119,7 @@
   }
 
   function lowerLocal(src) {
-    return { x: OFFSET.x + S * src.x, y: OFFSET.y + S * src.y, z: OFFSET.z + S * src.z };
+    return { x: S * src.x, y: S * src.y, z: S * src.z };
   }
 
   /* M = T(dstA)·R(dstAng)·S(lenRatio,cross,cross)·R(-srcAng)·T(-srcA) */
@@ -128,6 +134,40 @@
     group.matrix.multiply(_r.makeRotationZ(-sa));
     group.matrix.multiply(_t.makeTranslation(-srcA.x, -srcA.y, -(srcA.z || 0)));
     group.matrixWorldNeedsUpdate = true;
+  }
+
+  /* 象鼻梁用 B/D/C 三点求二维仿射矩阵，保证三个铰点同时闭合 */
+  function headTransform(st) {
+    var s1x = SRC_D.x - SRC_B.x, s1y = SRC_D.y - SRC_B.y;
+    var s2x = SRC_C.x - SRC_B.x, s2y = SRC_C.y - SRC_B.y;
+    var d1x = st.D.x - st.B.x, d1y = st.D.y - st.B.y;
+    var d2x = st.Cl.x - st.B.x, d2y = st.Cl.y - st.B.y;
+    var det = s1x * s2y - s2x * s1y;
+    var a = (d1x * s2y - d2x * s1y) / det;
+    var b = (d2x * s1x - d1x * s2x) / det;
+    var d = (d1y * s2y - d2y * s1y) / det;
+    var e = (d2y * s1x - d1y * s2x) / det;
+    return {
+      a: a, b: b, d: d, e: e,
+      tx: st.B.x - a * SRC_B.x - b * SRC_B.y,
+      ty: st.B.y - d * SRC_B.x - e * SRC_B.y,
+    };
+  }
+
+  function applyHeadTransform(group, st) {
+    var h = headTransform(st);
+    group.matrix.set(
+      h.a, h.b, 0, h.tx,
+      h.d, h.e, 0, h.ty,
+      0, 0, S, -S * SRC_B.z,
+      0, 0, 0, 1
+    );
+    group.matrixWorldNeedsUpdate = true;
+  }
+
+  function mapHeadPoint(src, st) {
+    var h = headTransform(st);
+    return { x: h.a * src.x + h.b * src.y + h.tx, y: h.d * src.x + h.e * src.y + h.ty, z: 0 };
   }
 
   function hideProcedural(K) {
@@ -212,21 +252,23 @@
     var source = model.getObjectByName('RootNode') || model;
     var lower = new THREE.Group(), upper = new THREE.Group();
     var boom = new THREE.Group(), head = new THREE.Group(), tie = new THREE.Group();
-    var grab = new THREE.Group();
+    var ropes = new THREE.Group(), grab = new THREE.Group();
     lower.name = 'CAD_门架与行走机构';
     upper.name = 'CAD_回转上部';
     boom.name = 'CAD_主臂'; head.name = 'CAD_象鼻梁'; tie.name = 'CAD_大拉杆';
-    grab.name = 'CAD_抓斗';
+    ropes.name = 'CAD_变幅钢丝绳'; grab.name = 'CAD_抓斗';
 
-    lower.position.set(OFFSET.x, OFFSET.y, OFFSET.z);
+    /* 行走机构独立对中：不能使用臂架偏移，否则车轮偏离轨道 */
+    lower.position.set(0, 0, 0);
     lower.scale.setScalar(S);
     var up0 = C.machine.portalHeight + C.machine.slewBearingH;
-    upper.position.set(OFFSET.x, OFFSET.y - up0, OFFSET.z);
+    upper.position.set(0, OFFSET.y - up0, OFFSET.z);
     upper.scale.setScalar(S);
     K.root.add(lower);
     K.upper.add(upper);
-    K.upper.add(boom); K.upper.add(head); K.upper.add(tie);
-    boom.matrixAutoUpdate = false; head.matrixAutoUpdate = false; tie.matrixAutoUpdate = false;
+    K.upper.add(boom); K.upper.add(head); K.upper.add(tie); K.upper.add(ropes);
+    boom.matrixAutoUpdate = false; head.matrixAutoUpdate = false;
+    tie.matrixAutoUpdate = false; ropes.matrixAutoUpdate = false;
 
     var grabScale = C.grab.height / (34.209 - 29.818);
     grab.scale.setScalar(grabScale);
@@ -236,18 +278,19 @@
     var children = source.children.slice();
     children.forEach(function (node) {
       var name = node.name || '';
-      if (isUnused(name)) return;
+      if (name === '对象076') return;
       if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
-      else if (name === '抓斗' || name === 'Circle004') grab.add(node);
+      else if (isRope(name)) ropes.add(node);
+      else if (isGrabPart(name)) grab.add(node);
       else if (isLower(name)) lower.add(node);
       else upper.add(node);
     });
 
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
-    mergeGroup(head); mergeGroup(tie); mergeGroup(grab);
-    groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie, grab: grab };
+    mergeGroup(head); mergeGroup(tie); mergeGroup(ropes); mergeGroup(grab);
+    groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie, ropes: ropes, grab: grab };
     adjustHotspots(K);
     wrapAnchors(K);
     CM.ready = true;
@@ -280,12 +323,13 @@
   CM.update = function (st) {
     if (!CM.ready || !groups) return;
     var up = C.upper;
-    retarget(groups.boom, SRC_A, { x: 21.501, y: 48.800, z: -0.506 },
+    retarget(groups.boom, SRC_A, SRC_B,
       { x: up.pivot.x, y: up.pivot.y, z: 0 }, { x: st.B.x, y: st.B.y, z: 0 }, S);
-    retarget(groups.head, SRC_B, SRC_C,
-      { x: st.B.x, y: st.B.y, z: 0 }, { x: st.Cl.x, y: st.Cl.y, z: 0 }, S);
+    applyHeadTransform(groups.head, st);
     retarget(groups.tie, SRC_E, SRC_D,
       { x: up.apex.x, y: up.apex.y, z: 0 }, { x: st.D.x, y: st.D.y, z: 0 }, S);
+    retarget(groups.ropes, SRC_ROPE_REAR, SRC_ROPE_HEAD,
+      upperLocal(SRC_ROPE_REAR), mapHeadPoint(SRC_ROPE_HEAD, st), S);
   };
 
   w.CRANE_MODEL = CM;
