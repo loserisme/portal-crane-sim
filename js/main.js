@@ -188,6 +188,7 @@
     updateSandFlow();
     if (SCENE.holdSand) SCENE.holdSand.position.y = ST.holdLevel - 1.3;
     CRANE.update(ST);
+    if (w.CRANE_MODEL) w.CRANE_MODEL.update(ST);
     updateTruck();
 
     SCENE.updateFly(dt);
@@ -212,6 +213,7 @@
 
     SCENE.init(stage);
     CRANE.build(SCENE.scene);
+    if (w.CRANE_MODEL) w.CRANE_MODEL.load(CRANE);
     UI.init();
     if (w.AI) w.AI.init();
 
