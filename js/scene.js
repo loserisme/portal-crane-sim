@@ -33,7 +33,7 @@
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.outputEncoding = THREE.sRGBEncoding;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.96;
+    renderer.toneMappingExposure = 0.88;
     container.appendChild(renderer.domElement);
     S.renderer = renderer;
 
@@ -89,9 +89,9 @@
 
   S._lights = function () {
     var scene = S.scene;
-    scene.add(new THREE.HemisphereLight(0xeef5fd, 0x9aa7b4, 0.66));
+    scene.add(new THREE.HemisphereLight(0xeef5fd, 0x9aa7b4, 0.46));
 
-    var sun = new THREE.DirectionalLight(0xfff3e2, 1.28);
+    var sun = new THREE.DirectionalLight(0xfff3e2, 1.48);
     sun.position.set(58, 76, 46);
     sun.castShadow = true;
     sun.shadow.mapSize.set(1024, 1024);
@@ -106,7 +106,7 @@
     scene.add(sun);
     S.sun = sun;
 
-    var fill = new THREE.DirectionalLight(0xcfe2f5, 0.34);
+    var fill = new THREE.DirectionalLight(0xcfe2f5, 0.24);
     fill.position.set(-50, 28, -38);
     scene.add(fill);
 
@@ -304,6 +304,9 @@
     }
     var bolMesh = U.mesh(U.merge(bolG), U.paint(0x6b7683, { metalness: 0.5, roughness: 0.5 }), scene);
     bolMesh.castShadow = true;
+    bolMesh.name = 'lowBollards';
+
+    if (this._environmentHD) this._environmentHD(scene);
   };
 
   /* ---------------- 后方堆场 ---------------- */
@@ -436,12 +439,29 @@
     function treeRow(z, xs) {
       xs.forEach(function (tx) {
         put('conc', U.box(2.4, 0.30, 2.4, tx, 0.15, z));
-        var trunk = new THREE.CylinderGeometry(0.22, 0.28, 2.6, 8);
+        var trunk = new THREE.CylinderGeometry(0.18, 0.28, 2.6, 9);
         trunk.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 1.6, z));
         put('ore', trunk);
-        var crown = new THREE.SphereGeometry(1.9, 10, 8);
-        crown.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 4.1, z));
-        put('green', crown);
+        for (var br = 0; br < 4; br++) {
+          var a = br * Math.PI / 2 + 0.3;
+          var bg = new THREE.CylinderGeometry(0.07, 0.13, 1.4, 6);
+          bg.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.42)
+            .premultiply(new THREE.Matrix4().makeRotationY(a))
+            .premultiply(new THREE.Matrix4().makeTranslation(tx, 2.65, z)));
+          put('ore', bg);
+        }
+        var lobes = [
+          [0, 4.05, 0, 1.95], [-1.15, 3.65, 0.45, 1.28],
+          [1.1, 3.82, -0.35, 1.35], [0.35, 4.85, 0.3, 1.18],
+          [-0.45, 4.5, -0.85, 1.1],
+        ];
+        lobes.forEach(function (l) {
+          var crown = new THREE.IcosahedronGeometry(l[3], 1);
+          crown.applyMatrix4(new THREE.Matrix4().makeScale(1, 0.82, 1)
+            .premultiply(new THREE.Matrix4().makeRotationY(l[3] * 5.3))
+            .premultiply(new THREE.Matrix4().makeTranslation(tx + l[0], l[1], z + l[2])));
+          put('green', crown);
+        });
       });
     }
     treeRow(-13.5, [-150, -110, -64, -20, 22, 64, 110, 150]);
@@ -461,29 +481,67 @@
   };
 
   S._yard = function (scene) {
-    var palette = [0x45637f, 0x8a5a45, 0x46705f, 0x74787f, 0x8a7a48];
+    var palette = [0x2f5f86, 0x8c4938, 0x2f6a58, 0x66717d, 0x8c7634, 0x3d4f68];
     var mats = palette.map(function (c) {
-      return U.paint(c, { metalness: 0.18, roughness: 0.78 });
+      return U.paint(c, { metalness: 0.24, roughness: 0.72 });
     });
     var byMat = palette.map(function () { return []; });
+    var dark = U.paint(0x3b4652, { metalness: 0.45, roughness: 0.62 });
+    var details = [];
+
+    function addBox(arr, w, h, d, x, y, z) {
+      arr.push(U.box(w, h, d, x, y, z));
+    }
+
+    /* 带波纹侧板、角件、端门与锁杆的高细节集装箱 */
+    function container(x, y, z, mi) {
+      var arr = byMat[mi], W = 2.44, H = 2.59, L = 6.06;
+      addBox(arr, L, H, W, x, y, z);
+      /* 上下纵向边梁 */
+      addBox(arr, L + 0.08, 0.14, 0.13, x, y + H / 2 - 0.05, z + W / 2 + 0.02);
+      addBox(arr, L + 0.08, 0.14, 0.13, x, y + H / 2 - 0.05, z - W / 2 - 0.02);
+      addBox(arr, L + 0.08, 0.16, 0.13, x, y - H / 2 + 0.06, z + W / 2 + 0.02);
+      addBox(arr, L + 0.08, 0.16, 0.13, x, y - H / 2 + 0.06, z - W / 2 - 0.02);
+      /* 侧板波纹 */
+      for (var r = -8; r <= 8; r++) {
+        var rx = x + r * 0.31;
+        addBox(arr, 0.055, H - 0.36, 0.035, rx, y, z + W / 2 + 0.03);
+        addBox(arr, 0.055, H - 0.36, 0.035, rx, y, z - W / 2 - 0.03);
+      }
+      /* 八只角件 */
+      for (var sx = -1; sx <= 1; sx += 2) {
+        for (var sy = -1; sy <= 1; sy += 2) {
+          for (var sz = -1; sz <= 1; sz += 2) {
+            addBox(details, 0.28, 0.22, 0.28, x + sx * (L / 2 - 0.12), y + sy * (H / 2 - 0.08), z + sz * (W / 2 - 0.1));
+          }
+        }
+      }
+      /* 端门、门锁杆与企口 */
+      addBox(details, 0.06, H - 0.25, W - 0.16, x + L / 2 + 0.03, y, z);
+      addBox(details, 0.02, H - 0.35, 0.03, x + L / 2 + 0.07, y, z);
+      for (var lr = -2; lr <= 2; lr++) {
+        addBox(arr, 0.035, H - 0.45, 0.035, x + L / 2 + 0.075, y, z + lr * 0.43);
+        addBox(arr, 0.12, 0.08, 0.08, x + L / 2 + 0.09, y + 0.6, z + lr * 0.43);
+        addBox(arr, 0.12, 0.08, 0.08, x + L / 2 + 0.09, y - 0.6, z + lr * 0.43);
+      }
+      /* 箱号色块 */
+      addBox(details, 0.02, 0.22, 0.85, x - L / 2 - 0.02, y + 0.55, z);
+    }
 
     function stack(x0, z0, cols, rows) {
       for (var c = 0; c < cols; c++) {
         var hRows = rows - (Math.random() < 0.3 ? 1 : 0);
         for (var r = 0; r < hRows; r++) {
           var mi = Math.floor(Math.random() * palette.length);
-          byMat[mi].push(U.box(6.06, 2.59, 2.44,
-            x0 + c * 6.6, 1.3 + r * 2.62, z0));
+          container(x0 + c * 6.6, 1.3 + r * 2.62, z0, mi);
         }
       }
     }
     stack(-50, -19.5, 5, 3);
     stack(-50, -22.7, 5, 2);
     stack(-16, -19.5, 4, 2);
-    /* 前沿堆场向两侧铺开 */
     stack(44, -19.5, 4, 3);
     stack(-136, -19.5, 5, 2);
-    /* 后方堆场 */
     stack(-170, -46, 6, 3);
     stack(-170, -49.2, 6, 2);
     stack(6, -52, 5, 2);
@@ -496,6 +554,20 @@
       var m = U.mesh(U.merge(byMat[i]), mats[i], scene);
       m.castShadow = true; m.receiveShadow = true;
     }
+    if (details.length) {
+      var md = U.mesh(U.merge(details), dark, scene);
+      md.castShadow = true; md.receiveShadow = true;
+    }
+
+    /* 堆场正面黄色箱位线与通道箭头 */
+    var marks = [];
+    for (var mm = -70; mm <= 70; mm += 6.6) {
+      marks.push(U.box(5.8, 0.024, 0.14, mm, 0.022, -15.8));
+    }
+    for (var ar = -2; ar <= 2; ar++) {
+      marks.push(U.box(2.7, 0.024, 0.18, 20 + ar * 9, 0.024, -26));
+    }
+    U.mesh(U.merge(marks), U.paint(0xc7a23a, { roughness: 0.8 }), scene, false);
   };
 
   /* ---------------- 散货船 ---------------- */
@@ -883,7 +955,10 @@
     S.renderer.setSize(ww, hh);
   };
 
-  S.render = function () { S.renderer.render(S.scene, S.camera); };
+  S.render = function () {
+    if (S._hdTick) S._hdTick(performance.now() * 0.001);
+    S.renderer.render(S.scene, S.camera);
+  };
 
   w.SCENE = S;
 })(window);
