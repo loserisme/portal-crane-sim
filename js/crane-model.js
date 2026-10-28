@@ -15,7 +15,7 @@
   var SRC_A = { x: 0.065, y: 28.784, z: -0.506 };
   /* 象鼻梁三角：B=主臂铰点，D=大拉杆铰点，C=起升滑轮 */
   var SRC_B = { x: 21.501, y: 48.800, z: -0.502 };
-  var SRC_D = { x: 16.400, y: 53.368, z: -0.502 };
+  var SRC_D = { x: 17.979, y: 53.114, z: -0.502 };
   var SRC_C = { x: 36.150, y: 41.591, z: -0.502 };
   var SRC_E = { x: -5.138, y: 41.100, z: -0.487 };
   var SRC_GRAB_TOP = { x: 35.782, y: 34.209, z: -0.484 };
@@ -288,6 +288,7 @@
       if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
+      else if (name === '组002') boom.add(node);
       else if (name === 'Line029') jawPos.add(node);
       else if (name === 'Line038') jawNeg.add(node);
       else if (isGrabPart(name)) grabShell.add(node);
