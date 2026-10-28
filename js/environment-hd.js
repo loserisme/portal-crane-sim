@@ -154,6 +154,11 @@
     M.emissiveRed = new THREE.MeshStandardMaterial({ color: 0x4b0d09, emissive: 0xff2a18, emissiveIntensity: 1.2, roughness: 0.35 });
     M.emissiveWhite = new THREE.MeshStandardMaterial({ color: 0xffeecc, emissive: 0xfff3d0, emissiveIntensity: 1.1, roughness: 0.25 });
     M.emissiveGreen = new THREE.MeshStandardMaterial({ color: 0x0d3a16, emissive: 0x25df5c, emissiveIntensity: 0.8, roughness: 0.3 });
+    M.puddle = new THREE.MeshStandardMaterial({
+      color: 0x7391a1, metalness: 0.82, roughness: 0.08,
+      transparent: true, opacity: 0.38, depthWrite: false,
+      polygonOffset: true, polygonOffsetFactor: -2,
+    });
   }
 
   /* ---------------- 天空与云 ---------------- */
@@ -385,11 +390,23 @@
         b.add(M.rust, U.box(0.12 + Math.random() * 0.35, 1 + Math.random() * 2.1, 0.02,
           X + rx, 1.1 + Math.random() * 1.2, zz + side * 0.02));
       }
-      var nm = new THREE.Mesh(new THREE.PlaneGeometry(16, 1.5),
-        new THREE.MeshBasicMaterial({ map: textTex('SUGANG PORT', 512, 96, null, '#dbe5ea', '500 42px sans-serif'), transparent: true }));
-      nm.position.set(X - L / 2 + 15, 2.9, zz + side * 0.04);
+      var nm = new THREE.Mesh(new THREE.PlaneGeometry(18, 1.7),
+        new THREE.MeshBasicMaterial({
+          map: textTex('SUGANG PORT', 640, 112, null, '#eef4f7', '500 50px sans-serif'),
+          transparent: true, side: THREE.DoubleSide, depthWrite: false,
+          polygonOffset: true, polygonOffsetFactor: -4,
+        }));
+      nm.position.set(X - L / 2 + 24, 3.35, zz + side * 0.14);
       nm.rotation.y = side > 0 ? 0 : Math.PI;
       scene.add(nm);
+      var dm = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.9),
+        new THREE.MeshBasicMaterial({
+          map: textTex('8.5M', 128, 192, '#d8dde2', '#39424b', '500 78px sans-serif'),
+          side: THREE.DoubleSide, depthWrite: false,
+        }));
+      dm.position.set(X - L / 2 + 10, 2.9, zz + side * 0.14);
+      dm.rotation.y = side > 0 ? 0 : Math.PI;
+      scene.add(dm);
     }
 
     /* 锚、锚链与锚机 */
@@ -419,6 +436,20 @@
         { x: X + mv * 26, y: dy + 6.5, z: Z + 6.8 }, 0.12, 6));
       b.add(M.emissiveWhite, U.box(0.22, 0.22, 0.22, X + mv * 26, dy + 6.5, Z + 6.8));
     }
+    /* 紧凑型船吊，吊臂收起并沿船体方向布置 */
+    [-34, 34].forEach(function (cx, idx) {
+      var px = X + cx, pz = Z + (idx ? -1 : 1) * 5.6;
+      b.add(M.white, cyl(0.82, 0.95, 1.1, 14, px, dy + 0.55, pz));
+      b.add(M.yellow, cyl(0.48, 0.62, 2.8, 12, px, dy + 2.1, pz));
+      b.add(M.yellow, U.box(1.9, 1.25, 1.6, px, dy + 3.65, pz));
+      b.add(M.glass, U.box(1.6, 0.52, 1.3, px, dy + 3.85, pz));
+      var dir = idx ? -1 : 1;
+      b.add(M.yellow, U.tube({ x: px, y: dy + 4.0, z: pz },
+        { x: px + dir * 7.2, y: dy + 5.6, z: pz - dir * 0.9 }, 0.20, 7));
+      b.add(M.darkSteel, U.tube({ x: px + dir * 7.2, y: dy + 5.6, z: pz - dir * 0.9 },
+        { x: px + dir * 7.2, y: dy + 1.7, z: pz - dir * 0.9 }, 0.025, 5));
+      b.add(M.orange, U.box(0.5, 0.35, 0.5, px + dir * 7.2, dy + 1.6, pz - dir * 0.9));
+    });
 
     /* 舱盖板堆放、甲板管线、栏杆 */
     for (var hc = 0; hc < 3; hc++) {
@@ -428,6 +459,24 @@
     for (var dp = -1; dp <= 1; dp += 2) {
       b.add(M.steel, U.tube({ x: X - 29, y: dy + 0.3, z: Z + dp * 6.6 },
         { x: X + 29, y: dy + 0.3, z: Z + dp * 6.6 }, 0.18, 7));
+      for (var db = -24; db <= 24; db += 12) {
+        b.add(M.darkSteel, cyl(0.28, 0.34, 0.62, 10, X + db, dy + 0.35, Z + dp * 8.2));
+        b.add(M.steel, U.box(0.8, 0.12, 0.25, X + db, dy + 0.65, Z + dp * 8.2));
+      }
+    }
+    /* 舱口导轨、限位与甲板照明 */
+    for (var hg = -1; hg <= 1; hg += 2) {
+      b.add(M.darkSteel, U.box(58, 0.14, 0.36, X, dy + 1.66, Z + hg * sh.holdHalfW));
+      for (var hl2 = -28; hl2 <= 28; hl2 += 4) {
+        b.add(M.steel, U.box(0.28, 0.16, 0.62, X + hl2, dy + 1.63, Z + hg * sh.holdHalfW));
+      }
+    }
+    for (var dl = -1; dl <= 1; dl += 2) {
+      for (var lx2 = -24; lx2 <= 24; lx2 += 16) {
+        b.add(M.steel, U.tube({ x: X + lx2, y: dy, z: Z + dl * 7.6 },
+          { x: X + lx2, y: dy + 2.0, z: Z + dl * 7.6 }, 0.055, 5));
+        b.add(M.emissiveWhite, U.box(0.4, 0.22, 0.32, X + lx2, dy + 2.1, Z + dl * 7.6));
+      }
     }
 
     /* 船楼：窗框、翼桥、救生艇、雷达桅 */
@@ -587,6 +636,21 @@
       b.add(M.steel, U.box(2.2, 0.7, 1.5, wx - 17 + hv * 8.2, 9.4, wz + 1.0));
       b.add(M.darkSteel, cyl(0.4, 0.4, 0.42, 8, wx - 17 + hv * 8.2, 9.9, wz + 1));
     }
+    /* 屋顶光伏与采光带、檐沟、落水管 */
+    for (var pvx = -16; pvx <= 16; pvx += 4.2) {
+      b.add(M.darkSteel, U.box(3.4, 0.08, 2.2, wx + pvx, 9.68, wz - 2.4));
+      b.add(M.blue, U.box(3.25, 0.035, 2.05, wx + pvx, 9.73, wz - 2.4));
+    }
+    for (var sk = -1; sk <= 1; sk++) {
+      b.add(M.glass, U.box(10.5, 0.08, 1.3, wx + sk * 13, 9.02, wz + 3.6));
+    }
+    b.add(M.steel, U.box(47.2, 0.12, 0.22, wx, 8.82, wz + 8.6));
+    for (var dsp = -2; dsp <= 2; dsp++) {
+      b.add(M.steel, cyl(0.09, 0.09, 8.2, 6, wx + dsp * 20, 4.1, wz + 8.65));
+    }
+    for (var wl = 0; wl < 4; wl++) {
+      b.add(M.emissiveWhite, U.box(0.8, 0.16, 0.3, wx - 18 + wl * 12, 7.9, wz + 8.2));
+    }
 
     /* 办公小楼窗框、入口雨棚、空调与楼梯 */
     var ox = 16, oz = -74;
@@ -652,23 +716,171 @@
     b.flush(scene);
   }
 
+  /* ---------------- 作业机械与人员车辆 ---------------- */
+  function misc(scene) {
+    var b = bucket();
+
+    function wheels(cx, cz, ry, list, mat) {
+      list.forEach(function (w) {
+        var x = cx + w[0] * Math.cos(ry) - w[1] * Math.sin(ry);
+        var z = cz + w[0] * Math.sin(ry) + w[1] * Math.cos(ry);
+        b.add(mat, cyl(w[2] || 0.62, w[2] || 0.62, 0.45, 14, x, w[2] || 0.62, z, Math.PI / 2, 0));
+        b.add(M.steel, cyl((w[2] || 0.62) * 0.45, (w[2] || 0.62) * 0.45, 0.48, 10, x, w[2] || 0.62, z, Math.PI / 2, 0));
+      });
+    }
+
+    /* 轮式装载机（散货堆场） */
+    (function loader() {
+      var x = -20, z = -35, ry = -0.42;
+      b.add(M.yellow, U.box(3.4, 1.15, 2.15, x, 1.1, z));
+      b.add(M.yellow, U.box(1.65, 2.0, 2.0, x - 0.6, 2.0, z));
+      b.add(M.glass, U.box(1.5, 0.95, 1.72, x - 0.58, 2.55, z));
+      b.add(M.darkSteel, U.box(1.9, 0.25, 2.2, x - 0.55, 3.15, z));
+      b.add(M.yellow, U.box(0.55, 0.48, 0.55, x + 0.5, 1.55, z + 1.0));
+      b.add(M.yellow, U.box(0.55, 0.48, 0.55, x + 0.5, 1.55, z - 1.0));
+      b.add(M.steel, U.tube({ x: x - 1.4, y: 0.95, z }, { x: x - 3.0, y: 1.1, z }, 0.18, 7));
+      b.add(M.darkSteel, U.box(0.9, 1.45, 2.5, x - 3.15, 1.15, z));
+      b.add(M.steel, U.box(0.16, 0.1, 2.5, x - 3.62, 0.48, z));
+      for (var i = 0; i < 5; i++) {
+        b.add(M.darkSteel, U.box(0.55, 0.1, 2.4, x - 3.2, 0.5 + i * 0.28, z));
+      }
+      wheels(x, z, 0, [[-1.1, 1.02, 0.72], [1.2, 1.02, 0.72], [-1.1, -1.02, 0.72], [1.2, -1.02, 0.72]], M.rubber);
+      b.add(M.emissiveWhite, U.box(0.16, 0.22, 0.5, x + 1.7, 2.45, z));
+    })();
+
+    /* 正面吊（集装箱堆场） */
+    (function reachStacker() {
+      var x = 27, z = -28, ry = 0.18;
+      b.add(M.blue, U.box(5.2, 1.5, 3.0, x, 1.5, z));
+      b.add(M.blue, U.box(2.6, 1.8, 2.8, x - 2.0, 2.6, z));
+      b.add(M.glass, U.box(2.4, 0.9, 2.5, x - 2.0, 3.1, z));
+      b.add(M.yellow, U.box(4.2, 0.55, 0.68, x + 2.8, 3.3, z));
+      b.add(M.yellow, U.box(4.2, 0.55, 0.68, x + 4.0, 4.35, z));
+      b.add(M.darkSteel, U.box(0.8, 1.15, 4.2, x + 6.0, 3.1, z));
+      b.add(M.orange, U.box(0.35, 0.55, 4.2, x + 6.4, 3.1, z));
+      wheels(x, z, 0, [[-2.0, 1.2, 0.82], [1.4, 1.2, 0.82], [-2.0, -1.2, 0.82], [1.4, -1.2, 0.82]], M.rubber);
+      b.add(M.emissiveWhite, U.box(0.18, 0.18, 0.18, x - 1.3, 3.85, z));
+      b.add(M.orange, cyl(0.2, 0.2, 0.5, 8, x - 1.3, 4.1, z));
+    })();
+
+    /* 员工车辆：轿车与皮卡 */
+    function car(x, z, col, ry) {
+      var arr = [];
+      var body = U.paint(col, { metalness: 0.46, roughness: 0.34 });
+      b.add(body, U.box(4.1, 0.68, 1.8, x, 0.65, z));
+      b.add(body, U.box(2.3, 0.64, 1.62, x + 0.15, 1.2, z));
+      b.add(M.glass, U.box(2.0, 0.48, 1.52, x + 0.16, 1.32, z));
+      b.add(M.darkSteel, U.box(0.95, 0.28, 1.74, x + 2.02, 0.48, z));
+      b.add(M.darkSteel, U.box(0.95, 0.28, 1.74, x - 2.02, 0.48, z));
+      b.add(M.emissiveWhite, U.box(0.08, 0.18, 0.34, x + 2.08, 0.66, z + 0.58));
+      b.add(M.emissiveWhite, U.box(0.08, 0.18, 0.34, x + 2.08, 0.66, z - 0.58));
+      b.add(M.emissiveRed, U.box(0.07, 0.15, 0.3, x - 2.08, 0.62, z + 0.58));
+      b.add(M.emissiveRed, U.box(0.07, 0.15, 0.3, x - 2.08, 0.62, z - 0.58));
+      [[1.25, 0.78], [-1.25, 0.78], [1.25, -0.78], [-1.25, -0.78]].forEach(function (w) {
+        b.add(M.rubber, cyl(0.31, 0.31, 0.24, 12, x + w[0], 0.32, z + w[1], Math.PI / 2));
+      });
+    }
+    car(11, -63, 0xd9dde1, 0);
+    car(15.5, -63, 0x25313d, 0);
+    car(20, -63, 0x8c2d2a, 0);
+    car(24.5, -63, 0x375a7e, 0);
+
+    /* 第二辆待装自卸车 */
+    (function dumpTruck() {
+      var x = -11, z = -25;
+      b.add(M.blue, U.box(7.8, 1.05, 2.45, x, 1.15, z));
+      b.add(M.blue, U.box(2.3, 2.15, 2.3, x + 3.4, 2.15, z));
+      b.add(M.glass, U.box(0.08, 0.85, 2.0, x + 4.53, 2.55, z));
+      b.add(M.darkSteel, U.box(0.28, 0.5, 2.45, x + 4.7, 1.1, z));
+      for (var d = 0; d < 4; d++) {
+        b.add(M.blue, U.box(0.12, 1.25, 0.1, x - 2.8 + d * 1.5, 1.95, z + 1.28));
+      }
+      [[-2.8, 1.1], [-1.4, 1.1], [2.3, 1.1], [3.6, 1.1], [-2.8, -1.1], [-1.4, -1.1], [2.3, -1.1], [3.6, -1.1]].forEach(function (w) {
+        b.add(M.rubber, cyl(0.62, 0.62, 0.44, 14, x + w[0], 0.62, z + w[1], Math.PI / 2));
+      });
+      b.add(M.emissiveWhite, U.box(0.1, 0.25, 0.5, x + 4.58, 1.7, z + 0.72));
+      b.add(M.emissiveWhite, U.box(0.1, 0.25, 0.5, x + 4.58, 1.7, z - 0.72));
+    })();
+
+    /* 港内拖轮 */
+    (function tugboat() {
+      var x = 72, z = 62, y = -1.25;
+      b.add(M.hullDark, U.box(15, 2.0, 5.4, x, y + 0.6, z));
+      b.add(M.red, U.box(14.6, 0.55, 5.6, x, y - 0.25, z));
+      b.add(M.white, U.box(5.4, 2.3, 4.4, x - 1.0, y + 2.5, z));
+      b.add(M.glass, U.box(4.9, 0.8, 4.0, x - 1.0, y + 3.0, z));
+      b.add(M.yellow, cyl(0.34, 0.46, 2.8, 10, x - 1.4, y + 4.7, z));
+      b.add(M.darkSteel, U.box(0.4, 0.18, 3.0, x - 1.4, y + 5.8, z));
+      b.add(M.emissiveWhite, U.box(0.18, 0.18, 0.18, x - 1.4, y + 6.0, z));
+      for (var ty = -1; ty <= 1; ty += 2) {
+        for (var tx = -5; tx <= 5; tx += 2.5) {
+          b.add(M.rubber, cyl(0.45, 0.45, 0.28, 12, x + tx, y + 0.1, z + ty * 2.85, Math.PI / 2));
+        }
+      }
+      b.add(M.steel, U.tube({ x: x - 7, y: y + 0.5, z }, { x: x - 12, y: y - 0.4, z }, 0.08, 5));
+    })();
+
+    /* 地面积水、油污、轮胎印与限速标识 */
+    [[-24, 8, 4.8, 2.2], [12, -7, 3.4, 1.6], [54, 5, 5.8, 2.4], [-62, -4, 4.2, 1.7], [34, -33, 6.5, 2.0]].forEach(function (p) {
+      var g = new THREE.CircleGeometry(1, 30).scale(p[2], p[3], 1).rotateX(-Math.PI / 2).translate(p[0], 0.035, p[1]);
+      b.add(M.puddle, g);
+    });
+    [[15, 2], [19, 1.4], [23, 0.8]].forEach(function (p) {
+      b.add(new THREE.MeshBasicMaterial({ color: 0x1c2228, transparent: true, opacity: 0.18, depthWrite: false }),
+        new THREE.PlaneGeometry(12, 0.34).rotateX(-Math.PI / 2).translate(p[0], 0.041, p[1]));
+    });
+    function sign(x, z, text) {
+      b.add(M.steel, U.tube({ x: x, y: 0, z: z }, { x: x, y: 3.2, z: z }, 0.07, 6));
+      var s = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.95),
+        new THREE.MeshBasicMaterial({ map: textTex(text, 512, 220, '#1d4f75', '#ffffff', '500 110px sans-serif'), side: THREE.DoubleSide }));
+      s.position.set(x, 2.9, z + 0.06);
+      scene.add(s);
+    }
+    sign(-7, 12.2, '限速 5');
+    sign(35, 12.2, '注意行人');
+    b.flush(scene);
+  }
+
   /* ---------------- 远景：岸桥、防波堤、灯塔 ---------------- */
   function background(scene) {
     var b = bucket();
     for (var i = 0; i < 3; i++) {
       var bx = -120 + i * 78, bz = -146;
-      var h = 29;
-      b.add(M.blue, U.box(3.0, h, 3.0, bx - 13, h / 2, bz));
-      b.add(M.blue, U.box(3.0, h, 3.0, bx + 13, h / 2, bz + 3));
-      b.add(M.blue, U.box(3.0, h, 3.0, bx - 13, h / 2, bz + 16));
-      b.add(M.blue, U.box(3.0, h, 3.0, bx + 13, h / 2, bz + 16));
-      b.add(M.blue, U.box(30, 2.2, 2.2, bx, h + 1, bz + 8));
-      b.add(M.blue, U.box(26, 1.1, 1.1, bx, h - 2, bz + 8));
-      for (var j = 0; j < 5; j++) {
-        b.add(M.darkSteel, U.box(0.4, 8, 0.4, bx - 10 + j * 5, h - 5, bz + 3));
+      var h = 25;
+      /* 四条支腿、下横梁与门框 */
+      for (var lx = -1; lx <= 1; lx += 2) {
+        for (var lz = -1; lz <= 1; lz += 2) {
+          b.add(M.blue, U.box(1.5, h, 1.5, bx + lx * 7.5, h / 2, bz + lz * 6.5));
+          b.add(M.darkSteel, U.box(2.2, 0.5, 2.2, bx + lx * 7.5, 0.3, bz + lz * 6.5));
+        }
+        b.add(M.blue, U.box(1.4, 1.2, 15, bx + lx * 7.5, h - 1.5, bz));
       }
-      b.add(M.white, U.box(3.2, 2.6, 6.2, bx, 4.6, bz + 9));
-      b.add(M.orange, U.box(1.6, 1.8, 2.6, bx + 16, h + 1.2, bz + 8));
+      /* 顶部主梁、前伸臂与后拉杆 */
+      b.add(M.blue, U.box(2.6, 2.0, 34, bx, h + 0.5, bz + 2));
+      b.add(M.darkSteel, U.box(1.0, 0.12, 34, bx, h + 1.55, bz + 2));
+      for (var seg = 0; seg < 8; seg++) {
+        var z0 = bz - 13 + seg * 4.2;
+        b.add(M.blue, U.box(0.35, 2.4, 0.35, bx - 1.4, h - 0.8, z0));
+        b.add(M.blue, U.tube({ x: bx - 1.4, y: h - 2.0, z: z0 }, { x: bx + 1.4, y: h + 1.4, z: z0 + 4.2 }, 0.12, 5));
+        b.add(M.blue, U.tube({ x: bx + 1.4, y: h - 2.0, z: z0 }, { x: bx - 1.4, y: h + 1.4, z: z0 + 4.2 }, 0.12, 5));
+      }
+      /* A 字架、拉索与机器房 */
+      b.add(M.blue, U.tube({ x: bx - 5, y: h + 1, z: bz - 10 }, { x: bx, y: h + 10, z: bz - 2 }, 0.28, 7));
+      b.add(M.blue, U.tube({ x: bx + 5, y: h + 1, z: bz - 10 }, { x: bx, y: h + 10, z: bz - 2 }, 0.28, 7));
+      b.add(M.blue, U.tube({ x: bx, y: h + 10, z: bz - 2 }, { x: bx, y: h + 1.7, z: bz + 18 }, 0.12, 5));
+      b.add(M.white, U.box(5.4, 4.0, 4.2, bx, h + 3.2, bz - 9));
+      b.add(M.glass, U.box(4.6, 1.1, 3.8, bx, h + 4.1, bz - 6.85));
+      /* 小车、司机室与吊具 */
+      b.add(M.yellow, U.box(2.2, 1.4, 2.8, bx, h + 1.8, bz + 13));
+      b.add(M.white, U.box(1.8, 1.9, 1.8, bx + 2.1, h + 0.8, bz + 13));
+      b.add(M.glass, U.box(1.5, 0.7, 1.6, bx + 2.1, h + 1.15, bz + 13));
+      b.add(M.darkSteel, U.tube({ x: bx, y: h + 1.2, z: bz + 13 },
+        { x: bx, y: 8.0, z: bz + 13 }, 0.07, 5));
+      b.add(M.yellow, U.box(6.2, 0.7, 2.0, bx, 8.0, bz + 13));
+      for (var cl = -1; cl <= 1; cl += 2) {
+        b.add(M.darkSteel, U.tube({ x: bx + cl * 2.6, y: 7.2, z: bz + 13 },
+          { x: bx + cl * 2.6, y: 5.3, z: bz + 13 }, 0.035, 4));
+      }
     }
     /* 防波堤石块 */
     var rockGeo = new THREE.DodecahedronGeometry(1.8, 0);
@@ -703,6 +915,7 @@
     ship(scene);
     truck(scene);
     buildings(scene);
+    misc(scene);
     background(scene);
     var old = scene.getObjectByName('lowBollards');
     if (old) old.visible = false;

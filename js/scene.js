@@ -482,8 +482,38 @@
 
   S._yard = function (scene) {
     var palette = [0x2f5f86, 0x8c4938, 0x2f6a58, 0x66717d, 0x8c7634, 0x3d4f68];
+    var paintTex = (function () {
+      var cv = document.createElement('canvas');
+      cv.width = cv.height = 256;
+      var g = cv.getContext('2d');
+      g.fillStyle = '#e2e4e5'; g.fillRect(0, 0, 256, 256);
+      for (var i = 0; i < 18; i++) {
+        g.fillStyle = 'rgba(70,78,86,' + (0.06 + Math.random() * 0.08) + ')';
+        g.fillRect(i * 14.2, 0, 5, 256);
+        g.fillStyle = 'rgba(255,255,255,' + (0.05 + Math.random() * 0.08) + ')';
+        g.fillRect(i * 14.2 + 6, 0, 2, 256);
+      }
+      for (var r = 0; r < 80; r++) {
+        var v = Math.random();
+        g.fillStyle = v > 0.55 ? 'rgba(110,76,50,' + (0.03 + Math.random() * 0.1) + ')'
+          : 'rgba(255,255,255,' + (0.02 + Math.random() * 0.08) + ')';
+        g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 12, 1 + Math.random() * 5);
+      }
+      for (var j = 0; j < 10; j++) {
+        g.strokeStyle = 'rgba(92,72,57,.08)'; g.lineWidth = 1 + Math.random() * 4;
+        g.beginPath(); var x = Math.random() * 256; g.moveTo(x, 0);
+        g.lineTo(x + (Math.random() - 0.5) * 20, 256); g.stroke();
+      }
+      var t = new THREE.CanvasTexture(cv);
+      t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 1);
+      t.encoding = THREE.sRGBEncoding; t.anisotropy = 4;
+      return t;
+    })();
     var mats = palette.map(function (c) {
-      return U.paint(c, { metalness: 0.24, roughness: 0.72 });
+      return new THREE.MeshStandardMaterial({
+        color: c, map: paintTex, bumpMap: paintTex, bumpScale: 0.018,
+        metalness: 0.24, roughness: 0.72,
+      });
     });
     var byMat = palette.map(function () { return []; });
     var dark = U.paint(0x3b4652, { metalness: 0.45, roughness: 0.62 });
@@ -730,6 +760,22 @@
     sandTop.receiveShadow = true;
     scene.add(sandTop);
     S.holdSand = sandTop;
+
+    /* 舱内料堆起伏，避免大面积平面感 */
+    var moundGeos = [];
+    var moundPos = [[-20, 1.25, -3.2, 2.5], [-10, 1.2, 2.8, 2.9], [0, 1.3, -1.6, 3.3],
+      [9, 1.18, 3.1, 2.3], [19, 1.22, -2.4, 2.8], [26, 1.12, 2.4, 1.9]];
+    moundPos.forEach(function (mp) {
+      var g = new THREE.DodecahedronGeometry(1, 1);
+      g.scale(mp[3] * 1.2, mp[3] * 0.42, mp[3] * 0.9);
+      g.rotateY(mp[0] * 0.31);
+      g.translate(mp[0], mp[1], mp[2]);
+      moundGeos.push(g);
+    });
+    var mound = new THREE.Mesh(U.merge(moundGeos), sandM);
+    mound.castShadow = true;
+    mound.receiveShadow = true;
+    sandTop.add(mound);
 
     /* 舱内壁（沿舱口四周的深色竖壁，不遮挡沙面） */
     var innerM = U.paint(0x243039, { metalness: 0.25, roughness: 0.85 });
