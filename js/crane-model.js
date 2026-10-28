@@ -127,7 +127,8 @@
   }
 
   function lowerLocal(src) {
-    return { x: S * src.x, y: S * src.y, z: S * src.z };
+    /* 与底座整体 90° 旋转一致：x' = z, z' = -x */
+    return { x: S * src.z, y: S * src.y, z: -S * src.x };
   }
 
   /* M = T(dstA)·R(dstAng)·S(lenRatio,cross,cross)·R(-srcAng)·T(-srcA) */
@@ -299,6 +300,8 @@
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
     mergeGroup(head); mergeGroup(tie); mergeGroup(grabShell);
     mergeGroup(jawNeg); mergeGroup(jawPos);
+    /* 底座（门架下部 + 四组行走轮组）整体绕竖轴旋转 90° */
+    lower.rotation.y = Math.PI / 2;
     jawNeg.matrixAutoUpdate = false; jawPos.matrixAutoUpdate = false;
     groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie,
       grab: grab, jawNeg: jawNeg, jawPos: jawPos };

@@ -12,8 +12,8 @@ window.CFG = {
   machine: {
     model: 'GQ10-30',
     ratedLoad: 10,          // 抓斗门机额定起重量 t（含抓斗自重与物料）
-    railSpan: 19.0,
-    wheelBase: 9.8,
+    railSpan: 8.2,
+    wheelBase: 11.74,
     portalHeight: 10.5,
     slewBearingH: 0.85,
   },
