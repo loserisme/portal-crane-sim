@@ -28,6 +28,9 @@
   };
 
   var groups = null;
+  var rackEndAligned = new THREE.Vector3();
+  var aframeLowerSrc = new THREE.Vector3();
+  var rackBridge = null;
   var _m = new THREE.Matrix4(), _r = new THREE.Matrix4();
   var _t = new THREE.Matrix4(), _sc = new THREE.Matrix4();
 
@@ -106,6 +109,23 @@
       .multiply(new THREE.Matrix4().makeRotationZ(ang))
       .multiply(new THREE.Matrix4().makeTranslation(-SRC_A.x, -SRC_A.y, -SRC_A.z));
     node.applyMatrix4(m);
+    rackEndAligned.set(3.93, 36.57, -0.484).applyMatrix4(m);
+  }
+
+  /* 找蓝色人字架上距齿条销点最近的顶点，作为补接杆起点 */
+  function nearestVertex(node, target) {
+    node.updateWorldMatrix(true, true);
+    var best = null, bestD = Infinity;
+    node.traverse(function (o) {
+      if (!o.isMesh) return;
+      var p = o.geometry.attributes.position;
+      for (var i = 0; i < p.count; i++) {
+        var v = new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(o.matrixWorld);
+        var d = v.distanceToSquared(target);
+        if (d < bestD) { bestD = d; best = v; }
+      }
+    });
+    return best;
   }
 
   function tuneMaterials(root) {
@@ -293,6 +313,7 @@
     grab.add(grabShell); grab.add(jawNeg); grab.add(jawPos);
 
     var children = source.children.slice();
+    var aframeNode = null;
     children.forEach(function (node) {
       var name = node.name || '';
       if (name === '对象076' || isRope(name)) return;
@@ -300,6 +321,7 @@
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
       else if (name === '组002') { alignRackToBoom(node); boom.add(node); }
+      else if (name === '臂架-人字形') { aframeNode = node; upper.add(node); }
       else if (name === 'Line029') jawPos.add(node);
       else if (name === 'Line038') jawNeg.add(node);
       else if (isGrabPart(name)) grabShell.add(node);
@@ -307,9 +329,22 @@
       else upper.add(node);
     });
 
+    if (aframeNode) {
+      var v = nearestVertex(aframeNode, rackEndAligned);
+      if (v) aframeLowerSrc.copy(v);
+    }
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
     mergeGroup(head); mergeGroup(tie); mergeGroup(grabShell);
     mergeGroup(jawNeg); mergeGroup(jawPos);
+    /* 蓝色斜撑补接杆：一端固定在人字架下缘，另一端追随主臂齿条销点 */
+    rackBridge = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.12, 0.12, 1, 8),
+      new THREE.MeshStandardMaterial({ color: 0x185fa5, metalness: 0.25, roughness: 0.5 })
+    );
+    rackBridge.castShadow = true;
+    rackBridge.receiveShadow = true;
+    rackBridge.name = 'CAD_齿条补接杆';
+    K.upper.add(rackBridge);
     /* 底座（门架下部 + 四组行走轮组）整体绕竖轴旋转 90° */
     lower.rotation.y = Math.PI / 2;
     jawNeg.matrixAutoUpdate = false; jawPos.matrixAutoUpdate = false;
@@ -352,6 +387,16 @@
     applyHeadTransform(groups.head, st);
     retarget(groups.tie, SRC_E, SRC_D,
       { x: up.apex.x, y: up.apex.y, z: 0 }, { x: st.D.x, y: st.D.y, z: 0 }, S);
+
+    if (rackBridge) {
+      var p0 = upperLocal(aframeLowerSrc);
+      var p1 = rackEndAligned.clone().applyMatrix4(groups.boom.matrix);
+      var d = p1.clone().sub(p0);
+      var len = d.length();
+      rackBridge.position.set((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2);
+      rackBridge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+      rackBridge.scale.set(1, Math.max(len, 0.01), 1);
+    }
 
     /* 完整颚板绕顶部 X 铰轴开合，闭合 0°、全开 30°；顶部吊点保持不动 */
     var jawAngle = st.grabOpen * 30 * Math.PI / 180;
