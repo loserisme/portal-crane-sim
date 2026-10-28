@@ -98,6 +98,16 @@
     group.matrixWorldNeedsUpdate = true;
   }
 
+  /* 变幅机构在源文件中按水平姿态建模，挂到主臂前需绕 A 点转到源臂架角 */
+  function alignRackToBoom(node) {
+    var ang = Math.atan2(SRC_B.y - SRC_A.y, SRC_B.x - SRC_A.x);
+    var m = new THREE.Matrix4()
+      .makeTranslation(SRC_A.x, SRC_A.y, SRC_A.z)
+      .multiply(new THREE.Matrix4().makeRotationZ(ang))
+      .multiply(new THREE.Matrix4().makeTranslation(-SRC_A.x, -SRC_A.y, -SRC_A.z));
+    node.applyMatrix4(m);
+  }
+
   function tuneMaterials(root) {
     var seen = Object.create(null);
     root.traverse(function (o) {
@@ -289,7 +299,7 @@
       if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
-      else if (name === '组002') boom.add(node);
+      else if (name === '组002') { alignRackToBoom(node); boom.add(node); }
       else if (name === 'Line029') jawPos.add(node);
       else if (name === 'Line038') jawNeg.add(node);
       else if (isGrabPart(name)) grabShell.add(node);
