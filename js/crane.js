@@ -739,15 +739,23 @@
     var lv = st.load;
     K.grabSand.visible = lv > 0.02;
     if (lv > 0.02) {
-      K.grabSand.scale.set(1, Math.max(lv, 0.05), 1);
-      K.grabSand.position.y = -C.grab.height * (0.30 + 0.30 * lv);
+      if (w.CRANE_MODEL && w.CRANE_MODEL.ready) {
+        /* 高精度抓斗：闭合腔是两颚板间的薄透镜腔（x 宽约2.0m、z 厚约0.5m、
+           中心 z≈-0.28m、腔底在吊点下约3.4m），料块按此约束 */
+        K.grabSand.scale.set(0.75, Math.max(lv, 0.05), 0.28);
+        K.grabSand.position.set(0, -C.grab.height * (0.45 + 0.35 * lv), -0.28);
+      } else {
+        K.grabSand.scale.set(1, Math.max(lv, 0.05), 1);
+        K.grabSand.position.y = -C.grab.height * (0.30 + 0.30 * lv);
+      }
     }
 
     var flowOn = st.sandFlow > 0.02;
     K.sandFlow.visible = flowOn;
     if (flowOn) {
       var fh = st.sandFlowLen;
-      K.sandFlow.position.set(gp.x, gp.y - C.grab.height - fh / 2, gp.z);
+      var grabBottom = (w.CRANE_MODEL && w.CRANE_MODEL.ready) ? C.grab.height + 0.85 : C.grab.height;
+      K.sandFlow.position.set(gp.x, gp.y - grabBottom - fh / 2, gp.z - 0.28);
       K.sandFlow.scale.set(1, Math.max(fh, 0.1), 1);
     }
 
