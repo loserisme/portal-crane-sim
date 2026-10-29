@@ -365,7 +365,7 @@
     draco.setWorkerLimit(2);
     var loader = new THREE.GLTFLoader();
     loader.setDRACOLoader(draco);
-    loader.load('assets/models/portal-crane.glb?v=20261027a', function (gltf) {
+    loader.load('assets/models/portal-crane.glb?v=' + (window.ASSET_VER || '20261028c'), function (gltf) {
       try {
         setup(K, gltf.scene);
         draco.dispose();

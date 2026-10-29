@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>数据看板 · 港口门座式起重机仿真平台</title>
+<script>
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js?v=20261028c').catch(function () {});
+    });
+  }
+</script>
 <style>
   :root{
     --bg:#f5f7fa; --card:#ffffff; --border:#e3e8ef; --text:#16202e;
@@ -136,7 +144,7 @@
   </section>
 </div>
 
-<script src="js/stats.js?v=20261028b"></script>
+<script src="js/stats.js?v=20261028c"></script>
 <script>
 (function () {
   var USER = 'njitzdh';
