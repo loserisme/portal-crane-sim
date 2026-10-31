@@ -2,3 +2,6 @@
 Thumbs.db
 node_modules/
 *.log
+
+# 分析产物：曲线图入库，逐点数据可再生
+analysis/out/*.csv

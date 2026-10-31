@@ -356,6 +356,11 @@ table.kv tr:last-child td{border-bottom:0;}
 }
 .trainbtn:hover{background:rgba(46,139,87,.18)!important;}
 .trainbtn.on{background:#2e8b57!important;color:#fff!important;border-color:transparent!important;}
+.labbtn{
+  border:1px solid rgba(217,138,31,.45)!important;background:rgba(217,138,31,.10)!important;
+  color:#8a5a12!important;font-weight:600;
+}
+.labbtn:hover{background:rgba(217,138,31,.20)!important;}
 
 #train-panel{
   position:fixed;right:18px;top:80px;bottom:56px;width:372px;z-index:28;

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<title>回转摆动抑制对比实验 · 门机运动控制仿真</title>
+<script>
+  window.ASSET_VER = '20261031a';
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js?v=20261031a').catch(function () {});
+    });
+  }
+</script>
+<link rel="stylesheet" href="css/sway-lab.css?v=20261031a">
+</head>
+<body>
+
+<header class="lab-top">
+  <a class="back" href="index.html">← 返回三维仿真</a>
+  <h1>回转工况抓斗摆动抑制对比实验</h1>
+  <span class="sub">0° → 90° 回转 · 四种轨迹规划 · 浏览器内 Python 实时计算</span>
+  <span id="py-status" class="status wait"><i></i><span>Python 内核加载中…</span></span>
+</header>
+
+<main class="lab-wrap">
+
+  <aside class="side card">
+    <section>
+      <h2 class="sec-title">工况参数</h2>
+
+      <div class="ctrl">
+        <div class="ctrl-head"><label for="p-r">回转半径 R</label><b><span id="p-r-v">26.0</span> m</b></div>
+        <input type="range" id="p-r" min="18" max="32" step="0.5" value="26" disabled>
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-head"><label for="p-l">悬垂长度 L</label><b><span id="p-l-v">14.0</span> m</b></div>
+        <input type="range" id="p-l" min="6" max="26" step="0.5" value="14" disabled>
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-head"><label for="p-z">等效阻尼比 ζ</label><b><span id="p-z-v">0.030</span></b></div>
+        <input type="range" id="p-z" min="0.005" max="0.12" step="0.005" value="0.03" disabled>
+      </div>
+
+      <div class="hint" id="hint">
+        摆动周期 <em id="h-period">7.51</em> s，固有频率 <em id="h-freq">0.133</em> Hz。<br>
+        轨迹节拍固定，只改变摆动的物理响应；点“重新整定”可按当前参数再优化。
+      </div>
+    </section>
+
+    <section>
+      <h2 class="sec-title">操作</h2>
+      <div class="btns">
+        <button class="btn primary wide" id="btn-tune" disabled>重新整定 S 型参数</button>
+        <button class="btn" id="btn-reset">恢复标称</button>
+        <button class="btn" id="btn-csv">导出 CSV</button>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="sec-title">指标对比</h2>
+      <table class="metrics">
+        <thead>
+          <tr>
+            <th>方案</th><th>节拍</th><th>峰值</th><th>残余</th><th>衰减</th><th>jerk</th>
+          </tr>
+        </thead>
+        <tbody id="m-body"></tbody>
+      </table>
+      <p class="hint" style="margin-top:10px">
+        峰值 = 回转过程最大摆角；残余 = 停止后 10 s 内摆角峰值；衰减 = 摆角降到 2° 以内所需时间（≥ 表示窗口内未收敛）。
+      </p>
+    </section>
+  </aside>
+
+  <section class="view card">
+    <div class="toolbar" id="legend"></div>
+    <div id="charts"></div>
+    <div class="chart-note" id="note">
+      <b>读图提示：</b>加速段决定摆动峰值（与加速度幅值成正比），减速段与摆动周期的相位关系决定残余摆动。
+      梯形与经验 S 型的加速度幅值相同，峰值几乎重合——把加速度“磨圆”并不抑摆，对相位才抑摆。
+    </div>
+  </section>
+
+</main>
+
+<script src="js/sway-data.js?v=20261031a"></script>
+<script src="js/sway-py.js?v=20261031a"></script>
+<script src="js/sway-lab.js?v=20261031a"></script>
+</body>
+</html>
