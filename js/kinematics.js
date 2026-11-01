@@ -55,6 +55,8 @@
     vRope: 0, vTip: 0, vLuff: 0, vSlew: 0, vTravel: 0, vGrab: 0,
 
     timeScale: 1,         // 仿真倍速（时间缩放）
+    rateMode: false,      // 回转角速度直控（轨迹规划实验用）
+    rateCmd: 0,           // 直控角速度 rad/s
 
     /* showTags：标注常显开关。默认关闭 —— 部件名称只在鼠标悬停到该部件时才出现 */
     showRadius: true, showTrace: false, showTags: false, showGrid: true,
@@ -237,6 +239,21 @@
     ST.timeScale = U.clamp(v, 0.1, 8);
   };
 
+  /* 直接给定回转角速度（°/s），负值反转；用于轨迹规划对比实验 */
+  KT.setSlewRate = function (dps) {
+    ST.rateMode = true;
+    ST.rateCmd = U.rad(U.clamp(Number(dps) || 0, -30, 30));
+  };
+
+  /* 退出直控：把当前实际角写回目标，避免松手瞬间回弹 */
+  KT.releaseSlewRate = function () {
+    if (!ST.rateMode) return;
+    ST.rateMode = false;
+    ST.rateCmd = 0;
+    ST.cmd.slew = U.deg(ST.slew);
+    vel.slew = 0;
+  };
+
   KT.update = function (dt) {
     /* dt 已由调用方乘过倍速；上限按 4×@20fps 留余量 */
     dt = Math.min(dt, 0.22);
@@ -252,7 +269,13 @@
   };
 
   function substep(h) {
-    follow('slew', U.rad(ST.cmd.slew), VMAX.slew, tau.slew, h);
+    if (ST.rateMode) {
+      /* 直控模式：按给定角速度积分，用于复现手动/梯形/S 型/优化 S 型轨迹 */
+      ST.slew += ST.rateCmd * h;
+      vel.slew = ST.rateCmd;
+    } else {
+      follow('slew', U.rad(ST.cmd.slew), VMAX.slew, tau.slew, h);
+    }
     follow('alpha', U.rad(ST.cmd.alpha), VMAX.alpha, tau.alpha, h);
     follow('travel', ST.cmd.travel, VMAX.travel, tau.travel, h);
     follow('hoist', ST.cmd.hoist, VMAX.hoist, tau.hoist, h);
@@ -338,6 +361,7 @@
 
   KT.reset = function () {
     ST.cmd.slew = 0; ST.cmd.alpha = 40; ST.cmd.hoist = 12;
+    ST.rateMode = false; ST.rateCmd = 0;
     ST.cmd.travel = 0; ST.cmd.grab = 0;
     ST.thx = ST.thz = ST.thvx = ST.thvz = 0;
     ST.load = 0;

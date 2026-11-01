@@ -499,9 +499,17 @@
     var con = document.getElementById('py-console');
     var s1 = document.getElementById('py-sample');
     var s2 = document.getElementById('py-sway');
+    var s3 = document.getElementById('py-traj');
     if (!panel || !w.PY) return;
 
     ta.value = w.PY.SAMPLE;
+
+    /* ?py=traj 直接打开轨迹对比示例（便于分享/演示） */
+    var qm = (location.search.match(/[?&]py=([a-z]+)/) || [])[1];
+    if (qm === 'traj' && w.PY.SAMPLE_TRAJ) {
+      ta.value = w.PY.SAMPLE_TRAJ;
+      setTimeout(function () { showPanel(true); }, 300);
+    }
 
     w.PY.onPrint = function (line) {
       con.textContent += line + '\n';
@@ -546,6 +554,7 @@
     stop.addEventListener('click', function () { w.PY.stop(); });
     s1.addEventListener('click', function () { ta.value = w.PY.SAMPLE; });
     s2.addEventListener('click', function () { ta.value = w.PY.SAMPLE_SWAY; });
+    if (s3) s3.addEventListener('click', function () { ta.value = w.PY.SAMPLE_TRAJ; });
 
     /* 供 AI 写入 */
     UI.setPyCode = function (code) {
@@ -940,6 +949,8 @@
 
   /* ---------------- 控制曲线 ---------------- */
   var CHART_COLORS = ['#c0392b', '#2b6fb0', '#2e8b57', '#b8860b', '#7a4fa8', '#0f7b8a'];
+  /* 多段对比配色：灰（基线/手动）→ 蓝（梯形）→ 橙（S 型）→ 绿（优化） */
+  var SEG_COLORS = ['#9aa5b4', '#2b6fb0', '#d98a1f', '#2e8b57', '#cf4a34'];
 
   /* 曲线字段：英文键 → 中文名（单位） */
   var FIELD_META = {
@@ -952,8 +963,9 @@
     swayZ:   ['横向摆角', 'rad'],
     swayVZ:  ['横向角速度', 'rad/s'],
     swayX:   ['纵向摆角', 'rad'],
+    slewRate:['回转速度', '°/s'],
   };
-  var ALL_FIELDS = ['hoist', 'radius', 'slew', 'load', 'grab', 'swayMag', 'swayZ', 'swayVZ', 'swayX'];
+  var ALL_FIELDS = ['hoist', 'radius', 'slew', 'slewRate', 'load', 'grab', 'swayMag', 'swayZ', 'swayVZ', 'swayX'];
 
   UI.showChart = function (keys, compare) {
     var panel = document.getElementById('chart-panel');
@@ -969,6 +981,8 @@
     cv.style.height = wantH + 'px';
 
     var rec = w.PY.rec || [];
+    var segMax = 0;
+    for (var qi = 0; qi < rec.length; qi++) { var sq = rec[qi].seg || 0; if (sq > segMax) segMax = sq; }
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
     var W = cv.clientWidth || 620, H = cv.clientHeight || 240;
     cv.width = Math.round(W * dpr);
@@ -1032,12 +1046,10 @@
         ctx.setLineDash([]);
       }
 
-      var hasSeg1 = false;
-      for (var q = 0; q < rec.length; q++) { if ((rec[q].seg || 0) === 1) { hasSeg1 = true; break; } }
-
-      if (compare && hasSeg1) {
-        drawSeg(0, '#9aa5b4', [5, 3]);                       // 基线：灰虚线
-        drawSeg(1, CHART_COLORS[i % CHART_COLORS.length]);   // 算法：彩色实线
+      if (compare && segMax > 0) {
+        for (var sg = 0; sg <= segMax; sg++) {
+          drawSeg(sg, SEG_COLORS[sg % SEG_COLORS.length], sg === 0 ? [5, 3] : null);
+        }
       } else {
         drawSeg(null, CHART_COLORS[i % CHART_COLORS.length]);
       }
@@ -1055,7 +1067,21 @@
 
     /* 顶部指标条 */
     var mbox = document.getElementById('chart-metrics');
-    if (mbox) {
+    if (mbox && compare && segMax > 0) {
+      var segTxt = [];
+      for (var sg3 = 0; sg3 <= segMax; sg3++) {
+        var pk3 = 0, last3 = 0, has3 = false;
+        for (var m3 = 0; m3 < rec.length; m3++) {
+          if ((rec[m3].seg || 0) !== sg3) continue;
+          var v3 = rec[m3].swayMag;
+          if (isFinite(v3)) { has3 = true; if (v3 > pk3) pk3 = v3; last3 = v3; }
+        }
+        if (!has3) continue;
+        segTxt.push('<b>' + ((w.PY.segNames && w.PY.segNames[sg3]) || ('段' + sg3)) + '</b> ' +
+          (pk3 * 57.3).toFixed(1) + '° / ' + (last3 * 57.3).toFixed(1) + '°');
+      }
+      mbox.innerHTML = '<b>峰值 / 停时残余</b>　' + segTxt.join(' <i>|</i> ');
+    } else if (mbox) {
       var A2 = analyzeSeg(rec);
       if (A2) {
         mbox.innerHTML =
@@ -1069,22 +1095,20 @@
     }
 
     /* 图例与时间轴 */
-    var hasS1 = false;
-    for (var z = 0; z < rec.length; z++) { if ((rec[z].seg || 0) === 1) { hasS1 = true; break; } }
-    if (compare && hasS1) {
-      var names = (w.PY.segNames || ['基线', '算法']);
-      ctx.font = '9.5px ui-monospace, monospace';
-      ctx.strokeStyle = '#9aa5b4'; ctx.lineWidth = 1.4;
-      ctx.setLineDash([5, 3]);
-      ctx.beginPath(); ctx.moveTo(x1 - 132, H - 7); ctx.lineTo(x1 - 112, H - 7); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.fillStyle = '#7b8695';
-      ctx.fillText(names[0], x1 - 108, H - 4);
-
-      ctx.strokeStyle = CHART_COLORS[0]; ctx.lineWidth = 1.8;
-      ctx.beginPath(); ctx.moveTo(x1 - 62, H - 7); ctx.lineTo(x1 - 42, H - 7); ctx.stroke();
-      ctx.fillStyle = '#7b8695';
-      ctx.fillText(names[1], x1 - 38, H - 4);
+    if (compare && segMax > 0) {
+      var names = (w.PY.segNames || []);
+      var slot = 92, xR = x1;
+      for (var si = segMax; si >= 0; si--) {
+        xR -= slot;
+        ctx.strokeStyle = SEG_COLORS[si % SEG_COLORS.length];
+        ctx.lineWidth = 1.6;
+        ctx.setLineDash(si === 0 ? [5, 3] : []);
+        ctx.beginPath(); ctx.moveTo(xR, H - 7); ctx.lineTo(xR + 16, H - 7); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#7b8695';
+        ctx.font = '9.5px ui-monospace, monospace';
+        ctx.fillText(names[si] || ('段' + si), xR + 20, H - 4);
+      }
     }
     ctx.fillStyle = '#9aa5b4';
     ctx.font = '9.5px ui-monospace, monospace';
