@@ -17,6 +17,7 @@
     pinned: { left: false, right: false },
     tucked: { left: false, right: false },
     timer: { left: 0, right: 0 },
+    onEdge: { left: false, right: false },
     drag: false
   };
 
@@ -106,7 +107,7 @@
     clearTimeout(S.timer[side]);
     if (S.pinned[side]) return;
     S.timer[side] = setTimeout(function () {
-      if (!busy(side)) tuck(side);
+      if (!busy(side) && !S.onEdge[side]) tuck(side);
     }, HIDE_DELAY);
   }
 
@@ -146,14 +147,16 @@
       tab.id = 'dock-tab-' + side;
       document.body.appendChild(tab);
 
-      tab.addEventListener('mouseenter', function () { untuck(side); });
+      tab.addEventListener('mouseenter', function () { S.onEdge[side] = true; untuck(side); });
+      tab.addEventListener('mouseleave', function () { S.onEdge[side] = false; scheduleHide(side); });
       tab.addEventListener('click', function () {
         if (S.tucked[side]) untuck(side);
         else { S.pinned[side] = false; render(side); tuck(side, true); save(); }
       });
 
-      edge.addEventListener('mouseenter', function () { untuck(side); });
-      edge.addEventListener('mouseleave', function () { scheduleHide(side); });
+      /* 停在边缘上时保持展开，移开才计时收起 */
+      edge.addEventListener('mouseenter', function () { S.onEdge[side] = true; untuck(side); });
+      edge.addEventListener('mouseleave', function () { S.onEdge[side] = false; scheduleHide(side); });
     });
   }
 
