@@ -245,8 +245,10 @@ def _pack(ts, ths, oms, als, jks, st, sv, T, R, L, zeta, target=520):
     k = 57.29577951308232
     t_out, th_out, om_out, al_out, jk_out, sw_out = [], [], [], [], [], []
     j = 0
-    for i in idx:
+    for ii, i in enumerate(idx):
         tq = st[i]
+        a0 = i
+        b0 = idx[ii + 1] if ii + 1 < len(idx) else len(ts)
         while j < len(ts) - 2 and ts[j + 1] <= tq:
             j += 1
         d = ts[j + 1] - ts[j] if j + 1 < len(ts) else 0.0
@@ -257,7 +259,8 @@ def _pack(ts, ths, oms, als, jks, st, sv, T, R, L, zeta, target=520):
         th_out.append(round((ths[j] + (ths[j1] - ths[j]) * f) * k, 2))
         om_out.append(round((oms[j] + (oms[j1] - oms[j]) * f) * k, 3))
         al_out.append(round((als[j] + (als[j1] - als[j]) * f) * k, 3))
-        jk_out.append(round((jks[j] + (jks[j1] - jks[j]) * f) * k, 2))
+        seg = jks[a0:min(b0, len(jks))] or [0.0]
+        jk_out.append(round(max(seg, key=lambda v: abs(v)) * k, 2))
         sw_out.append(round(sv[i], 3))
     return {"t": t_out, "theta": th_out, "omega": om_out, "alpha": al_out,
             "jerk": jk_out, "sway": sw_out}

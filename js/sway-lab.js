@@ -28,7 +28,7 @@
   var state = {
     data: null,
     visible: { manual: true, trap: true, scurve: true, opt: true },
-    longRange: true,
+    longRange: false,
     hoverT: null,
     R: 26, L: 14, zeta: 0.03,
     py: { ready: false, loading: false, failed: false, compute: null, tune: null }
@@ -87,7 +87,7 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
-    var ml = 54, mr = 14, mt = 30, mb = 20;
+    var ml = 54, mr = 14, mt = 26, mb = 18;
     var x0 = ml, x1 = W - mr, y0 = mt, y1 = H - mb;
 
     var t = state.data.series.opt.t;
@@ -123,6 +123,7 @@
 
     /* 网格 + 纵轴刻度 */
     var step = niceNum((vmax - vmin) / 4, true);
+    while ((y1 - y0) / Math.max(1, Math.round((vmax - vmin) / step)) < 20) step *= 2;
     var tick = Math.ceil(vmin / step) * step;
     ctx.font = '10.5px ui-monospace, Consolas, monospace';
     ctx.textAlign = 'right';

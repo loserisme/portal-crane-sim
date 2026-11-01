@@ -660,13 +660,23 @@ def export_web(profiles, sims, mets, max_pts: int = 520) -> None:
         step = max(1, n // max_pts)
         idx = list(range(0, n, step))
         tt = s["t"][idx]
+        # 加加速度按「保峰值」抽稀：每个时间桶取绝对值最大的样本，
+        # 否则梯形/手动的毫秒级冲击脉冲会被均匀抽稀漏掉
+        jerk_full = np.rad2deg(np.interp(s["t"], p.t, p.jerk))
+        jerk_out = []
+        for i0 in range(0, len(tt)):
+            a = idx[i0]
+            b = idx[i0 + 1] if i0 + 1 < len(idx) else len(s["t"])
+            seg = jerk_full[a:b]
+            jerk_out.append(round(float(seg[np.argmax(np.abs(seg))]), 2) if seg.size else 0.0)
+
         series[k] = {
             "T": round(float(p.T), 3),
             "t": [round(float(v), 3) for v in tt],
             "theta": [round(float(v), 2) for v in np.rad2deg(np.interp(tt, p.t, p.theta))],
             "omega": [round(float(v), 3) for v in np.rad2deg(np.interp(tt, p.t, p.omega))],
             "alpha": [round(float(v), 3) for v in np.rad2deg(np.interp(tt, p.t, p.alpha))],
-            "jerk": [round(float(v), 2) for v in np.rad2deg(np.interp(tt, p.t, p.jerk))],
+            "jerk": jerk_out,
             "sway": [round(float(v), 3) for v in s["gam_t"][idx]],
         }
         m = mets[k]
