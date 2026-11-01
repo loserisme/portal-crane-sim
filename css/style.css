@@ -679,3 +679,64 @@ table.kv tr:last-child td{border-bottom:0;}
 }
 #train-docx:hover{background:rgba(43,111,176,.16);}
 #train-docx:disabled{opacity:.55;cursor:default;}
+
+/* =============================================================
+ * 侧栏停靠：自动收起 / 边缘滑出 / 手动固定
+ * ============================================================= */
+.panel{
+  transition:transform .32s cubic-bezier(.34,.01,.28,1), opacity .22s ease;
+  will-change:transform;
+}
+body.tuck-left #panel-left{
+  transform:translateX(calc(-100% - 28px));
+  opacity:0;pointer-events:none;
+}
+body.tuck-right #panel-right{
+  transform:translateX(calc(100% + 28px));
+  opacity:0;pointer-events:none;
+}
+
+/* 屏幕边缘感应条 */
+.dock-edge{
+  position:fixed;top:70px;bottom:40px;width:14px;z-index:23;background:transparent;
+}
+#dock-edge-left{left:0;}
+#dock-edge-right{right:0;}
+
+/* 侧边拉手 */
+.dock-tab{
+  position:fixed;z-index:22;top:116px;width:15px;height:78px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(10px);
+  border:1px solid var(--border);border-left:none;border-radius:0 9px 9px 0;
+  box-shadow:0 3px 12px rgba(20,30,45,.10);
+  color:#7b8695;font:600 12px/1 system-ui,sans-serif;cursor:pointer;user-select:none;
+  transition:background .18s,color .18s,opacity .2s;
+}
+#dock-tab-right{
+  left:auto;right:0;border:1px solid var(--border);border-right:none;
+  border-radius:9px 0 0 9px;
+}
+.dock-tab:hover{background:#fff;color:var(--text);}
+body.pin-left #dock-tab-left,
+body.pin-right #dock-tab-right,
+body.pin-left #dock-edge-left,
+body.pin-right #dock-edge-right{opacity:0;pointer-events:none;}
+
+/* 面板顶部的固定 / 收起 按钮（滚动时吸顶） */
+.dock-head{
+  position:sticky;top:-14px;z-index:6;margin:-14px -14px 0;
+  padding:9px 10px 7px;display:flex;justify-content:flex-end;gap:6px;
+  background:linear-gradient(180deg,rgba(255,255,255,.97) 68%,rgba(255,255,255,.70));
+  backdrop-filter:blur(8px);border-radius:13px 13px 0 0;
+}
+.dock-btn{
+  height:22px;padding:0 8px;border-radius:7px;border:1px solid var(--border-strong);
+  background:#fff;color:#6b7789;font:inherit;font-size:10.5px;line-height:20px;
+  cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.dock-btn:hover{color:var(--text);border-color:rgba(24,36,52,.30);}
+.dock-btn.on{
+  background:rgba(217,138,31,.14);border-color:rgba(217,138,31,.45);
+  color:#8a5a12;font-weight:600;
+}
