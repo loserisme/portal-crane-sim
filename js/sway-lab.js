@@ -253,7 +253,11 @@
 
   var panels = PANELS;
 
-  function panelHeight() { return (w.innerHeight || 900) < 900 ? 104 : 132; }
+  function panelHeight() {
+    var v = document.querySelector('.view');
+    var avail = (v ? v.clientHeight : 820) - 116;   /* 扣掉工具栏、提示与间隙 */
+    return Math.max(92, Math.min(172, Math.floor(avail / 5)));
+  }
 
   function buildCharts() {
     var host = $('charts');
