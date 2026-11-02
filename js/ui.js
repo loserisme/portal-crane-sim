@@ -1177,7 +1177,7 @@
       el.oHold.textContent = Math.round(st.holdRemain * 100) + '%';
       el.oHold.title = '料面 ' + st.holdLevel.toFixed(2) + ' m';
     }
-    el.oTruck.textContent = (w.DEMO ? w.DEMO.truckLoad : 0) + ' / ' + C.scene.truck.capacity;
+    el.oTruck.textContent = (w.DEMO ? Math.round(w.DEMO.truckVolume * 10) / 10 : 0) + ' / ' + C.scene.truck.capacity;
 
     el.oLoadState.textContent = over ? '超载' : '安全';
     el.oLoadState.className = over ? 'over' : 'ok';

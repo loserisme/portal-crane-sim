@@ -11,7 +11,8 @@
   ST.sandFlowLen = 0;
 
   /* ---------------- 作业循环 ---------------- */
-  var DEMO = { running: false, idx: -1, hold: 0, t: 0, label: '', truckLoad: 0 };
+  // truckLoad counts completed deliveries for training; truckVolume is the actual cargo in the bed.
+  var DEMO = { running: false, idx: -1, hold: 0, t: 0, label: '', truckLoad: 0, truckVolume: 0 };
 
   var SHIP_R = 30.0, SHIP_SLEW = -90;
   var TRUCK_R = 23.0, TRUCK_SLEW = 0;
@@ -106,8 +107,8 @@
   function updateTruck() {
     var sand = SCENE.truckSand;
     if (!sand) return;
-    var k = DEMO.truckLoad / C.scene.truck.capacity;
-    sand.visible = k > 0.01;
+    var k = U.clamp(DEMO.truckVolume / C.scene.truck.capacity, 0, 1);
+    sand.visible = k > 0.0001;
     if (!sand.visible) return;
     var bed = SCENE.truckBed;
     var hh = 1.05 * k;
@@ -116,36 +117,52 @@
   }
 
   /* ---------------- 落料与卡车装载 ---------------- */
-  var prevLoad = 0;
+  var unloadReceived = 0, unloading = false;
+  var outlet = new THREE.Vector3();
+
+  DEMO.resetCargo = function () {
+    DEMO.truckLoad = 0; DEMO.truckVolume = 0;
+    unloadReceived = 0; unloading = false;
+    if (SCENE.truckSand) SCENE.truckSand.visible = false;
+  };
 
   function overTruck(gp) {
-    var t = C.scene.truck;
-    return Math.abs(gp.x - t.x) < 6.2 && Math.abs(gp.z - t.z) < 2.6;
+    var t = SCENE.truckBed;
+    return t && Math.abs(gp.x - t.x) < t.l / 2 - 0.15 &&
+      Math.abs(gp.z - t.z) < t.w / 2 - 0.15 && gp.y >= t.y + 0.11;
   }
 
   function updateUnload(dt) {
     var st = KT.ST;
-    var dumping = st.sandFlow > 0.01 && st.load > 0.01;
-    st.sandFlow = dumping
-      ? Math.min(1, st.sandFlow + dt * 6)
-      : Math.max(0, st.sandFlow - dt * 4);
-
-    /* 料刚放空：若抓斗在车斗上方则计一斗 */
-    if (prevLoad > 0.05 && st.load <= 0.02) {
-      if (overTruck(st.grabPos)) {
-        var cap = C.scene.truck.capacity;
-        DEMO.truckLoad = DEMO.truckLoad >= cap ? 0 : DEMO.truckLoad + 1;
+    if (st.releasedLoad > 0) {
+      unloading = true;
+      KT.grabOutlet(outlet);
+      if (overTruck(outlet)) {
+        var accepted = Math.min(st.releasedLoad, Math.max(0, C.scene.truck.capacity - DEMO.truckVolume));
+        DEMO.truckVolume += accepted;
+        unloadReceived += accepted;
       }
     }
-    prevLoad = st.load;
+    /* 连续累计流入量，卸完时只计一次作业。满车保持满载，不在下一斗时清空。 */
+    if (unloading && st.load <= 1e-6) {
+      if (unloadReceived > 0.01) DEMO.truckLoad++;
+      unloading = false; unloadReceived = 0;
+    }
   }
 
   /* ---------------- 落料沙流 ---------------- */
   function updateSandFlow() {
     if (ST.sandFlow < 0.02) { ST.sandFlowLen = 0; return; }
-    var bedY = C.scene.truck.bedY + 0.15;
-    var len = Math.max(ST.grabPos.y - C.grab.height - bedY, 0.2);
-    ST.sandFlowLen = len;
+    KT.grabOutlet(outlet);
+    var surface = 0;
+    if (overTruck(outlet)) {
+      surface = SCENE.truckBed.y + 0.1 + 1.05 * U.clamp(DEMO.truckVolume / C.scene.truck.capacity, 0, 1);
+    } else {
+      var sh = C.scene.ship;
+      if (outlet.x >= sh.x + sh.holdX0 && outlet.x <= sh.x + sh.holdX1 && Math.abs(outlet.z - sh.z) < sh.holdHalfW) surface = ST.holdLevel;
+    }
+    ST.sandFlowLen = Math.max(outlet.y - surface, 0);
+    if (ST.sandFlowLen <= 0) ST.sandFlow = 0;
   }
 
   /* ---------------- 帧率自适应 ---------------- */
@@ -180,7 +197,6 @@
     if (w.TRAIN) w.TRAIN.update();
     if (w.COMP) w.COMP.update();
     if (w.PY) w.PY.update(dtSim);
-    if (!DEMO.running) ST.sandFlow = Math.max(0, ST.sandFlow - dtSim * 5);
 
     KT.update(dtSim);
     KT.measure(dtSim);

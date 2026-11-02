@@ -900,6 +900,14 @@
     cargo.visible = false;
     cargo.castShadow = true;
     cargo.receiveShadow = true;
+    var cargoTop = new THREE.PlaneGeometry(bl - 0.34, bw2 - 0.34, 24, 10).rotateX(-Math.PI / 2);
+    var cargoP = cargoTop.attributes.position;
+    for (var ci = 0; ci < cargoP.count; ci++) {
+      var cx = cargoP.getX(ci) / ((bl - 0.34) / 2), cz = cargoP.getZ(ci) / ((bw2 - 0.34) / 2);
+      cargoP.setY(ci, 0.502 + 0.22 * Math.max(0, 1 - cx * cx) * Math.max(0, 1 - cz * cz));
+    }
+    cargoTop.computeVertexNormals();
+    U.mesh(cargoTop, sandM, cargo);
     scene.add(cargo);
     S.truckSand = cargo;
     S.truckBed = { x: bedX, y: bedY, z: Z, l: bl, w: bw2 };

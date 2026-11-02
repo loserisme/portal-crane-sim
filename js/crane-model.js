@@ -19,6 +19,7 @@
   var SRC_C = { x: 36.150, y: 41.591, z: -0.502 };
   var SRC_E = { x: -5.138, y: 41.100, z: -0.487 };
   var SRC_GRAB_TOP = { x: 35.782, y: 34.209, z: -0.484 };
+  var SRC_GRAB_BOTTOM = 28.185522; // 两片颚板闭合后的最低点，包含完整斗体
   /* Line029/Line038 才是真正的两侧颚板，铰轴位于二者上缘 */
   var SRC_JAW_HINGE = { x: 35.804, y: 31.795, z: -0.4655 };
   /* 三个部件共用主臂耳板上的销轴。取 CAD 销轴中心，不取网格表面的最近顶点。 */
@@ -33,6 +34,7 @@
   };
 
   var groups = null;
+  var grabContents = [], lastFill = -1;
   var luffPin = new THREE.Vector3();
   var aframeTop = null, rackDrivePivot = null;
   var _luffMid = new THREE.Vector3();
@@ -40,7 +42,7 @@
   var _t = new THREE.Matrix4(), _sc = new THREE.Matrix4();
 
   function isLower(name) {
-    return name === '门架总成' || name === 'xingzouzu' || name === '下接料板' ||
+    return name === '门架总成' || name === 'xingzouzu' || name === '下接料板' || name === '头部落料管' ||
       name === '高压电器房' || name === 'dianlanj' || name === 'dianlanx' ||
       name === '电缆卷筒—制动器' || name === '全球摄像机' || name === '大车行走枪机005' ||
       /^(皮带机|传送带|溜筒|落料|漏斗|抖动给料|伸缩机构)/.test(name);
@@ -104,6 +106,45 @@
     group.matrix.multiply(_r.makeRotationX(angle));
     group.matrix.multiply(_t.makeTranslation(-h.x, -h.y, -h.z));
     group.matrixWorldNeedsUpdate = true;
+  }
+
+  /* 源 CAD 颚板内腔的保守截面（z 距中缝、y 高度）。料面随载荷降低，
+     下边界始终沿斗底，不把矩形料块压缩到弧底外。两半分别跟随各自颚板。 */
+  function contentsGeometry(side, fill) {
+    var top = 28.40 + 1.10 * Math.sqrt(fill);
+    var outline = [[0.025, 28.40], [0.60, 28.64], [1.12, 29.02], [1.38, 29.38], [1.38, 29.50], [0.025, 29.50]];
+    var clipped = [];
+    for (var i = 0; i < outline.length; i++) {
+      var a = outline[i], b = outline[(i + 1) % outline.length];
+      if (a[1] <= top) clipped.push(a);
+      if ((a[1] <= top) !== (b[1] <= top)) {
+        var t = (top - a[1]) / (b[1] - a[1]);
+        clipped.push([a[0] + (b[0] - a[0]) * t, top]);
+      }
+    }
+    var shape = new THREE.Shape();
+    clipped.forEach(function (p, i) {
+      var z = -0.479 + side * p[0];
+      if (i) shape.lineTo(z, p[1]); else shape.moveTo(z, p[1]);
+    });
+    shape.closePath();
+    var geometry = new THREE.ExtrudeGeometry(shape, { depth: 2.68, bevelEnabled: false, steps: 1 });
+    geometry.rotateY(-Math.PI / 2);
+    geometry.translate(SRC_JAW_HINGE.x + 1.34, 0, 0);
+    return geometry;
+  }
+
+  function updateContents(st) {
+    var fill = Math.round(U.clamp(st.load, 0, 1) * 100) / 100;
+    if (fill === lastFill) return;
+    lastFill = fill;
+    grabContents.forEach(function (mesh, i) {
+      mesh.visible = fill > 0;
+      if (fill > 0) {
+        mesh.geometry.dispose();
+        mesh.geometry = contentsGeometry(i ? 1 : -1, fill);
+      }
+    });
   }
 
   /* 齿条及端部销轴随齿条滑动；电机、减速器、摇架留在驱动端。 */
@@ -234,7 +275,7 @@
     if (K.balLink) K.balLink.visible = false;
     if (K.balLink2) K.balLink2.visible = false;
     if (K.grabBody) {
-      K.grabBody.children.forEach(function (o) { if (o !== K.grabSand) o.visible = false; });
+      K.grabBody.children.forEach(function (o) { o.visible = false; });
     }
   }
 
@@ -338,7 +379,7 @@
     /* 共用同一横向销轴平面，避免侧视对齐但前视仍分离。 */
     rackDrivePivot.z = S * (SRC_LUFF_PIN.z - SRC_A.z);
 
-    var grabScale = C.grab.height / (34.209 - 29.818);
+    var grabScale = C.grab.height / (SRC_GRAB_TOP.y - SRC_GRAB_BOTTOM);
     grab.scale.setScalar(grabScale);
     grab.position.set(-SRC_GRAB_TOP.x * grabScale, -SRC_GRAB_TOP.y * grabScale, -SRC_GRAB_TOP.z * grabScale);
     K.grabBody.add(grab);
@@ -365,6 +406,16 @@
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
     mergeGroup(head); mergeGroup(tie); mergeGroup(grabShell);
     mergeGroup(jawNeg); mergeGroup(jawPos);
+    var cargoMaterial = K.mat.sand.clone();
+    cargoMaterial.color.set(0xc9ab74).convertSRGBToLinear();
+    cargoMaterial.roughness = 0.98;
+    if (w.SCENE.holdSand) cargoMaterial.map = w.SCENE.holdSand.material.map;
+    [jawNeg, jawPos].forEach(function (jaw, i) {
+      var cargo = new THREE.Mesh(new THREE.BufferGeometry(), cargoMaterial);
+      cargo.name = i ? 'CAD_右斗内物料' : 'CAD_左斗内物料';
+      cargo.visible = false; cargo.castShadow = true; cargo.receiveShadow = true;
+      jaw.add(cargo); grabContents.push(cargo);
+    });
     mergeGroup(aframe); mergeGroup(rackDrive); mergeGroup(rackSlider);
     extendRackTail(rackSlider);
     /* 底座（门架下部 + 四组行走轮组）整体绕竖轴旋转 90° */
@@ -425,6 +476,7 @@
     var jawAngle = st.grabOpen * 30 * Math.PI / 180;
     rotateJaw(groups.jawNeg, jawAngle);
     rotateJaw(groups.jawPos, -jawAngle);
+    updateContents(st);
   };
 
   w.CRANE_MODEL = CM;

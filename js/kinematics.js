@@ -28,6 +28,7 @@
     slew: 0, alpha: U.rad(40), travel: 0, hoist: 12,
     grabOpen: 0,          // 0 闭合 ~ 1 全开
     load: 0,              // 斗内物料 0~1
+    releasedLoad: 0,      // 本帧实际流出的物料（满斗当量），供接料计量使用
     holdLevel: 2.55,      // 舱内料面高度（世界 y），随抓取下降
     holdRemain: 1,        // 舱内剩余比例
     grabPrev: 1,          // 上一帧开度
@@ -202,6 +203,9 @@
 
   /* 每帧检测闭斗瞬间；张开时物料自然流出 */
   KT.updateGrab = function (dt) {
+    ST.releasedLoad = 0;
+    ST.sandFlow = 0;
+    if (dt <= 0) return;
     /* 完全闭合后为下一次张开重置记录 */
     if (ST.grabOpen < 0.05 && ST.grabPrev >= 0.05) {
       ST.grabMaxOpen = 0;
@@ -214,12 +218,23 @@
       ST.grabDone = true;
       KT.settleGrab();
     }
-    /* 只有张开动作才卸料；闭斗过程不流料 */
+    /* 开口保持张开时继续流料；闭斗时停止。不能只在开度变化的帧卸料，
+       否则到达全开后会残留物料。 */
     var opening = ST.grabOpen > ST.grabPrev + 1e-4;
-    if (opening && ST.grabOpen > 0.35 && ST.load > 0) {
-      ST.load = Math.max(0, ST.load - dt / 0.9);
+    var heldOpen = ST.cmd.grab >= ST.grabOpen - 1e-4;
+    if ((opening || heldOpen) && ST.grabOpen > 0.35 && ST.load > 0) {
+      ST.releasedLoad = Math.min(ST.load, dt / 0.9);
+      ST.load = Math.max(0, ST.load - ST.releasedLoad);
+      ST.sandFlow = U.clamp(ST.releasedLoad * 0.9 / dt, 0, 1);
     }
     ST.grabPrev = ST.grabOpen;
+  };
+
+  /* 与抓斗渲染相同的回转/摆动姿态，返回斗底出料口的世界坐标。 */
+  KT.grabOutlet = function (out) {
+    var d = ST.swayDir, h = C.grab.height, cs = Math.cos(ST.slew), sn = Math.sin(ST.slew);
+    return out.set(ST.grabPos.x + h * (d.x * cs + d.z * sn),
+      ST.grabPos.y + h * d.y, ST.grabPos.z + h * (-d.x * sn + d.z * cs));
   };
 
   /* ---------------- 跟随 ---------------- */
@@ -365,6 +380,9 @@
     ST.cmd.travel = 0; ST.cmd.grab = 0;
     ST.thx = ST.thz = ST.thvx = ST.thvz = 0;
     ST.load = 0;
+    ST.releasedLoad = 0; ST.sandFlow = 0;
+    ST.grabPrev = ST.grabOpen; ST.grabDone = false; ST.grabMaxOpen = ST.grabOpen;
+    if (w.DEMO && w.DEMO.resetCargo) w.DEMO.resetCargo();
     ST.holdRemain = 1;
     ST.grabRate = 0;
     updateHoldLevel();
