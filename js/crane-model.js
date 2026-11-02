@@ -21,6 +21,11 @@
   var SRC_GRAB_TOP = { x: 35.782, y: 34.209, z: -0.484 };
   /* Line029/Line038 才是真正的两侧颚板，铰轴位于二者上缘 */
   var SRC_JAW_HINGE = { x: 35.804, y: 31.795, z: -0.4655 };
+  /* 三个部件共用主臂耳板上的销轴。取 CAD 销轴中心，不取网格表面的最近顶点。 */
+  var SRC_LUFF_PIN = { x: 4.097271, y: 36.617208, z: -0.511139 };
+  var SRC_AFRAME_TOP = { x: -1.184304, y: 41.714724, z: -0.537142 };
+  var SRC_RACK_PIN = { x: 3.672151, y: 36.123840, z: -0.494297 };
+  var SRC_RACK_DRIVE = { x: -2.783760, y: 36.123840, z: -0.494297 };
   var OFFSET = {
     x: 0,
     y: C.machine.portalHeight + C.machine.slewBearingH + C.upper.pivot.y - S * SRC_A.y,
@@ -28,9 +33,9 @@
   };
 
   var groups = null;
-  var rackEndAligned = new THREE.Vector3();
-  var aframeLowerSrc = new THREE.Vector3();
-  var rackBridge = null;
+  var luffPin = new THREE.Vector3();
+  var aframeTop = null, rackDrivePivot = null;
+  var _luffMid = new THREE.Vector3();
   var _m = new THREE.Matrix4(), _r = new THREE.Matrix4();
   var _t = new THREE.Matrix4(), _sc = new THREE.Matrix4();
 
@@ -101,31 +106,33 @@
     group.matrixWorldNeedsUpdate = true;
   }
 
-  /* 变幅机构在源文件中按水平姿态建模，挂到主臂前需绕 A 点转到源臂架角 */
-  function alignRackToBoom(node) {
-    var ang = Math.atan2(SRC_B.y - SRC_A.y, SRC_B.x - SRC_A.x);
-    var m = new THREE.Matrix4()
-      .makeTranslation(SRC_A.x, SRC_A.y, SRC_A.z)
-      .multiply(new THREE.Matrix4().makeRotationZ(ang))
-      .multiply(new THREE.Matrix4().makeTranslation(-SRC_A.x, -SRC_A.y, -SRC_A.z));
-    node.applyMatrix4(m);
-    rackEndAligned.set(3.93, 36.57, -0.484).applyMatrix4(m);
+  /* 齿条及端部销轴随齿条滑动；电机、减速器、摇架留在驱动端。 */
+  function splitRack(node, drive, slider) {
+    var moving = ['变幅机构-齿条总成', '变幅机构-钩接式油嘴',
+      '变幅机构-轴承', '变幅机构-齿条轴', '变幅机构-通盖', '变幅机构-轴套1\\2'];
+    var driveSource = node.clone(false), sliderSource = node.clone(false);
+    node.children.slice().forEach(function (part) {
+      (moving.indexOf(part.name) >= 0 ? sliderSource : driveSource).add(part);
+    });
+    drive.add(driveSource);
+    slider.add(sliderSource);
   }
 
-  /* 找蓝色人字架上距齿条销点最近的顶点，作为补接杆起点 */
-  function nearestVertex(node, target) {
-    node.updateWorldMatrix(true, true);
-    var best = null, bestD = Infinity;
-    node.traverse(function (o) {
-      if (!o.isMesh) return;
-      var p = o.geometry.attributes.position;
+  /* 主臂经尺寸标定后，原齿条在最大幅度时过短。只延长直段，保留端部销孔及附件尺寸。 */
+  function extendRackTail(slider) {
+    var shoulder = SRC_RACK_PIN.x - 0.6;
+    slider.children.forEach(function (mesh) {
+      if (!mesh.isMesh) return;
+      var p = mesh.geometry.attributes.position;
       for (var i = 0; i < p.count; i++) {
-        var v = new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(o.matrixWorld);
-        var d = v.distanceToSquared(target);
-        if (d < bestD) { bestD = d; best = v; }
+        var x = p.getX(i);
+        if (x < shoulder) p.setX(i, shoulder + (x - shoulder) * 1.35);
       }
+      p.needsUpdate = true;
+      mesh.geometry.computeVertexNormals();
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
     });
-    return best;
   }
 
   function tuneMaterials(root) {
@@ -172,6 +179,21 @@
     group.matrix.multiply(_sc.makeScale(dl / sl, cross, cross));
     group.matrix.multiply(_r.makeRotationZ(-sa));
     group.matrix.multiply(_t.makeTranslation(-srcA.x, -srcA.y, -(srcA.z || 0)));
+    /* CAD 两端轴心可能有细微 z 偏差，沿杆长插值修正，保证两端均严格落在目标铰点。 */
+    var zSlope = ((dstB.z || 0) - (dstA.z || 0) - cross * ((srcB.z || 0) - (srcA.z || 0))) / (sl * sl);
+    var e = group.matrix.elements;
+    e[2] = zSlope * sx;
+    e[6] = zSlope * sy;
+    e[14] = (dstA.z || 0) - cross * (srcA.z || 0) - e[2] * srcA.x - e[6] * srcA.y;
+    group.matrixWorldNeedsUpdate = true;
+  }
+
+  /* 保持齿条、销轴及驱动总成的尺寸，靠转向与齿条滑动满足共同铰点约束。 */
+  function placeRackPart(group, src, dst, angle) {
+    group.matrix.copy(_m.makeTranslation(dst.x, dst.y, dst.z));
+    group.matrix.multiply(_r.makeRotationZ(angle));
+    group.matrix.multiply(_sc.makeScale(S, S, S));
+    group.matrix.multiply(_t.makeTranslation(-src.x, -src.y, -src.z));
     group.matrixWorldNeedsUpdate = true;
   }
 
@@ -272,10 +294,10 @@
       a.bogie = pointLower({ x: 0.06, y: 2.09, z: 9.5 }, st);
       a.slew = pointUpper({ x: -1.97, y: 27.0, z: 1.38 }, st);
       a.tower = pointUpper({ x: -3.6, y: 37.2, z: -0.15 }, st);
-      a.aframe = pointUpper({ x: 1.48, y: 39.14, z: -0.58 }, st);
+      a.aframe = K.upper.localToWorld(_luffMid.clone());
       a.cab = pointUpper({ x: 6.15, y: 34.15, z: 6.49 }, st);
       a.cw = pointUpper({ x: -6.25, y: 43.11, z: -0.40 }, st);
-      a.rack = pointUpper({ x: 0.17, y: 35.92, z: -0.52 }, st);
+      a.rack = K.upper.localToWorld(new THREE.Vector3(rackDrivePivot.x, rackDrivePivot.y, rackDrivePivot.z));
       return a;
     };
   }
@@ -286,11 +308,15 @@
     var source = model.getObjectByName('RootNode') || model;
     var lower = new THREE.Group(), upper = new THREE.Group();
     var boom = new THREE.Group(), head = new THREE.Group(), tie = new THREE.Group();
+    var aframe = new THREE.Group(), rackDrive = new THREE.Group(), rackSlider = new THREE.Group();
     var grab = new THREE.Group();
     lower.name = 'CAD_门架与行走机构';
     upper.name = 'CAD_回转上部';
     boom.name = 'CAD_主臂'; head.name = 'CAD_象鼻梁'; tie.name = 'CAD_大拉杆';
     grab.name = 'CAD_抓斗';
+    aframe.name = 'CAD_变幅斜撑';
+    rackDrive.name = 'CAD_变幅驱动';
+    rackSlider.name = 'CAD_变幅齿条';
 
     /* 行走机构独立对中：不能使用臂架偏移，否则车轮偏离轨道 */
     lower.position.set(0, 0, 0);
@@ -303,6 +329,14 @@
     K.upper.add(boom); K.upper.add(head); K.upper.add(tie);
     boom.matrixAutoUpdate = false; head.matrixAutoUpdate = false;
     tie.matrixAutoUpdate = false;
+    [aframe, rackDrive, rackSlider].forEach(function (group) {
+      K.upper.add(group);
+      group.matrixAutoUpdate = false;
+    });
+    aframeTop = upperLocal(SRC_AFRAME_TOP);
+    rackDrivePivot = upperLocal(SRC_RACK_DRIVE);
+    /* 共用同一横向销轴平面，避免侧视对齐但前视仍分离。 */
+    rackDrivePivot.z = S * (SRC_LUFF_PIN.z - SRC_A.z);
 
     var grabScale = C.grab.height / (34.209 - 29.818);
     grab.scale.setScalar(grabScale);
@@ -313,15 +347,14 @@
     grab.add(grabShell); grab.add(jawNeg); grab.add(jawPos);
 
     var children = source.children.slice();
-    var aframeNode = null;
     children.forEach(function (node) {
       var name = node.name || '';
       if (name === '对象076' || isRope(name)) return;
       if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
-      else if (name === '组002') { alignRackToBoom(node); boom.add(node); }
-      else if (name === '臂架-人字形') { aframeNode = node; upper.add(node); }
+      else if (name === '组002') splitRack(node, rackDrive, rackSlider);
+      else if (name === '臂架-人字形') aframe.add(node);
       else if (name === 'Line029') jawPos.add(node);
       else if (name === 'Line038') jawNeg.add(node);
       else if (isGrabPart(name)) grabShell.add(node);
@@ -329,27 +362,17 @@
       else upper.add(node);
     });
 
-    if (aframeNode) {
-      var v = nearestVertex(aframeNode, rackEndAligned);
-      if (v) aframeLowerSrc.copy(v);
-    }
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
     mergeGroup(head); mergeGroup(tie); mergeGroup(grabShell);
     mergeGroup(jawNeg); mergeGroup(jawPos);
-    /* 蓝色斜撑补接杆：一端固定在人字架下缘，另一端追随主臂齿条销点 */
-    rackBridge = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.12, 0.12, 1, 8),
-      new THREE.MeshStandardMaterial({ color: 0x185fa5, metalness: 0.25, roughness: 0.5 })
-    );
-    rackBridge.castShadow = true;
-    rackBridge.receiveShadow = true;
-    rackBridge.name = 'CAD_齿条补接杆';
-    K.upper.add(rackBridge);
+    mergeGroup(aframe); mergeGroup(rackDrive); mergeGroup(rackSlider);
+    extendRackTail(rackSlider);
     /* 底座（门架下部 + 四组行走轮组）整体绕竖轴旋转 90° */
     lower.rotation.y = Math.PI / 2;
     jawNeg.matrixAutoUpdate = false; jawPos.matrixAutoUpdate = false;
     groups = { lower: lower, upper: upper, boom: boom, head: head, tie: tie,
-      grab: grab, jawNeg: jawNeg, jawPos: jawPos };
+      grab: grab, jawNeg: jawNeg, jawPos: jawPos,
+      aframe: aframe, rackDrive: rackDrive, rackSlider: rackSlider };
     adjustHotspots(K);
     wrapAnchors(K);
     CM.ready = true;
@@ -365,7 +388,7 @@
     draco.setWorkerLimit(2);
     var loader = new THREE.GLTFLoader();
     loader.setDRACOLoader(draco);
-    loader.load('assets/models/portal-crane.glb?v=' + (window.ASSET_VER || '20261028c'), function (gltf) {
+    loader.load('assets/models/portal-crane.glb?v=' + (window.ASSET_VER || '20261102a'), function (gltf) {
       try {
         setup(K, gltf.scene);
         draco.dispose();
@@ -388,15 +411,15 @@
     retarget(groups.tie, SRC_E, SRC_D,
       { x: up.apex.x, y: up.apex.y, z: 0 }, { x: st.D.x, y: st.D.y, z: 0 }, S);
 
-    if (rackBridge) {
-      var p0 = upperLocal(aframeLowerSrc);
-      var p1 = rackEndAligned.clone().applyMatrix4(groups.boom.matrix);
-      var d = p1.clone().sub(p0);
-      var len = d.length();
-      rackBridge.position.set((p0.x + p1.x) / 2, (p0.y + p1.y) / 2, (p0.z + p1.z) / 2);
-      rackBridge.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
-      rackBridge.scale.set(1, Math.max(len, 0.01), 1);
-    }
+    luffPin.set(SRC_LUFF_PIN.x, SRC_LUFF_PIN.y, SRC_LUFF_PIN.z).applyMatrix4(groups.boom.matrix);
+    retarget(groups.aframe, SRC_AFRAME_TOP, SRC_LUFF_PIN, aframeTop, luffPin, S);
+    rackDrivePivot.z = luffPin.z;
+    var rackAngle = Math.atan2(luffPin.y - rackDrivePivot.y, luffPin.x - rackDrivePivot.x);
+    placeRackPart(groups.rackDrive, SRC_RACK_DRIVE, rackDrivePivot, rackAngle);
+    placeRackPart(groups.rackSlider, SRC_RACK_PIN, luffPin, rackAngle);
+    _luffMid.set((aframeTop.x + luffPin.x) / 2, (aframeTop.y + luffPin.y) / 2, luffPin.z);
+    setHotBox(CM.K, 'aframe', _luffMid, { x: 3.4, y: 4.2, z: 3.0 });
+    setHotBox(CM.K, 'rack', rackDrivePivot, { x: 2.4, y: 2.0, z: 3.0 });
 
     /* 完整颚板绕顶部 X 铰轴开合，闭合 0°、全开 30°；顶部吊点保持不动 */
     var jawAngle = st.grabOpen * 30 * Math.PI / 180;
