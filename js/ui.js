@@ -55,6 +55,8 @@
       oRope: document.getElementById('o-rope'),
       oSpeed: document.getElementById('o-speed'),
       oSway: document.getElementById('o-sway'),
+      oSwayX: document.getElementById('o-sway-x'),
+      oSwayZ: document.getElementById('o-sway-z'),
       oPos: document.getElementById('o-pos'),
       oTravel: document.getElementById('o-travel'),
       oLoad: document.getElementById('o-load'),
@@ -1160,6 +1162,10 @@
     el.oSpeed.textContent =
       Math.abs(st.vRope).toFixed(2) + ' / ' + Math.abs(st.vTip || 0).toFixed(2);
     el.oSway.textContent = U.deg(sway).toFixed(1) + '°';
+    var sx = Math.round(U.deg(st.thx) * 10) / 10;
+    var sz = Math.round(U.deg(st.thz) * 10) / 10;
+    el.oSwayX.textContent = (sx > 0 ? '+' : '') + sx.toFixed(1) + '°';
+    el.oSwayZ.textContent = (sz > 0 ? '+' : '') + sz.toFixed(1) + '°';
     el.oPos.textContent =
       st.grabPos.x.toFixed(1) + ', ' + st.grabPos.y.toFixed(1) + ', ' +
       st.grabPos.z.toFixed(1);

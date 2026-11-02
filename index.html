@@ -7,14 +7,14 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致，crane-model.js 用它加载 GLB */
-  window.ASSET_VER = '20261102c';
+  window.ASSET_VER = '20261102d';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261102c').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261102d').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261102c">
+<link rel="stylesheet" href="css/style.css?v=20261102d">
 </head>
 <body>
 
@@ -153,7 +153,9 @@
         <tr><td>抓斗开度</td><td id="o-grab">100%</td></tr>
         <tr><td>起升绳长</td><td id="o-rope">— m</td></tr>
         <tr><td>起升 / 回转线速</td><td id="o-speed">0.00 / 0.00</td></tr>
-        <tr><td>抓斗摆动</td><td id="o-sway">0.0° / 0.00 m</td></tr>
+        <tr title="场景固定 X 方向，沿大车轨道；正负号表示摆动方向"><td>纵向摆角 θx</td><td id="o-sway-x">0.0°</td></tr>
+        <tr title="场景固定 Z 方向，垂直大车轨道；正负号表示摆动方向"><td>横向摆角 θz</td><td id="o-sway-z">0.0°</td></tr>
+        <tr title="纵向、横向摆角的平方和开方，表示总体摆幅"><td>合摆角</td><td id="o-sway">0.0°</td></tr>
         <tr><td>抓斗坐标</td><td id="o-pos">—</td></tr>
         <tr><td>大车位置</td><td id="o-travel">0.00 m</td></tr>
         <tr><td>卡车装载</td><td id="o-truck">0 / 3 斗</td></tr>
@@ -280,28 +282,28 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261102c"></script>
-<script src="lib/OrbitControls.js?v=20261102c"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261102c"></script>
-<script src="lib/DRACOLoader.js?v=20261102c"></script>
-<script src="lib/GLTFLoader.js?v=20261102c"></script>
-<script src="js/config.js?v=20261102c"></script>
-<script src="js/util.js?v=20261102c"></script>
-<script src="js/scene.js?v=20261102c"></script>
-<script src="js/environment-hd.js?v=20261102c"></script>
-<script src="js/environment-port.js?v=20261102c"></script>
-<script src="js/crane.js?v=20261102c"></script>
-<script src="js/crane-model.js?v=20261102c"></script>
-<script src="js/kinematics.js?v=20261102c"></script>
-<script src="js/script.js?v=20261102c"></script>
-<script src="js/ai.js?v=20261102c"></script>
-<script src="js/python.js?v=20261102c"></script>
-<script src="js/stats.js?v=20261102c"></script>
-<script src="js/report-docx.js?v=20261102c"></script>
-<script src="js/train.js?v=20261102c"></script>
-<script src="js/comprehensive.js?v=20261102c"></script>
-<script src="js/ui.js?v=20261102c"></script>
-<script src="js/dock.js?v=20261102c"></script>
-<script src="js/main.js?v=20261102c"></script>
+<script src="lib/three.min.js?v=20261102d"></script>
+<script src="lib/OrbitControls.js?v=20261102d"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261102d"></script>
+<script src="lib/DRACOLoader.js?v=20261102d"></script>
+<script src="lib/GLTFLoader.js?v=20261102d"></script>
+<script src="js/config.js?v=20261102d"></script>
+<script src="js/util.js?v=20261102d"></script>
+<script src="js/scene.js?v=20261102d"></script>
+<script src="js/environment-hd.js?v=20261102d"></script>
+<script src="js/environment-port.js?v=20261102d"></script>
+<script src="js/crane.js?v=20261102d"></script>
+<script src="js/crane-model.js?v=20261102d"></script>
+<script src="js/kinematics.js?v=20261102d"></script>
+<script src="js/script.js?v=20261102d"></script>
+<script src="js/ai.js?v=20261102d"></script>
+<script src="js/python.js?v=20261102d"></script>
+<script src="js/stats.js?v=20261102d"></script>
+<script src="js/report-docx.js?v=20261102d"></script>
+<script src="js/train.js?v=20261102d"></script>
+<script src="js/comprehensive.js?v=20261102d"></script>
+<script src="js/ui.js?v=20261102d"></script>
+<script src="js/dock.js?v=20261102d"></script>
+<script src="js/main.js?v=20261102d"></script>
 </body>
 </html>
