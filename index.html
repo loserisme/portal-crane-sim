@@ -7,14 +7,14 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致，crane-model.js 用它加载 GLB */
-  window.ASSET_VER = '20261102d';
+  window.ASSET_VER = '20261102e';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261102d').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261102e').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261102d">
+<link rel="stylesheet" href="css/style.css?v=20261102e">
 </head>
 <body>
 
@@ -38,14 +38,19 @@
     <button id="comp-open" class="trainbtn">综合实验</button>
     <button id="train-open" class="trainbtn">实训</button>
     <button id="sway-open" class="labbtn" onclick="location.href='sway-lab.html'">摆动对比</button>
-    <button data-view="iso" class="on">轴测</button>
-    <button data-view="side">侧视</button>
-    <button data-view="front">端视</button>
-    <button data-view="top">俯视</button>
-    <button data-view="yard">港区全景</button>
-    <button data-view="cab">抓斗特写</button>
+    <select id="view-select" aria-label="选择视角">
+      <option value="iso">视角 · 轴测</option>
+      <option value="side">视角 · 侧视</option>
+      <option value="front">视角 · 端视</option>
+      <option value="top">视角 · 俯视</option>
+      <option value="yard">视角 · 港区全景</option>
+      <option value="cab">视角 · 抓斗特写</option>
+      <option value="roam">视角 · 自由漫游</option>
+      <option value="free" hidden>视角 · 自由观察</option>
+    </select>
   </nav>
 </header>
+<div id="roam-help" class="hidden" role="status">点击场景后：拖动观察 · WASD 移动 · Q / E 降低 / 升高 · Shift 加速 · Esc 退出</div>
 
 <aside id="panel-left" class="panel">
   <section>
@@ -127,14 +132,10 @@
       </div>
     </div>
 
-    <div class="stateline">
-      <span>斗内 / 舱内</span>
-      <span class="barval"><b id="o-load">0%</b> / <b id="o-hold">100%</b></span>
-    </div>
   </section>
 
   <section class="hintbox">
-    <p><b>操作</b>：左键拖动旋转 · 滚轮缩放 · 右键平移</p>
+    <p id="camera-help"><b>操作</b>：左键拖动旋转 · 滚轮缩放 · 右键平移</p>
   </section>
 </aside>
 
@@ -158,6 +159,7 @@
         <tr title="纵向、横向摆角的平方和开方，表示总体摆幅"><td>合摆角</td><td id="o-sway">0.0°</td></tr>
         <tr><td>抓斗坐标</td><td id="o-pos">—</td></tr>
         <tr><td>大车位置</td><td id="o-travel">0.00 m</td></tr>
+        <tr><td>斗内 / 舱内</td><td><b id="o-load">0%</b> / <b id="o-hold">100%</b></td></tr>
         <tr><td>卡车装载</td><td id="o-truck">0 / 3 斗</td></tr>
       </tbody>
     </table>
@@ -282,28 +284,28 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261102d"></script>
-<script src="lib/OrbitControls.js?v=20261102d"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261102d"></script>
-<script src="lib/DRACOLoader.js?v=20261102d"></script>
-<script src="lib/GLTFLoader.js?v=20261102d"></script>
-<script src="js/config.js?v=20261102d"></script>
-<script src="js/util.js?v=20261102d"></script>
-<script src="js/scene.js?v=20261102d"></script>
-<script src="js/environment-hd.js?v=20261102d"></script>
-<script src="js/environment-port.js?v=20261102d"></script>
-<script src="js/crane.js?v=20261102d"></script>
-<script src="js/crane-model.js?v=20261102d"></script>
-<script src="js/kinematics.js?v=20261102d"></script>
-<script src="js/script.js?v=20261102d"></script>
-<script src="js/ai.js?v=20261102d"></script>
-<script src="js/python.js?v=20261102d"></script>
-<script src="js/stats.js?v=20261102d"></script>
-<script src="js/report-docx.js?v=20261102d"></script>
-<script src="js/train.js?v=20261102d"></script>
-<script src="js/comprehensive.js?v=20261102d"></script>
-<script src="js/ui.js?v=20261102d"></script>
-<script src="js/dock.js?v=20261102d"></script>
-<script src="js/main.js?v=20261102d"></script>
+<script src="lib/three.min.js?v=20261102e"></script>
+<script src="lib/OrbitControls.js?v=20261102e"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261102e"></script>
+<script src="lib/DRACOLoader.js?v=20261102e"></script>
+<script src="lib/GLTFLoader.js?v=20261102e"></script>
+<script src="js/config.js?v=20261102e"></script>
+<script src="js/util.js?v=20261102e"></script>
+<script src="js/scene.js?v=20261102e"></script>
+<script src="js/environment-hd.js?v=20261102e"></script>
+<script src="js/environment-port.js?v=20261102e"></script>
+<script src="js/crane.js?v=20261102e"></script>
+<script src="js/crane-model.js?v=20261102e"></script>
+<script src="js/kinematics.js?v=20261102e"></script>
+<script src="js/script.js?v=20261102e"></script>
+<script src="js/ai.js?v=20261102e"></script>
+<script src="js/python.js?v=20261102e"></script>
+<script src="js/stats.js?v=20261102e"></script>
+<script src="js/report-docx.js?v=20261102e"></script>
+<script src="js/train.js?v=20261102e"></script>
+<script src="js/comprehensive.js?v=20261102e"></script>
+<script src="js/ui.js?v=20261102e"></script>
+<script src="js/dock.js?v=20261102e"></script>
+<script src="js/main.js?v=20261102e"></script>
 </body>
 </html>

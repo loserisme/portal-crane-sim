@@ -20,6 +20,8 @@
     top:   { pos: [6, 168, -46], tgt: [6, 0, -46] },
     yard:  { pos: [390, 330, 305], tgt: [0, 0, -170] },
     cab:   { follow: true },
+    roam:  { roam: true },
+    free:  { orbit: true },
   };
 
   S.init = function (container) {
@@ -56,6 +58,7 @@
     ctl.maxPolarAngle = Math.PI * 0.495;
     ctl.update();
     S.controls = ctl;
+    S.initRoam(renderer.domElement);
 
     this._lights();
     this._environment();
@@ -915,11 +918,98 @@
 
   /* ---------------- 视角 ---------------- */
   S.applyView = function (name) {
-    S._view = name;
     var v = S.views[name];
-    if (!v || v.follow) { S.controls.enabled = false; return; }
-    S.controls.enabled = true;
-    S.flyTo(v.pos, v.tgt);
+    if (!v) return;
+    var previous = S._view;
+    if (previous === 'roam' && !v.roam) {
+      S.camera.getWorldDirection(roamForward);
+      S.controls.target.copy(S.camera.position).addScaledVector(roamForward, 30);
+    }
+    S._view = name;
+    S._fly = null;
+    S.clearRoamInput();
+    S.controls.enabled = !v.follow && !v.roam;
+    S.renderer.domElement.classList.toggle('roaming', !!v.roam);
+    if (v.roam) {
+      if (previous !== 'roam') {
+        roam.returnView = previous;
+        S.camera.position.set(36, 6, -26);
+        S.camera.lookAt(0, 15, 0);
+      }
+      var rotation = new THREE.Euler().setFromQuaternion(S.camera.quaternion, 'YXZ');
+      roam.yaw = rotation.y; roam.pitch = rotation.x;
+    } else if (!v.follow && !v.orbit) {
+      S.flyTo(v.pos, v.tgt);
+    }
+    if (S.onViewChange) S.onViewChange(name);
+  };
+
+  /* 自由飞行漫游：键盘只在画布聚焦时接管，输入框及面板仍可正常操作。 */
+  var roam = { keys: {}, pointer: null, x: 0, y: 0, yaw: 0, pitch: 0, returnView: 'iso' };
+  var roamForward = new V3(), roamRight = new V3(), roamMove = new V3();
+  var roamKeys = /^(Key[WASDQE]|ShiftLeft|ShiftRight)$/;
+
+  S.clearRoamInput = function () {
+    roam.keys = {};
+    var canvas = S.renderer.domElement;
+    if (roam.pointer !== null && canvas.hasPointerCapture(roam.pointer)) canvas.releasePointerCapture(roam.pointer);
+    roam.pointer = null;
+  };
+
+  S.initRoam = function (canvas) {
+    canvas.tabIndex = 0;
+    canvas.setAttribute('aria-label', '三维港区场景');
+    canvas.addEventListener('pointerdown', function (e) {
+      if (S._view !== 'roam' || e.button !== 0 || roam.pointer !== null) return;
+      canvas.focus({ preventScroll: true });
+      roam.pointer = e.pointerId; roam.x = e.clientX; roam.y = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      if (S._view !== 'roam' || e.pointerId !== roam.pointer) return;
+      roam.yaw -= (e.clientX - roam.x) * 0.003;
+      roam.pitch = U.clamp(roam.pitch - (e.clientY - roam.y) * 0.003, -Math.PI * 0.48, Math.PI * 0.48);
+      roam.x = e.clientX; roam.y = e.clientY;
+      S.camera.rotation.set(roam.pitch, roam.yaw, 0, 'YXZ');
+    });
+    function endDrag(e) {
+      if (e.pointerId !== roam.pointer) return;
+      if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      roam.pointer = null;
+    }
+    canvas.addEventListener('pointerup', endDrag);
+    canvas.addEventListener('pointercancel', endDrag);
+    canvas.addEventListener('lostpointercapture', endDrag);
+    canvas.addEventListener('keydown', function (e) {
+      if (S._view !== 'roam') return;
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        // 自由观察没有固定预设，从漫游退出时回到轴测，避免沿用旧环绕中心。
+        S.applyView(roam.returnView === 'free' ? 'iso' : roam.returnView);
+      } else if (roamKeys.test(e.code) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        e.preventDefault(); roam.keys[e.code] = true;
+      }
+    });
+    w.addEventListener('keyup', function (e) { delete roam.keys[e.code]; });
+    canvas.addEventListener('blur', S.clearRoamInput);
+    w.addEventListener('blur', S.clearRoamInput);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) S.clearRoamInput(); });
+  };
+
+  S.updateRoam = function (dt) {
+    if (S._view !== 'roam') return;
+    var keys = roam.keys;
+    roamForward.set(-Math.sin(roam.yaw), 0, -Math.cos(roam.yaw));
+    roamRight.set(Math.cos(roam.yaw), 0, -Math.sin(roam.yaw));
+    roamMove.copy(roamForward).multiplyScalar((keys.KeyW ? 1 : 0) - (keys.KeyS ? 1 : 0));
+    roamMove.addScaledVector(roamRight, (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0));
+    roamMove.y = (keys.KeyE ? 1 : 0) - (keys.KeyQ ? 1 : 0);
+    if (roamMove.lengthSq() > 0) {
+      var speed = keys.ShiftLeft || keys.ShiftRight ? 36 : 12;
+      S.camera.position.addScaledVector(roamMove.normalize(), speed * Math.min(dt, 0.05));
+      S.camera.position.y = U.clamp(S.camera.position.y, 1.8, 400);
+    }
   };
 
   S.flyTo = function (pos, tgt) {

@@ -208,6 +208,7 @@
     updateTruck();
 
     SCENE.updateFly(dt);
+    SCENE.updateRoam(dt);
     if (SCENE._view === 'cab') updateHookCam();
     else if (SCENE.controls.enabled) SCENE.controls.update();
 
@@ -250,6 +251,12 @@
     }
 
     stage.addEventListener('mousemove', function (e) {
+      if (SCENE._view === 'roam') {
+        tipEl.classList.add('hidden');
+        if (w.UI) w.UI.focusTag(null);
+        stage.style.cursor = ''; hovering = false;
+        return;
+      }
       var now = performance.now();
       if (now - lastRay < 55) return;      // 节流，避免每帧都做射线检测
       lastRay = now;
@@ -297,11 +304,10 @@
 
     stage.addEventListener('pointerdown', function () {
       if (SCENE._view === 'cab') {
-        SCENE._view = 'free';
         var dir = new THREE.Vector3();
         SCENE.camera.getWorldDirection(dir);
         SCENE.controls.target.copy(SCENE.camera.position).addScaledVector(dir, 30);
-        SCENE.controls.enabled = true;
+        SCENE.applyView('free');
         SCENE.controls.update();
       }
     });

@@ -890,14 +890,20 @@
   }
 
   function bindViews() {
-    var nav = document.getElementById('views');
-    nav.addEventListener('click', function (e) {
-      var b = e.target.closest('button');
-      if (!b) return;
-      [].forEach.call(nav.children, function (c) { c.classList.remove('on'); });
-      b.classList.add('on');
-      SCENE.applyView(b.dataset.view);
+    var select = document.getElementById('view-select');
+    var help = document.getElementById('roam-help');
+    SCENE.onViewChange = function (name) {
+      select.value = name;
+      help.classList.toggle('hidden', name !== 'roam');
+      document.getElementById('camera-help').textContent = name === 'roam'
+        ? '漫游：拖动观察 · WASD 移动 · Q/E 升降 · Shift 加速 · Esc 退出'
+        : '操作：左键拖动旋转 · 滚轮缩放 · 右键平移';
+    };
+    select.addEventListener('change', function () {
+      SCENE.applyView(select.value);
+      if (select.value === 'roam') SCENE.renderer.domElement.focus({ preventScroll: true });
     });
+    SCENE.onViewChange(SCENE._view);
   }
 
   /* ---------------- 三维标注 ---------------- */
