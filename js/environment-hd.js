@@ -98,7 +98,7 @@
         g.fillStyle = 'rgba(52,65,74,' + (0.03 + Math.random() * 0.08) + ')';
         g.beginPath(); g.ellipse(Math.random() * s, Math.random() * s, 8 + Math.random() * 55, 3 + Math.random() * 14, Math.random() * 3, 0, 6.3); g.fill();
       }
-    }, 38, 18, true);
+    }, 64, 42, true);
     conTex.encoding = THREE.sRGBEncoding;
 
     var waterA = tex(1024, function (g, s) {
@@ -118,7 +118,7 @@
         g.fillStyle = 'rgba(20,55,72,' + (0.04 + Math.random() * 0.1) + ')';
         g.beginPath(); g.ellipse(Math.random() * s, Math.random() * s, 10 + Math.random() * 40, 2 + Math.random() * 6, 0, 0, 6.3); g.fill();
       }
-    }, 22, 8, true);
+    }, 140, 75, true);
     var waterB = waterA.clone();
     waterB.needsUpdate = true;
 
@@ -129,7 +129,7 @@
     M.asphalt = new THREE.MeshStandardMaterial({ color: 0x3b4650, metalness: 0.06, roughness: 0.9 });
     M.steel = U.paint(0x78909f, { metalness: 0.72, roughness: 0.38 });
     M.darkSteel = U.paint(0x394755, { metalness: 0.58, roughness: 0.5 });
-    M.blue = U.paint(0x185b91, { metalness: 0.45, roughness: 0.46 });
+    M.blue = U.paint(0x214b78, { metalness: 0.45, roughness: 0.46 });
     M.yellow = U.paint(0xe4af2e, { metalness: 0.32, roughness: 0.52 });
     M.yellowDark = U.paint(0xb67c13, { metalness: 0.3, roughness: 0.58 });
     M.white = U.paint(0xe7ecef, { metalness: 0.2, roughness: 0.62 });
@@ -141,8 +141,8 @@
     });
     M.rust = U.paint(0x8b5a3b, { metalness: 0.18, roughness: 0.92 });
     M.water = new THREE.MeshStandardMaterial({
-      color: 0x6d98aa, map: waterA, bumpMap: waterB, bumpScale: 0.26,
-      metalness: 0.52, roughness: 0.22,
+      color: 0x6d98aa, map: waterA, bumpMap: waterB, bumpScale: 0.085,
+      metalness: 0.38, roughness: 0.34,
     });
     M.hullDark = U.paint(0x263745, { metalness: 0.52, roughness: 0.5 });
     M.hatch = U.paint(0x566570, { metalness: 0.38, roughness: 0.68 });
@@ -170,13 +170,13 @@
         mid: { value: new THREE.Color(0xc8dce9) },
         low: { value: new THREE.Color(0xe8edf0) },
       },
-      vertexShader: 'varying vec3 vP; void main(){vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
+      vertexShader: 'varying vec3 vP; void main(){vP=position; vec4 p=projectionMatrix*mat4(mat3(viewMatrix))*vec4(position,1.0); gl_Position=p.xyww;}',
       fragmentShader: [
         'uniform vec3 top; uniform vec3 mid; uniform vec3 low; varying vec3 vP;',
         'void main(){ float h=normalize(vP).y; vec3 c=mix(low,mid,smoothstep(-0.03,0.20,h)); c=mix(c,top,smoothstep(0.18,0.78,h)); gl_FragColor=vec4(c,1.0); }',
       ].join('\n'),
     });
-    var dome = new THREE.Mesh(new THREE.SphereGeometry(470, 36, 20), sh);
+    var dome = new THREE.Mesh(new THREE.SphereGeometry(1400, 36, 20), sh);
     dome.frustumCulled = false;
     dome.renderOrder = -2;
     scene.add(dome);
@@ -211,7 +211,7 @@
     var cloudPos = [[-210, 80, 180], [50, 92, 210], [180, 76, 120], [-90, 70, 120], [150, 88, -60], [-180, 96, -100]];
     cloudPos.forEach(function (p, i) {
       var sp = new THREE.Sprite(cloudMat.clone());
-      sp.position.set(p[0], p[1], p[2]);
+      sp.position.set(p[0] * 3, p[1] + 300, p[2] * 3);
       sp.scale.set(80 + i * 9, 26 + i * 3, 1);
       sp.material.opacity = 0.33 + (i % 3) * 0.09;
       scene.add(sp);
@@ -229,9 +229,9 @@
     if (S.water) {
       S.water.material.dispose();
       S.water.material = M.water;
-      S.water.position.z = 162;
+      S.water.position.z = 1516;
       S.water.geometry.dispose();
-      S.water.geometry = new THREE.PlaneGeometry(950, 320, 1, 1);
+      S.water.geometry = new THREE.PlaneGeometry(6000, 3000, 1, 1);
       S.water.receiveShadow = true;
     }
     var b = bucket();
@@ -365,7 +365,7 @@
     b.flush(scene);
 
     if (S.land && S.land.material) {
-      S.land.material.polygonOffset = true;
+      S.land.material.polygonOffset = false;
       S.land.material.polygonOffsetFactor = 1;
     }
   }
@@ -489,8 +489,8 @@
     b.add(M.white, U.box(3.2, 0.35, B + 2.0, sx, dy + 8.35, Z));
     b.add(M.glass, U.box(2.9, 1.25, B + 1.8, sx, dy + 9.05, Z));
     for (var lf = -1; lf <= 1; lf += 2) {
-      b.add(M.orange, U.box(3.0, 1.05, 1.15, sx - 1.1, dy + 2.25, Z + lf * (span + 1.0)));
-      b.add(M.white, U.box(3.4, 0.15, 1.5, sx - 1.1, dy + 3.2, Z + lf * (span + 1.0)));
+
+
       b.add(M.steel, U.tube({ x: sx + 1.0, y: dy + 6.8, z: Z + lf * (span + 1.2) },
         { x: sx + 2.0, y: dy + 4.0, z: Z + lf * (span + 1.2) }, 0.08, 6));
     }
@@ -580,10 +580,6 @@
       }
       b.add(M.yellow, U.box(bl, 0.055, 0.055, bedX, by + 1.48, Z + s2 * (bw / 2 + 0.1)));
     }
-    for (var rt = -3; rt <= 3; rt++) {
-      b.add(M.yellow, U.box(0.28, 0.08, bw + 0.15, bedX + rt * bl / 7, by + 1.53, Z));
-    }
-
     /* 液压举升缸、油管、后尾灯、挡泥板、牌照 */
     b.add(M.steel, U.tube({ x: X + 2.7, y: 0.85, z: Z - 0.78 },
       { x: X + 2.15, y: 2.0, z: Z - 0.78 }, 0.11, 9));
@@ -625,7 +621,7 @@
       b.add(M.yellow, U.box(5.5, 0.16, 0.26, -59 + dx * 12, 5.35, wz + 8.12));
     }
     b.add(M.concrete, U.box(44, 0.9, 2.4, wx, 0.45, wz + 9.3));
-    for (var db = -2; db <= 1; db++) {
+    for (var db = 0; db < 4; db++) {
       b.add(M.rubber, U.box(0.5, 0.65, 0.35, -59 + db * 12 + 2.5, 0.5, wz + 10.5));
       b.add(M.darkSteel, U.box(5.4, 0.22, 0.65, -59 + db * 12, 0.95, wz + 9.8));
     }
@@ -720,106 +716,6 @@
   function misc(scene) {
     var b = bucket();
 
-    function wheels(cx, cz, ry, list, mat) {
-      list.forEach(function (w) {
-        var x = cx + w[0] * Math.cos(ry) - w[1] * Math.sin(ry);
-        var z = cz + w[0] * Math.sin(ry) + w[1] * Math.cos(ry);
-        b.add(mat, cyl(w[2] || 0.62, w[2] || 0.62, 0.45, 14, x, w[2] || 0.62, z, Math.PI / 2, 0));
-        b.add(M.steel, cyl((w[2] || 0.62) * 0.45, (w[2] || 0.62) * 0.45, 0.48, 10, x, w[2] || 0.62, z, Math.PI / 2, 0));
-      });
-    }
-
-    /* 轮式装载机（散货堆场） */
-    (function loader() {
-      var x = -20, z = -35, ry = -0.42;
-      b.add(M.yellow, U.box(3.4, 1.15, 2.15, x, 1.1, z));
-      b.add(M.yellow, U.box(1.65, 2.0, 2.0, x - 0.6, 2.0, z));
-      b.add(M.glass, U.box(1.5, 0.95, 1.72, x - 0.58, 2.55, z));
-      b.add(M.darkSteel, U.box(1.9, 0.25, 2.2, x - 0.55, 3.15, z));
-      b.add(M.yellow, U.box(0.55, 0.48, 0.55, x + 0.5, 1.55, z + 1.0));
-      b.add(M.yellow, U.box(0.55, 0.48, 0.55, x + 0.5, 1.55, z - 1.0));
-      b.add(M.steel, U.tube({ x: x - 1.4, y: 0.95, z }, { x: x - 3.0, y: 1.1, z }, 0.18, 7));
-      b.add(M.darkSteel, U.box(0.9, 1.45, 2.5, x - 3.15, 1.15, z));
-      b.add(M.steel, U.box(0.16, 0.1, 2.5, x - 3.62, 0.48, z));
-      for (var i = 0; i < 5; i++) {
-        b.add(M.darkSteel, U.box(0.55, 0.1, 2.4, x - 3.2, 0.5 + i * 0.28, z));
-      }
-      wheels(x, z, 0, [[-1.1, 1.02, 0.72], [1.2, 1.02, 0.72], [-1.1, -1.02, 0.72], [1.2, -1.02, 0.72]], M.rubber);
-      b.add(M.emissiveWhite, U.box(0.16, 0.22, 0.5, x + 1.7, 2.45, z));
-    })();
-
-    /* 正面吊（集装箱堆场） */
-    (function reachStacker() {
-      var x = 27, z = -28, ry = 0.18;
-      b.add(M.blue, U.box(5.2, 1.5, 3.0, x, 1.5, z));
-      b.add(M.blue, U.box(2.6, 1.8, 2.8, x - 2.0, 2.6, z));
-      b.add(M.glass, U.box(2.4, 0.9, 2.5, x - 2.0, 3.1, z));
-      b.add(M.yellow, U.box(4.2, 0.55, 0.68, x + 2.8, 3.3, z));
-      b.add(M.yellow, U.box(4.2, 0.55, 0.68, x + 4.0, 4.35, z));
-      b.add(M.darkSteel, U.box(0.8, 1.15, 4.2, x + 6.0, 3.1, z));
-      b.add(M.orange, U.box(0.35, 0.55, 4.2, x + 6.4, 3.1, z));
-      wheels(x, z, 0, [[-2.0, 1.2, 0.82], [1.4, 1.2, 0.82], [-2.0, -1.2, 0.82], [1.4, -1.2, 0.82]], M.rubber);
-      b.add(M.emissiveWhite, U.box(0.18, 0.18, 0.18, x - 1.3, 3.85, z));
-      b.add(M.orange, cyl(0.2, 0.2, 0.5, 8, x - 1.3, 4.1, z));
-    })();
-
-    /* 员工车辆：轿车与皮卡 */
-    function car(x, z, col, ry) {
-      var arr = [];
-      var body = U.paint(col, { metalness: 0.46, roughness: 0.34 });
-      b.add(body, U.box(4.1, 0.68, 1.8, x, 0.65, z));
-      b.add(body, U.box(2.3, 0.64, 1.62, x + 0.15, 1.2, z));
-      b.add(M.glass, U.box(2.0, 0.48, 1.52, x + 0.16, 1.32, z));
-      b.add(M.darkSteel, U.box(0.95, 0.28, 1.74, x + 2.02, 0.48, z));
-      b.add(M.darkSteel, U.box(0.95, 0.28, 1.74, x - 2.02, 0.48, z));
-      b.add(M.emissiveWhite, U.box(0.08, 0.18, 0.34, x + 2.08, 0.66, z + 0.58));
-      b.add(M.emissiveWhite, U.box(0.08, 0.18, 0.34, x + 2.08, 0.66, z - 0.58));
-      b.add(M.emissiveRed, U.box(0.07, 0.15, 0.3, x - 2.08, 0.62, z + 0.58));
-      b.add(M.emissiveRed, U.box(0.07, 0.15, 0.3, x - 2.08, 0.62, z - 0.58));
-      [[1.25, 0.78], [-1.25, 0.78], [1.25, -0.78], [-1.25, -0.78]].forEach(function (w) {
-        b.add(M.rubber, cyl(0.31, 0.31, 0.24, 12, x + w[0], 0.32, z + w[1], Math.PI / 2));
-      });
-    }
-    car(11, -63, 0xd9dde1, 0);
-    car(15.5, -63, 0x25313d, 0);
-    car(20, -63, 0x8c2d2a, 0);
-    car(24.5, -63, 0x375a7e, 0);
-
-    /* 第二辆待装自卸车 */
-    (function dumpTruck() {
-      var x = -11, z = -25;
-      b.add(M.blue, U.box(7.8, 1.05, 2.45, x, 1.15, z));
-      b.add(M.blue, U.box(2.3, 2.15, 2.3, x + 3.4, 2.15, z));
-      b.add(M.glass, U.box(0.08, 0.85, 2.0, x + 4.53, 2.55, z));
-      b.add(M.darkSteel, U.box(0.28, 0.5, 2.45, x + 4.7, 1.1, z));
-      for (var d = 0; d < 4; d++) {
-        b.add(M.blue, U.box(0.12, 1.25, 0.1, x - 2.8 + d * 1.5, 1.95, z + 1.28));
-      }
-      [[-2.8, 1.1], [-1.4, 1.1], [2.3, 1.1], [3.6, 1.1], [-2.8, -1.1], [-1.4, -1.1], [2.3, -1.1], [3.6, -1.1]].forEach(function (w) {
-        b.add(M.rubber, cyl(0.62, 0.62, 0.44, 14, x + w[0], 0.62, z + w[1], Math.PI / 2));
-      });
-      b.add(M.emissiveWhite, U.box(0.1, 0.25, 0.5, x + 4.58, 1.7, z + 0.72));
-      b.add(M.emissiveWhite, U.box(0.1, 0.25, 0.5, x + 4.58, 1.7, z - 0.72));
-    })();
-
-    /* 港内拖轮 */
-    (function tugboat() {
-      var x = 72, z = 62, y = -1.25;
-      b.add(M.hullDark, U.box(15, 2.0, 5.4, x, y + 0.6, z));
-      b.add(M.red, U.box(14.6, 0.55, 5.6, x, y - 0.25, z));
-      b.add(M.white, U.box(5.4, 2.3, 4.4, x - 1.0, y + 2.5, z));
-      b.add(M.glass, U.box(4.9, 0.8, 4.0, x - 1.0, y + 3.0, z));
-      b.add(M.yellow, cyl(0.34, 0.46, 2.8, 10, x - 1.4, y + 4.7, z));
-      b.add(M.darkSteel, U.box(0.4, 0.18, 3.0, x - 1.4, y + 5.8, z));
-      b.add(M.emissiveWhite, U.box(0.18, 0.18, 0.18, x - 1.4, y + 6.0, z));
-      for (var ty = -1; ty <= 1; ty += 2) {
-        for (var tx = -5; tx <= 5; tx += 2.5) {
-          b.add(M.rubber, cyl(0.45, 0.45, 0.28, 12, x + tx, y + 0.1, z + ty * 2.85, Math.PI / 2));
-        }
-      }
-      b.add(M.steel, U.tube({ x: x - 7, y: y + 0.5, z }, { x: x - 12, y: y - 0.4, z }, 0.08, 5));
-    })();
-
     /* 地面积水、油污、轮胎印与限速标识 */
     [[-24, 8, 4.8, 2.2], [12, -7, 3.4, 1.6], [54, 5, 5.8, 2.4], [-62, -4, 4.2, 1.7], [34, -33, 6.5, 2.0]].forEach(function (p) {
       var g = new THREE.CircleGeometry(1, 30).scale(p[2], p[3], 1).rotateX(-Math.PI / 2).translate(p[0], 0.035, p[1]);
@@ -844,44 +740,6 @@
   /* ---------------- 远景：岸桥、防波堤、灯塔 ---------------- */
   function background(scene) {
     var b = bucket();
-    for (var i = 0; i < 3; i++) {
-      var bx = -120 + i * 78, bz = -146;
-      var h = 25;
-      /* 四条支腿、下横梁与门框 */
-      for (var lx = -1; lx <= 1; lx += 2) {
-        for (var lz = -1; lz <= 1; lz += 2) {
-          b.add(M.blue, U.box(1.5, h, 1.5, bx + lx * 7.5, h / 2, bz + lz * 6.5));
-          b.add(M.darkSteel, U.box(2.2, 0.5, 2.2, bx + lx * 7.5, 0.3, bz + lz * 6.5));
-        }
-        b.add(M.blue, U.box(1.4, 1.2, 15, bx + lx * 7.5, h - 1.5, bz));
-      }
-      /* 顶部主梁、前伸臂与后拉杆 */
-      b.add(M.blue, U.box(2.6, 2.0, 34, bx, h + 0.5, bz + 2));
-      b.add(M.darkSteel, U.box(1.0, 0.12, 34, bx, h + 1.55, bz + 2));
-      for (var seg = 0; seg < 8; seg++) {
-        var z0 = bz - 13 + seg * 4.2;
-        b.add(M.blue, U.box(0.35, 2.4, 0.35, bx - 1.4, h - 0.8, z0));
-        b.add(M.blue, U.tube({ x: bx - 1.4, y: h - 2.0, z: z0 }, { x: bx + 1.4, y: h + 1.4, z: z0 + 4.2 }, 0.12, 5));
-        b.add(M.blue, U.tube({ x: bx + 1.4, y: h - 2.0, z: z0 }, { x: bx - 1.4, y: h + 1.4, z: z0 + 4.2 }, 0.12, 5));
-      }
-      /* A 字架、拉索与机器房 */
-      b.add(M.blue, U.tube({ x: bx - 5, y: h + 1, z: bz - 10 }, { x: bx, y: h + 10, z: bz - 2 }, 0.28, 7));
-      b.add(M.blue, U.tube({ x: bx + 5, y: h + 1, z: bz - 10 }, { x: bx, y: h + 10, z: bz - 2 }, 0.28, 7));
-      b.add(M.blue, U.tube({ x: bx, y: h + 10, z: bz - 2 }, { x: bx, y: h + 1.7, z: bz + 18 }, 0.12, 5));
-      b.add(M.white, U.box(5.4, 4.0, 4.2, bx, h + 3.2, bz - 9));
-      b.add(M.glass, U.box(4.6, 1.1, 3.8, bx, h + 4.1, bz - 6.85));
-      /* 小车、司机室与吊具 */
-      b.add(M.yellow, U.box(2.2, 1.4, 2.8, bx, h + 1.8, bz + 13));
-      b.add(M.white, U.box(1.8, 1.9, 1.8, bx + 2.1, h + 0.8, bz + 13));
-      b.add(M.glass, U.box(1.5, 0.7, 1.6, bx + 2.1, h + 1.15, bz + 13));
-      b.add(M.darkSteel, U.tube({ x: bx, y: h + 1.2, z: bz + 13 },
-        { x: bx, y: 8.0, z: bz + 13 }, 0.07, 5));
-      b.add(M.yellow, U.box(6.2, 0.7, 2.0, bx, 8.0, bz + 13));
-      for (var cl = -1; cl <= 1; cl += 2) {
-        b.add(M.darkSteel, U.tube({ x: bx + cl * 2.6, y: 7.2, z: bz + 13 },
-          { x: bx + cl * 2.6, y: 5.3, z: bz + 13 }, 0.035, 4));
-      }
-    }
     /* 防波堤石块 */
     var rockGeo = new THREE.DodecahedronGeometry(1.8, 0);
     for (var rx = -210; rx <= 210; rx += 6.3) {
@@ -917,10 +775,19 @@
     buildings(scene);
     misc(scene);
     background(scene);
+    if (w.PORT_ENV) w.PORT_ENV.build(scene, { materials: M, bucket: bucket, cyl: cyl, textTex: textTex });
     var old = scene.getObjectByName('lowBollards');
     if (old) old.visible = false;
+    /* 环境工程漆的十六进制颜色为 sRGB；与 GLTF 门机一致地转为线性空间。 */
+    var converted = new Set();
+    scene.traverse(function (o) {
+      if (!o.isMesh) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(function (m) {
+        if (m && m.isMeshStandardMaterial && !converted.has(m)) { m.color.convertSRGBToLinear(); converted.add(m); }
+      });
+    });
     S.scene.background = new THREE.Color(0xc7dce9);
-    S.scene.fog = new THREE.Fog(0xd3e2eb, 250, 620);
+    S.scene.fog = new THREE.Fog(0xd3e2eb, 600, 1600);
   };
 
   S._hdTick = function (t) {

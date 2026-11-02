@@ -18,6 +18,7 @@
     side:  { pos: [124, 36, 10], tgt: [2, 20, 2] },
     front: { pos: [6, 38, 118], tgt: [6, 18, 6] },
     top:   { pos: [6, 168, -46], tgt: [6, 0, -46] },
+    yard:  { pos: [390, 330, 305], tgt: [0, 0, -170] },
     cab:   { follow: true },
   };
 
@@ -42,7 +43,7 @@
     scene.fog = new THREE.Fog(0xccd9e6, 210, 540);
     S.scene = scene;
 
-    var cam = new THREE.PerspectiveCamera(40, width / height, 0.4, 700);
+    var cam = new THREE.PerspectiveCamera(40, width / height, 0.4, 1600);
     cam.position.set(88, 66, 118);
     S.camera = cam;
 
@@ -51,7 +52,7 @@
     ctl.enableDamping = true;
     ctl.dampingFactor = 0.075;
     ctl.minDistance = 6;
-    ctl.maxDistance = 320;
+    ctl.maxDistance = 850;
     ctl.maxPolarAngle = Math.PI * 0.495;
     ctl.update();
     S.controls = ctl;
@@ -102,7 +103,7 @@
     sun.shadow.camera.near = 10;
     sun.shadow.camera.far = 300;
     sun.shadow.bias = -0.0007;
-    sun.shadow.normalBias = 0.035;
+    sun.shadow.normalBias = 0.16;
     scene.add(sun);
     S.sun = sun;
 
@@ -140,7 +141,7 @@
       ctx.stroke();
       var t = new THREE.CanvasTexture(cv);
       t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      t.repeat.set(64, 31);          // 与 392×192 的陆域匹配，约 6 m 一格
+      t.repeat.set(104, 68);         // 与扩建后的 640×416 米陆域匹配
       t.anisotropy = 4;
       t.encoding = THREE.sRGBEncoding;
       return t;
@@ -190,7 +191,8 @@
 
     /* ---------------- 陆域与海域 ---------------- */
     /* 坐标约定：+z 为海侧，-z 为陆侧；码头前沿在 z = 16 */
-    var LAND = { x0: -196, x1: 196, z0: -176, z1: 16 };
+    var LAND = { x0: -320, x1: 320, z0: -400, z1: 16 };
+    S.landBounds = LAND;
     var landW = LAND.x1 - LAND.x0;
     var landD = LAND.z1 - LAND.z0;
     var land = new THREE.Mesh(new THREE.BoxGeometry(landW, 2.4, landD), M.concrete);
@@ -284,11 +286,12 @@
         g.applyMatrix4(new THREE.Matrix4().makeTranslation((x1 + x2) / 2, y, (z1 + z2) / 2));
         W.push(g);
       }
-      var X0 = -194, X1 = 194, Z0 = -174, Z1 = 15.0;
-      for (var px = X0; px <= X1; px += 6.2) post(px, Z0);
+      var X0 = LAND.x0 + 2, X1 = LAND.x1 - 2, Z0 = LAND.z0 + 2, Z1 = 15.0;
+      for (var px = X0; px <= X1; px += 6.2) { if (Math.abs(px) > 18) post(px, Z0); }
       for (var pz = Z0; pz <= Z1; pz += 6.2) { post(X0, pz); post(X1, pz); }
       [0.9, 2.3].forEach(function (y) {
-        rail(X0, Z0, X1, Z0, y);
+        rail(X0, Z0, -18, Z0, y);
+        rail(18, Z0, X1, Z0, y);
         rail(X0, Z0, X0, Z1, y);
         rail(X1, Z0, X1, Z1, y);
       });
@@ -406,68 +409,6 @@
       put('line', U.box(0.18, 0.03, 5.2, pxp, 0.02, -9.6));
     }
 
-    /* ---- 叉车 ---- */
-    function forklift(fx, fz, ry) {
-      var g = [];
-      g.push(U.box(2.5, 1.5, 1.5, 0, 1.0, 0));
-      g.push(U.box(1.5, 0.28, 1.5, -0.55, 1.95, 0));
-      g.push(U.box(0.16, 3.0, 0.16, 1.15, 1.9, 0.52));
-      g.push(U.box(0.16, 3.0, 0.16, 1.15, 1.9, -0.52));
-      g.push(U.box(0.14, 0.14, 1.1, 1.5, 0.9, 0));
-      g.push(U.box(1.4, 0.10, 0.16, 1.9, 0.86, 0.42));
-      g.push(U.box(1.4, 0.10, 0.16, 1.9, 0.86, -0.42));
-      var wheels = [];
-      for (var w = -1; w <= 1; w += 2) {
-        var wg = new THREE.CylinderGeometry(0.42, 0.42, 0.34, 12);
-        wg.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2)
-          .premultiply(new THREE.Matrix4().makeTranslation(0.75, 0.42, w * 0.72)));
-        wheels.push(wg);
-      }
-      /* 整体旋转平移 */
-      var mtx = new THREE.Matrix4().makeRotationY(ry)
-        .premultiply(new THREE.Matrix4().makeTranslation(fx, 0, fz));
-      g.forEach(function (geo) { geo.applyMatrix4(mtx); });
-      wheels.forEach(function (geo) { geo.applyMatrix4(mtx); });
-      g.forEach(function (geo) { put('line', geo); });
-      wheels.forEach(function (geo) { put('dark', geo); });
-    }
-    forklift(46, 9.6, -0.4);
-    forklift(-14, -9.2, 2.6);
-    forklift(-96, -24, 1.2);
-
-    /* ---- 绿化带 ---- */
-    function treeRow(z, xs) {
-      xs.forEach(function (tx) {
-        put('conc', U.box(2.4, 0.30, 2.4, tx, 0.15, z));
-        var trunk = new THREE.CylinderGeometry(0.18, 0.28, 2.6, 9);
-        trunk.applyMatrix4(new THREE.Matrix4().makeTranslation(tx, 1.6, z));
-        put('ore', trunk);
-        for (var br = 0; br < 4; br++) {
-          var a = br * Math.PI / 2 + 0.3;
-          var bg = new THREE.CylinderGeometry(0.07, 0.13, 1.4, 6);
-          bg.applyMatrix4(new THREE.Matrix4().makeRotationZ(0.42)
-            .premultiply(new THREE.Matrix4().makeRotationY(a))
-            .premultiply(new THREE.Matrix4().makeTranslation(tx, 2.65, z)));
-          put('ore', bg);
-        }
-        var lobes = [
-          [0, 4.05, 0, 1.95], [-1.15, 3.65, 0.45, 1.28],
-          [1.1, 3.82, -0.35, 1.35], [0.35, 4.85, 0.3, 1.18],
-          [-0.45, 4.5, -0.85, 1.1],
-        ];
-        lobes.forEach(function (l) {
-          var crown = new THREE.IcosahedronGeometry(l[3], 1);
-          crown.applyMatrix4(new THREE.Matrix4().makeScale(1, 0.82, 1)
-            .premultiply(new THREE.Matrix4().makeRotationY(l[3] * 5.3))
-            .premultiply(new THREE.Matrix4().makeTranslation(tx + l[0], l[1], z + l[2])));
-          put('green', crown);
-        });
-      });
-    }
-    treeRow(-13.5, [-150, -110, -64, -20, 22, 64, 110, 150]);
-    treeRow(-88, [-150, -110, -64, -20, 22, 64, 110, 150]);
-    treeRow(-150, [-150, -60, 10, 80, 150]);
-
     /* ---- 合并输出 ---- */
     var matMap = { steel: M.steel, dark: M.dark, conc: M.conc, wall: M.wall,
                    roof: M.roof, glass: M.glass, line: M.line, coal: M.coal,
@@ -481,7 +422,7 @@
   };
 
   S._yard = function (scene) {
-    var palette = [0x2f5f86, 0x8c4938, 0x2f6a58, 0x66717d, 0x8c7634, 0x3d4f68];
+    var palette = [0x214a78, 0x854939, 0x32665c, 0x78858d, 0xb39a56, 0x293f59];
     var paintTex = (function () {
       var cv = document.createElement('canvas');
       cv.width = cv.height = 256;
@@ -517,7 +458,7 @@
     });
     var byMat = palette.map(function () { return []; });
     var dark = U.paint(0x3b4652, { metalness: 0.45, roughness: 0.62 });
-    var details = [];
+    var details = [], distant = palette.map(function () { return []; });
 
     function addBox(arr, w, h, d, x, y, z) {
       arr.push(U.box(w, h, d, x, y, z));
@@ -527,6 +468,7 @@
     function container(x, y, z, mi) {
       var arr = byMat[mi], W = 2.44, H = 2.59, L = 6.06;
       addBox(arr, L, H, W, x, y, z);
+      addBox(distant[mi], L, H, W, x, y, z);
       /* 上下纵向边梁 */
       addBox(arr, L + 0.08, 0.14, 0.13, x, y + H / 2 - 0.05, z + W / 2 + 0.02);
       addBox(arr, L + 0.08, 0.14, 0.13, x, y + H / 2 - 0.05, z - W / 2 - 0.02);
@@ -539,6 +481,9 @@
         addBox(arr, 0.055, H - 0.36, 0.035, rx, y, z - W / 2 - 0.03);
       }
       /* 八只角件 */
+      for (var roofRib = -8; roofRib <= 8; roofRib++) {
+        addBox(arr, 0.07, 0.035, W - 0.32, x + roofRib * 0.32, y + H / 2 + 0.018, z);
+      }
       for (var sx = -1; sx <= 1; sx += 2) {
         for (var sy = -1; sy <= 1; sy += 2) {
           for (var sz = -1; sz <= 1; sz += 2) {
@@ -553,6 +498,7 @@
         addBox(arr, 0.035, H - 0.45, 0.035, x + L / 2 + 0.075, y, z + lr * 0.43);
         addBox(arr, 0.12, 0.08, 0.08, x + L / 2 + 0.09, y + 0.6, z + lr * 0.43);
         addBox(arr, 0.12, 0.08, 0.08, x + L / 2 + 0.09, y - 0.6, z + lr * 0.43);
+        addBox(details, 0.06, 0.06, 0.23, x + L / 2 + 0.12, y - 0.4, z + lr * 0.43);
       }
       /* 箱号色块 */
       addBox(details, 0.02, 0.22, 0.85, x - L / 2 - 0.02, y + 0.55, z);
@@ -578,16 +524,26 @@
     stack(84, -60, 5, 3);
     stack(-40, -96, 6, 3);
     stack(30, -110, 5, 2);
-
-    for (var i = 0; i < palette.length; i++) {
-      if (!byMat[i].length) continue;
-      var m = U.mesh(U.merge(byMat[i]), mats[i], scene);
-      m.castShadow = true; m.receiveShadow = true;
+    /* 每个堆场独立 LOD：近处保留锁杆、波纹、角件，远景只提交箱体。 */
+    function flushYard(cx, cz) {
+      var high = new THREE.Group(), low = new THREE.Group(), lod = new THREE.LOD();
+      for (var i = 0; i < palette.length; i++) {
+        if (byMat[i].length) U.mesh(U.merge(byMat[i]).translate(-cx, 0, -cz), mats[i], high);
+        if (distant[i].length) U.mesh(U.merge(distant[i]).translate(-cx, 0, -cz), mats[i], low);
+      }
+      if (details.length) U.mesh(U.merge(details).translate(-cx, 0, -cz), dark, high);
+      lod.name = '集装箱堆场 LOD'; lod.position.set(cx, 0, cz);
+      lod.addLevel(high, 0); lod.addLevel(low, 190); scene.add(lod);
+      byMat = palette.map(function () { return []; }); distant = palette.map(function () { return []; }); details = [];
     }
-    if (details.length) {
-      var md = U.mesh(U.merge(details), dark, scene);
-      md.castShadow = true; md.receiveShadow = true;
-    }
+    flushYard(0, -50);
+    /* 深陆侧分区，中央消防通道与两侧干道保持畅通。 */
+    [-72, 48].forEach(function (startX) {
+      [-177, -185, -193, -219, -227, -235].forEach(function (rowZ, i) {
+        stack(startX, rowZ, 7, 3 + (i % 2));
+      });
+      flushYard(startX + 20, -205);
+    });
 
     /* 堆场正面黄色箱位线与通道箭头 */
     var marks = [];
@@ -694,18 +650,14 @@
 
     /* 甲板：环绕舱口分块铺装，中间留出开口 */
     var hx0p = sh.holdX0, hx1p = sh.holdX1, hwp = sh.holdHalfW;
-    var hX0 = X + hx0p, hX1 = X + hx1p;
-    var hZ0 = Z - hwp, hZ1 = Z + hwp;
-    var dX0 = X - L / 2 + 0.6, dX1 = X + L / 2 - 0.6;
-    var dZ0 = Z - B / 2 + 0.6, dZ1 = Z + B / 2 - 0.6;
-    var dk = [];
-
-    if (hX0 > dX0) dk.push(U.box(hX0 - dX0, 0.32, B - 1.2, (dX0 + hX0) / 2, deckY - 0.1, Z));
-    if (dX1 > hX1) dk.push(U.box(dX1 - hX1, 0.32, B - 1.2, (hX1 + dX1) / 2, deckY - 0.1, Z));
-    dk.push(U.box(hX1 - hX0, 0.32, hZ0 - dZ0, (hX0 + hX1) / 2, deckY - 0.1, (dZ0 + hZ0) / 2));
-    dk.push(U.box(hX1 - hX0, 0.32, dZ1 - hZ1, (hX0 + hX1) / 2, deckY - 0.1, (hZ1 + dZ1) / 2));
-
-    U.mesh(U.merge(dk), deckM, scene);
+    var deckShape = hullShape(L - 0.7, B - 0.7, 12.1, 5.7);
+    var hatchHole = new THREE.Path();
+    hatchHole.moveTo(hx0p, -hwp); hatchHole.lineTo(hx0p, hwp);
+    hatchHole.lineTo(hx1p, hwp); hatchHole.lineTo(hx1p, -hwp); hatchHole.closePath();
+    deckShape.holes.push(hatchHole);
+    var deckGeo = new THREE.ExtrudeGeometry(deckShape, { depth: 0.32, bevelEnabled: false, curveSegments: 24 });
+    deckGeo.rotateX(-Math.PI / 2); deckGeo.translate(X, deckY - 0.26, Z);
+    U.mesh(deckGeo, deckM, scene).name = '散货船开口甲板';
 
     /* 舷墙：沿船体轮廓的薄环，首尾自然跟随曲线 */
     var wOut = hullShape(L - 0.2, B - 0.2, 12.3, 5.9);
@@ -761,21 +713,19 @@
     scene.add(sandTop);
     S.holdSand = sandTop;
 
-    /* 舱内料堆起伏，避免大面积平面感 */
-    var moundGeos = [];
-    var moundPos = [[-20, 1.25, -3.2, 2.5], [-10, 1.2, 2.8, 2.9], [0, 1.3, -1.6, 3.3],
-      [9, 1.18, 3.1, 2.3], [19, 1.22, -2.4, 2.8], [26, 1.12, 2.4, 1.9]];
-    moundPos.forEach(function (mp) {
-      var g = new THREE.DodecahedronGeometry(1, 1);
-      g.scale(mp[3] * 1.2, mp[3] * 0.42, mp[3] * 0.9);
-      g.rotateY(mp[0] * 0.31);
-      g.translate(mp[0], mp[1], mp[2]);
-      moundGeos.push(g);
-    });
-    var mound = new THREE.Mesh(U.merge(moundGeos), sandM);
-    mound.castShadow = true;
-    mound.receiveShadow = true;
-    sandTop.add(mound);
+    /* 连续散料表面：与沙面对象一起降低，避免孤立球形料堆。 */
+    var moundGeo = new THREE.PlaneGeometry(hl - 0.45, hw - 0.45, 72, 24).rotateX(-Math.PI / 2);
+    var moundP = moundGeo.attributes.position;
+    for (var mi = 0; mi < moundP.count; mi++) {
+      var mx = moundP.getX(mi), mz = moundP.getZ(mi);
+      var fade = Math.max(0, 1 - Math.pow(Math.abs(mz) / (hw / 2 - 0.22), 4));
+      fade *= Math.max(0, 1 - Math.pow(Math.abs(mx) / (hl / 2 - 0.22), 8));
+      var wave = 0.28 + 0.22 * Math.sin(mx * 0.25 + mz * 0.17) + 0.16 * Math.cos(mx * 0.49 - mz * 0.23);
+      moundP.setY(mi, 1.305 + fade * (0.4 + wave + 0.035 * Math.sin(mx * 3 + mz * 4)));
+    }
+    moundGeo.computeVertexNormals();
+    var mound = new THREE.Mesh(moundGeo, sandM);
+    mound.castShadow = true; mound.receiveShadow = true; sandTop.add(mound);
 
     /* 舱内壁（沿舱口四周的深色竖壁，不遮挡沙面） */
     var innerM = U.paint(0x243039, { metalness: 0.25, roughness: 0.85 });
