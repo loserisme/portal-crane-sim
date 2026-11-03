@@ -173,14 +173,27 @@
     U.mesh(U.merge(house), K.mat.house, upper);
     U.mesh(U.box(0.06, 0.90, 5.1, 0.44, 2.70, 0), K.mat.glass, upper, false);
 
-    /* 变幅驱动：小齿轮 + 减速箱（与臂架扇形齿条啮合） */
+    /* 变幅驱动：小齿轮（带齿）+ 减速箱（与臂架扇形齿条啮合） */
     var rk2 = C.upper.rack;
+    var pGears = [];
     var pg = new THREE.CylinderGeometry(rk2.pinionR, rk2.pinionR, 0.58, 18);
     pg.applyMatrix4(new THREE.Matrix4()
       .makeRotationX(Math.PI / 2)
       .premultiply(new THREE.Matrix4()
         .makeTranslation(rk2.pinionAt.x, rk2.pinionAt.y, 0)));
-    U.mesh(pg, K.mat.dark, upper);
+    pGears.push(pg);
+    for (var pt = 0; pt < 18; pt++) {
+      var pa = pt * Math.PI * 2 / 18;
+      var tg2 = new THREE.BoxGeometry(0.12, 0.10, 0.52);
+      tg2.applyMatrix4(new THREE.Matrix4()
+        .makeRotationZ(pa)
+        .premultiply(new THREE.Matrix4()
+          .makeTranslation(
+            rk2.pinionAt.x + Math.cos(pa) * (rk2.pinionR + 0.05),
+            rk2.pinionAt.y + Math.sin(pa) * (rk2.pinionR + 0.05), 0)));
+      pGears.push(tg2);
+    }
+    U.mesh(U.merge(pGears), K.mat.dark, upper);
     U.mesh(U.merge([
       U.box(1.35, 1.15, 1.30, rk2.pinionAt.x - 0.55, rk2.pinionAt.y - 1.05, 0),
       U.box(1.05, 0.75, 1.05, rk2.pinionAt.x - 1.75, rk2.pinionAt.y - 1.35, 0),
@@ -318,19 +331,25 @@
     g1.push(U.tube({ x: up.jibLength, y: 0, z: -1.16 }, { x: up.jibLength, y: 0, z: 1.16 }, 0.17, 10));
     U.mesh(U.merge(g1), K.mat.steel, pivot);
 
-    /* 齿条扇形：以 A 为圆心，覆盖臂架 26°~50° 行程 */
+    /* 齿条扇形：以 A 为圆心，覆盖臂架仰角行程。
+       相位按小齿轮方位与仰角中值自动对齐：仰角中值时齿条中点正对小齿轮 */
     var rk = up.rack;
-    var a0 = U.rad(180 - rk.span / 2), aL = U.rad(rk.span);
+    var pinAng = Math.atan2(rk.pinionAt.y - up.pivot.y, rk.pinionAt.x - up.pivot.x);
+    var midAlpha = U.rad((up.alphaMin + up.alphaMax) / 2);
+    var aL = U.rad(rk.span);
+    /* CylinderGeometry 的 theta 自 +Z 起算，rotateX(90°) 后实际极角 φ = θ − 90° */
+    var a0 = pinAng - midAlpha - aL / 2 + Math.PI / 2;
     var secG = new THREE.CylinderGeometry(rk.radius, rk.radius, 0.72, 28, 1, false, a0, aL);
     secG.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI / 2));
     var sect = [secG];
     for (var kt = 0; kt <= 14; kt++) {
-      var ang = a0 + aL * kt / 14;
+      /* 齿块与扇形板同一极角：φ = θ − 90°，之前直接用 θ 会让齿圈错开 90° */
+      var phi = a0 + aL * kt / 14 - Math.PI / 2;
       var tg = new THREE.BoxGeometry(0.19, 0.34, 0.76);
       tg.applyMatrix4(new THREE.Matrix4()
-        .makeRotationZ(ang + Math.PI / 2)
+        .makeRotationZ(phi + Math.PI / 2)
         .premultiply(new THREE.Matrix4()
-          .makeTranslation((rk.radius + 0.13) * Math.cos(ang), (rk.radius + 0.13) * Math.sin(ang), 0)));
+          .makeTranslation((rk.radius + 0.13) * Math.cos(phi), (rk.radius + 0.13) * Math.sin(phi), 0)));
       sect.push(tg);
     }
     /* 齿条腹板：把扇形与臂架根部连起来，避免悬空 */
