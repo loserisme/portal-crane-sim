@@ -1,10 +1,10 @@
-/* 门机仿真缓存控制 Service Worker
+﻿/* 门机仿真缓存控制 Service Worker
  * 策略：
  *  - 页面导航 / HTML：network-first（部署后刷新即见最新页面，不再依赖 Ctrl+F5）
  *  - 带 ?v= 版本号的资源（js/css/glb）：cache-first（版本号变化自然失效）
  *  - 无版本号资源：network-first，离线时回退缓存
  */
-var CACHE = 'pcrane-20261103c'; /* 版本升级时与 index.html 的 v= 同步替换 */
+var CACHE = 'pcrane-20261103d'; /* 版本升级时与 index.html 的 v= 同步替换 */
 
 self.addEventListener('install', function () {
   self.skipWaiting();

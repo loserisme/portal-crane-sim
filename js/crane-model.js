@@ -5,6 +5,10 @@
  *   门架/行走机构（root）、转台以上（upper）、主臂、象鼻梁、
  *   大拉杆和抓斗。运动部件用源铰点→仿真铰点的矩阵重定向，
  *   因此仍由原四连杆解算驱动，而不是仅替换静态外壳。
+ *
+ * 标定约定：SRC_* 是 GLB 的 CAD 坐标（模型单位），乘以 S 后与 config.js
+ * 的四连杆参数一一对应。换模型或改机型时，先改 SRC_*，再用
+ * CM.calibration 核对 config.js；两者不一致会被 verifyCalibration() 报警。
  * ============================================================= */
 (function (w) {
   'use strict';
@@ -12,6 +16,7 @@
   var C = w.CFG;
   var CM = { ready: false, loading: false, K: null };
   var S = 0.82;                       // 源模型 → 仿真尺寸
+  /* 主臂铰点 A：取“臂架-动画3”包围盒根端 */
   var SRC_A = { x: 0.065, y: 28.784, z: -0.506 };
   /* 象鼻梁三角：B=主臂铰点，D=大拉杆铰点，C=起升滑轮 */
   var SRC_B = { x: 21.501, y: 48.800, z: -0.502 };
@@ -32,6 +37,46 @@
     y: C.machine.portalHeight + C.machine.slewBearingH + C.upper.pivot.y - S * SRC_A.y,
     z: -S * SRC_A.z,
   };
+
+  /* ---------------- 源模型标定结果（S 缩放后，应与 config.js 完全一致） ---------------- */
+  function srcDist(p, q) { return Math.hypot(p.x - q.x, p.y - q.y); }
+
+  var CAL = {
+    scale: S,
+    jibLength: S * srcDist(SRC_A, SRC_B),           // 24.049
+    rc: S * srcDist(SRC_B, SRC_C),                  // 13.388
+    rd: S * srcDist(SRC_B, SRC_D),                  // 4.567
+    tieRod: S * srcDist(SRC_D, SRC_E),              // 21.363
+    beta: (Math.atan2(SRC_C.y - SRC_B.y, SRC_C.x - SRC_B.x) -
+      Math.atan2(SRC_D.y - SRC_B.y, SRC_D.x - SRC_B.x)) * 180 / Math.PI, // -155.43
+    apex: {
+      x: C.upper.pivot.x + S * (SRC_E.x - SRC_A.x),
+      y: C.upper.pivot.y + S * (SRC_E.y - SRC_A.y),
+    },
+  };
+  CM.calibration = CAL;
+
+  /* 换模型后若忘记同步 config.js，这里报出偏差；只告警，不阻断运行 */
+  function verifyCalibration() {
+    var up = C.upper, bad = [];
+    function chk(label, model, cfg, tol) {
+      if (Math.abs(model - cfg) > (tol || 1e-3)) {
+        bad.push(label + '：config=' + cfg.toFixed(4) + ' / 模型=' + model.toFixed(4));
+      }
+    }
+    chk('臂架 AB', CAL.jibLength, up.jibLength);
+    chk('|BC|', CAL.rc, up.head.rc);
+    chk('|BD|', CAL.rd, up.head.rd);
+    chk('|DE|', CAL.tieRod, up.tieRod);
+    chk('∠CBD', CAL.beta, up.head.beta, 0.05);
+    chk('E.x', CAL.apex.x, up.apex.x);
+    chk('E.y', CAL.apex.y, up.apex.y);
+    if (bad.length) {
+      console.warn('[crane-model] 四连杆参数与 GLB 标定不一致，模型会被拉伸：\n  ' + bad.join('\n  '));
+    }
+    return bad;
+  }
+  CM.verifyCalibration = verifyCalibration;
 
   var groups = null;
   var grabContents = [], lastFill = -1;
@@ -344,6 +389,7 @@
   }
 
   function setup(K, model) {
+    verifyCalibration();
     hideProcedural(K);
     tuneMaterials(model);
     var source = model.getObjectByName('RootNode') || model;
