@@ -91,7 +91,9 @@
       clearInput(); D.emergency = false; panel.classList.remove('stopped');
       document.getElementById('driver-state').textContent = '手动控制';
       this.textContent = '急停 · 空格';
+      canvas.focus({ preventScroll: true });
     });
+    document.getElementById('driver-speed').addEventListener('change', function () { canvas.focus({ preventScroll: true }); });
     document.getElementById('driver-center').addEventListener('click', D.center);
     document.getElementById('driver-exit').addEventListener('click', function () { w.SCENE.applyView(previousView); });
     w.addEventListener('keydown', function (e) {

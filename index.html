@@ -7,14 +7,14 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致，crane-model.js 用它加载 GLB */
-  window.ASSET_VER = '20261103a';
+  window.ASSET_VER = '20261103b';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261103a').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261103b').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261103a">
+<link rel="stylesheet" href="css/style.css?v=20261103b">
 </head>
 <body>
 
@@ -58,6 +58,7 @@
     <div class="driver-actions">
       <label>速度 <select id="driver-speed"><option value="0.3">低速</option><option value="0.6" selected>标准</option><option value="1">额定</option></select></label>
       <button id="driver-center">看向抓斗</button><button id="driver-exit">退出驾驶</button>
+      <button id="driver-stop">急停 · 空格</button>
     </div>
   </div>
   <div class="driver-instruments" id="driver-instruments"></div>
@@ -67,7 +68,6 @@
     <div><span>起升</span><button data-drive="hoist:1">↑ · 提升</button><button data-drive="hoist:-1">↓ · 下降</button></div>
     <div><span>抓斗</span><button data-drive="grab:-1">J · 闭斗</button><button data-drive="grab:1">K · 开斗</button></div>
     <div><span>大车</span><button data-drive="travel:-1">Z · 后退</button><button data-drive="travel:1">X · 前进</button></div>
-    <button id="driver-stop">急停 · 空格</button>
   </div>
   <p>按住操纵，松开减速制动 · 拖动画面转头观察 · 空格急停 · Esc 退出</p>
 </section>
@@ -304,29 +304,29 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261103a"></script>
-<script src="lib/OrbitControls.js?v=20261103a"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261103a"></script>
-<script src="lib/DRACOLoader.js?v=20261103a"></script>
-<script src="lib/GLTFLoader.js?v=20261103a"></script>
-<script src="js/config.js?v=20261103a"></script>
-<script src="js/util.js?v=20261103a"></script>
-<script src="js/scene.js?v=20261103a"></script>
-<script src="js/environment-hd.js?v=20261103a"></script>
-<script src="js/environment-port.js?v=20261103a"></script>
-<script src="js/crane.js?v=20261103a"></script>
-<script src="js/crane-model.js?v=20261103a"></script>
-<script src="js/kinematics.js?v=20261103a"></script>
-<script src="js/script.js?v=20261103a"></script>
-<script src="js/ai.js?v=20261103a"></script>
-<script src="js/python.js?v=20261103a"></script>
-<script src="js/stats.js?v=20261103a"></script>
-<script src="js/report-docx.js?v=20261103a"></script>
-<script src="js/train.js?v=20261103a"></script>
-<script src="js/comprehensive.js?v=20261103a"></script>
-<script src="js/ui.js?v=20261103a"></script>
-<script src="js/dock.js?v=20261103a"></script>
-<script src="js/driver.js?v=20261103a"></script>
-<script src="js/main.js?v=20261103a"></script>
+<script src="lib/three.min.js?v=20261103b"></script>
+<script src="lib/OrbitControls.js?v=20261103b"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261103b"></script>
+<script src="lib/DRACOLoader.js?v=20261103b"></script>
+<script src="lib/GLTFLoader.js?v=20261103b"></script>
+<script src="js/config.js?v=20261103b"></script>
+<script src="js/util.js?v=20261103b"></script>
+<script src="js/scene.js?v=20261103b"></script>
+<script src="js/environment-hd.js?v=20261103b"></script>
+<script src="js/environment-port.js?v=20261103b"></script>
+<script src="js/crane.js?v=20261103b"></script>
+<script src="js/crane-model.js?v=20261103b"></script>
+<script src="js/kinematics.js?v=20261103b"></script>
+<script src="js/script.js?v=20261103b"></script>
+<script src="js/ai.js?v=20261103b"></script>
+<script src="js/python.js?v=20261103b"></script>
+<script src="js/stats.js?v=20261103b"></script>
+<script src="js/report-docx.js?v=20261103b"></script>
+<script src="js/train.js?v=20261103b"></script>
+<script src="js/comprehensive.js?v=20261103b"></script>
+<script src="js/ui.js?v=20261103b"></script>
+<script src="js/dock.js?v=20261103b"></script>
+<script src="js/driver.js?v=20261103b"></script>
+<script src="js/main.js?v=20261103b"></script>
 </body>
 </html>
