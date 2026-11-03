@@ -55,36 +55,134 @@
   function buildInterior() {
     var g = new THREE.Group();
     g.name = '货车驾驶室内饰';
-    var shell = new THREE.MeshStandardMaterial({ color: 0x2b3a48, roughness: 0.72, metalness: 0.18 });
-    var dark = new THREE.MeshStandardMaterial({ color: 0x1b232b, roughness: 0.85 });
-    var glow = new THREE.MeshStandardMaterial({ color: 0x123a3a, emissive: 0x0f4b46, roughness: 0.35 });
+
+    var dash = new THREE.MeshStandardMaterial({ color: 0x1e2429, roughness: 0.85, metalness: 0.06 });
+    var trim = new THREE.MeshStandardMaterial({ color: 0x2b333a, roughness: 0.72, metalness: 0.12 });
+    var panel = new THREE.MeshStandardMaterial({ color: 0x3d464e, roughness: 0.78, metalness: 0.10 });
+    var seat = new THREE.MeshStandardMaterial({ color: 0x453931, roughness: 0.95, metalness: 0.02 });
+    var head = new THREE.MeshStandardMaterial({ color: 0x5a626a, roughness: 0.92, metalness: 0.02 });
+    var dark = new THREE.MeshStandardMaterial({ color: 0x151a1f, roughness: 0.86 });
+    var glow = new THREE.MeshStandardMaterial({ color: 0x0e3a38, emissive: 0x0b5a52, emissiveIntensity: 0.9, roughness: 0.3 });
+    var metal = new THREE.MeshStandardMaterial({ color: 0x9aa4ad, roughness: 0.42, metalness: 0.65 });
 
     function box(sx, sy, sz, px, py, pz, mat) {
-      var m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat || shell);
+      var m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), mat || dash);
+      m.position.set(px, py, pz);
+      g.add(m);
+      return m;
+    }
+    function tilt(sx, sy, sz, px, py, pz, ang, mat) {
+      var m = box(sx, sy, sz, px, py, pz, mat);
+      m.rotation.z = ang;
+      return m;
+    }
+    function disc(r, thick, px, py, pz, mat) {
+      var geo = new THREE.CylinderGeometry(r, r, thick, 20).rotateZ(Math.PI / 2);
+      var m = new THREE.Mesh(geo, mat || trim);
       m.position.set(px, py, pz);
       g.add(m);
       return m;
     }
 
-    /* 仪表台：上缘压低，保留前方观察窗 */
-    box(0.55, 0.32, 2.18, 5.24, 2.50, 0, shell);
-    box(0.14, 0.20, 0.60, 5.06, 2.68, -0.56, glow);
-    /* 方向盘（法向朝驾驶位） */
-    var wheel = new THREE.Mesh(new THREE.TorusGeometry(0.21, 0.026, 8, 24), dark);
-    wheel.position.set(4.72, 2.80, -0.56);
+    /* 地板与脚垫 */
+    box(1.92, 0.06, 2.20, 4.55, 1.31, 0, dark);
+    box(1.24, 0.02, 1.46, 4.72, 1.35, -0.30, trim);
+
+    /* 仪表台：台体、上盖、仪表罩 */
+    box(0.55, 0.62, 2.22, 5.20, 2.33, 0, dash);
+    box(0.54, 0.08, 2.24, 5.20, 2.62, 0, trim);
+    box(0.10, 0.30, 0.94, 4.89, 2.70, -0.58, trim);
+    /* 两个圆表 + 指针 */
+    [-0.80, -0.42].forEach(function (z, i) {
+      disc(0.095, 0.02, 4.835, 2.72, z, dark);
+      var nd = box(0.012, 0.072, 0.012, 4.825, 2.745, z, metal);
+      nd.rotation.z = 0.5 + i * 0.6;
+    });
+    box(0.02, 0.05, 0.34, 4.828, 2.52, -0.58, glow);
+    /* 中控：收音机、出风口、旋钮 */
+    box(0.10, 0.42, 0.62, 4.90, 2.18, 0.30, trim);
+    box(0.02, 0.16, 0.34, 4.838, 2.24, 0.30, glow);
+    [-0.14, 0.14].forEach(function (dz) { box(0.02, 0.06, 0.05, 4.838, 2.06, 0.30 + dz, metal); });
+    [-0.34, 0.34].forEach(function (z) { box(0.04, 0.14, 0.26, 4.88, 2.44, z, dark); });
+    /* 仪表台两侧出风口 */
+    [-1, 1].forEach(function (s) {
+      box(0.03, 0.12, 0.26, 4.90, 2.46, s * 0.92, dark);
+    });
+
+    /* 方向盘：三辐 + 转向柱 + 喇叭 */
+    var wheel = new THREE.Mesh(new THREE.TorusGeometry(0.195, 0.024, 8, 26), dark);
+    wheel.position.set(4.60, 2.66, -0.56);
     wheel.rotation.y = Math.PI / 2;
     g.add(wheel);
-    box(0.06, 0.06, 0.32, 4.72, 2.80, -0.56, dark);
-    /* A 柱、风窗上沿（代替车顶遮挡上方）、遮阳板 */
-    [-1, 1].forEach(function (s) { box(0.12, 1.82, 0.10, 5.50, 2.96, s * 1.16, shell); });
-    box(0.12, 0.16, 2.30, 5.60, 3.56, 0, shell);
-    box(0.46, 0.05, 1.36, 5.30, 3.42, -0.56, dark);
-    /* 左侧门板、扶手与后视镜 */
-    box(1.05, 0.52, 0.08, 4.55, 2.14, -1.18, shell);
-    box(0.10, 0.32, 0.19, 5.60, 3.04, 1.28, dark);
-    box(0.10, 0.32, 0.19, 5.60, 3.04, -1.32, dark);
-    /* 雨刷 */
-    box(0.03, 0.03, 0.86, 5.56, 2.42, 0.12, dark);
+    for (var sp = 0; sp < 3; sp++) {
+      var spoke = box(0.03, 0.03, 0.17, 4.60, 2.66, -0.56, trim);
+      spoke.rotation.x = sp * Math.PI * 2 / 3;
+      spoke.position.z = -0.56 + Math.sin(sp * Math.PI * 2 / 3) * 0.09;
+      spoke.position.y = 2.66 + Math.cos(sp * Math.PI * 2 / 3) * 0.09;
+    }
+    box(0.06, 0.09, 0.18, 4.60, 2.66, -0.56, trim);
+    var column = new THREE.Mesh(new THREE.CylinderGeometry(0.048, 0.058, 0.30, 10).rotateZ(Math.PI / 2), trim);
+    column.position.set(4.76, 2.62, -0.56);
+    column.rotation.z = 0.30;
+    g.add(column);
+
+    /* 座椅（驾驶位 + 副驾）：坐垫、靠背、头枕、滑轨 */
+    function seatAt(z) {
+      box(0.60, 0.16, 0.62, 3.60, 2.00, z, seat);
+      tilt(0.18, 0.86, 0.64, 3.34, 2.46, z, 0.14, seat);
+      box(0.16, 0.26, 0.40, 3.26, 3.00, z, seat);
+      box(0.05, 0.30, 0.05, 3.30, 2.70, z + 0.30, metal);
+      box(0.05, 0.30, 0.05, 3.30, 2.70, z - 0.30, metal);
+    }
+    seatAt(-0.56);
+    seatAt(0.62);
+    box(0.90, 0.10, 1.86, 3.52, 1.94, 0, dark);
+
+    /* 左/右门内饰板、扶手、把手、摇窗把 */
+    [-1, 1].forEach(function (s) {
+      box(1.48, 0.96, 0.06, 4.35, 2.22, s * 1.205, panel);
+      box(0.56, 0.10, 0.14, 4.42, 1.98, s * 1.13, trim);
+      box(0.15, 0.05, 0.05, 4.86, 2.30, s * 1.17, metal);
+      box(0.10, 0.10, 0.05, 3.98, 2.06, s * 1.175, trim);
+    });
+
+    /* A 柱、风窗框、顶棚、遮阳板、内后视镜 */
+    [-1, 1].forEach(function (s) {
+      var ap = tilt(0.12, 1.40, 0.10, 5.48, 2.96, s * 1.10, 0.12, panel);
+      ap.rotation.x = s * 0.05;
+      box(0.10, 0.10, 0.10, 5.58, 2.34, s * 1.10, dark);
+    });
+    box(0.16, 0.16, 2.22, 5.46, 3.50, 0, trim);
+    box(0.08, 0.10, 2.20, 5.56, 2.32, 0, dark);
+    box(1.58, 0.05, 2.14, 4.55, 3.62, 0, head);
+    [-1, 1].forEach(function (s) {
+      var visor = box(0.32, 0.04, 0.86, 5.24, 3.38, s * 0.55, trim);
+      visor.rotation.z = 0.18;
+    });
+    box(0.06, 0.20, 0.10, 5.30, 3.24, 0.02, dark);
+    box(0.03, 0.06, 0.26, 5.29, 3.16, 0.02, dark);
+
+    /* 后围、后窗、卧铺搁板 */
+    box(0.10, 2.06, 2.30, 3.30, 2.42, 0, panel);
+    box(0.04, 0.46, 0.96, 3.35, 3.10, 0, dark);
+    box(0.52, 0.06, 2.04, 3.12, 2.14, 0, trim);
+
+    /* 换挡杆、手刹、踏板、水杯座 */
+    var lever = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.44, 8), metal);
+    lever.position.set(4.58, 2.17, 0.32);
+    lever.rotation.z = -0.26;
+    g.add(lever);
+    var knob = new THREE.Mesh(new THREE.SphereGeometry(0.055, 10, 8), dark);
+    knob.position.set(4.52, 2.40, 0.32);
+    g.add(knob);
+    box(0.18, 0.10, 0.24, 4.62, 1.95, 0.32, dark);
+    var brake = box(0.06, 0.28, 0.05, 4.52, 2.12, 0.62, metal);
+    brake.rotation.x = 0.35;
+    [-0.92, -0.55, -0.18].forEach(function (z, i) {
+      var p = box(0.20, 0.05, 0.11, 5.14, 1.60 + i * 0.02, z, i === 2 ? metal : dark);
+      p.rotation.z = 0.35;
+    });
+    box(0.14, 0.18, 0.14, 4.80, 1.92, 0.06, trim);
 
     g.visible = false;
     w.SCENE.truck.add(g);
@@ -211,6 +309,16 @@
 
     T.x = nx; T.z = nz;
     w.SCENE.setTruckPose(T.x, T.z, T.heading);
+
+    /* 车轮随车速滚动，前轮跟着方向偏转 */
+    if (w.SCENE.truckWheels) {
+      var dSpin = T.speed * dt / 0.74;
+      for (var i = 0; i < w.SCENE.truckWheels.length; i++) {
+        var wh = w.SCENE.truckWheels[i];
+        wh.spin += dSpin;
+        wh.grp.rotation.set(0, wh.front ? T.steer : 0, wh.spin);
+      }
+    }
 
     T.moving = Math.abs(T.speed) > 0.3;
 

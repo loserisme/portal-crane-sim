@@ -344,16 +344,7 @@
       [-1, 1].forEach(function (s) { p.cyl(M.yellow, 0.65, 0.12, x, dy + 0.9, s * 0.9, Math.PI / 2); });
     });
     p.end();
-    /* 作业卡车保留装载对象与坐标，只增强底盘、轮胎、车门和风挡细部。 */
-    var t = w.CFG.scene.truck, tr = part('自卸车精细附件', t.x, t.z);
-    [-4.72, -3.3, 3.3, 4.72].forEach(function (x) { [-1.05, 1.05].forEach(function (z) { wheel(tr, x, z, 0.74, 0.51); }); });
-    [-1, 1].forEach(function (s) {
-      tr.box(M.blue, 0.07, 1.06, 0.08, 4.3, 2.92, s * 1.31);
-      tr.box(M.steel, 0.3, 0.05, 0.04, 3.45, 2.28, s * 1.32);
-      tr.rod(M.rubber, [5.71, 2.42, s * 0.3], [5.71, 3.05, s * 0.75], 0.02);
-      tr.box(M.white, 8.7, 0.075, 0.025, -1.35, 2, s * 1.43);
-      for (var i = -5; i <= 2; i++) tr.box(M.red, 0.3, 0.08, 0.03, i, 2, s * 1.45);
-    }); tr.end();
+    /* 作业卡车的细部已并入 scene.js 的整车 Group（随车运动），此处不再单独添加静态件。 */
   }
 
   function forklift(x, z, angle) {

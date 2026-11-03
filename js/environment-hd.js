@@ -535,72 +535,6 @@
     b.flush(scene);
   }
 
-  /* ---------------- 自卸卡车细部 ---------------- */
-  function truck(scene) {
-    var t = C.scene.truck, X = t.x, Z = t.z;
-    var b = bucket();
-    var bedX = X - 1.35, bl = t.bedL, bw = t.bedW, by = t.bedY;
-
-    /* 前保险杠、格栅、车灯、牌照 */
-    b.add(M.darkSteel, U.box(0.30, 0.52, 2.55, X + 5.74, 1.12, Z));
-    for (var gr = -1; gr <= 1; gr++) {
-      b.add(M.steel, U.box(0.06, 0.62, 0.12, X + 5.70, 1.9, Z + gr * 0.35));
-    }
-    for (var hl = -1; hl <= 1; hl += 2) {
-      b.add(M.emissiveWhite, U.box(0.09, 0.30, 0.55, X + 5.71, 1.65, Z + hl * 0.82));
-      b.add(M.darkSteel, U.box(0.12, 0.42, 0.68, X + 5.68, 1.65, Z + hl * 0.82));
-      b.add(M.orange, U.box(0.10, 0.18, 0.28, X + 5.7, 1.2, Z + hl * 0.96));
-    }
-    b.add(M.white, U.box(0.04, 0.26, 0.72, X + 5.77, 1.05, Z));
-    b.add(M.darkSteel, U.box(0.05, 0.06, 0.72, X + 5.79, 1.16, Z));
-
-    /* 后视镜、扶手、踏板 */
-    for (var mr = -1; mr <= 1; mr += 2) {
-      b.add(M.steel, U.tube({ x: X + 4.25, y: 3.05, z: Z + mr * 1.48 },
-        { x: X + 4.55, y: 3.55, z: Z + mr * 1.76 }, 0.035, 5));
-      b.add(M.darkSteel, U.box(0.08, 0.58, 0.22, X + 4.56, 3.75, Z + mr * 1.78));
-      b.add(M.steel, U.tube({ x: X + 3.12, y: 1.35, z: Z + mr * 1.3 },
-        { x: X + 3.12, y: 3.45, z: Z + mr * 1.3 }, 0.035, 5));
-      for (var st = 0; st < 3; st++) {
-        b.add(M.darkSteel, U.box(0.82, 0.06, 0.27, X + 3.0, 1.35 + st * 0.35, Z + mr * 1.28));
-      }
-    }
-
-    /* 燃油箱、电瓶箱、储气筒 */
-    for (var tk = -1; tk <= 1; tk += 2) {
-      b.add(M.steel, cyl(0.46, 0.46, 1.55, 14, X + 1.0, 0.78, Z + tk * 1.32, Math.PI / 2));
-      b.add(M.darkSteel, U.box(1.45, 0.48, 0.42, X + 1.0, 1.32, Z + tk * 1.35));
-    }
-    b.add(M.darkSteel, U.box(0.72, 0.55, 1.1, X + 2.1, 1.25, Z + 1.42));
-
-    /* 车厢外侧加强筋、顶部护栏、反光带 */
-    for (var s2 = -1; s2 <= 1; s2 += 2) {
-      for (var rr = -4; rr <= 4; rr++) {
-        b.add(M.blue, U.box(0.13, 1.5, 0.12, bedX + rr * (bl / 10), by + 0.72, Z + s2 * (bw / 2 + 0.05)));
-      }
-      b.add(M.yellow, U.box(bl, 0.055, 0.055, bedX, by + 1.48, Z + s2 * (bw / 2 + 0.1)));
-    }
-    /* 液压举升缸、油管、后尾灯、挡泥板、牌照 */
-    b.add(M.steel, U.tube({ x: X + 2.7, y: 0.85, z: Z - 0.78 },
-      { x: X + 2.15, y: 2.0, z: Z - 0.78 }, 0.11, 9));
-    b.add(M.steel, U.tube({ x: X + 2.7, y: 0.85, z: Z + 0.78 },
-      { x: X + 2.15, y: 2.0, z: Z + 0.78 }, 0.11, 9));
-    b.add(M.rubber, U.tube({ x: X + 1.2, y: 0.9, z: Z + 0.15 },
-      { x: X + 2.5, y: 2.1, z: Z + 0.15 }, 0.03, 5));
-    for (var tl = -1; tl <= 1; tl += 2) {
-      b.add(M.emissiveRed, U.box(0.07, 0.22, 0.42, bedX + bl / 2 + 0.02, by + 0.52, Z + tl * 0.9));
-      b.add(M.darkSteel, U.box(0.32, 0.9, 0.06, X - 4.45, 0.55, Z + tl * 1.15));
-    }
-    b.add(M.white, U.box(0.04, 0.25, 0.68, bedX - bl / 2 - 0.04, by + 0.2, Z));
-
-    /* 黄色警示灯与天线 */
-    b.add(M.orange, cyl(0.15, 0.17, 0.22, 10, X + 4.9, 4.04, Z));
-    b.add(M.emissiveWhite, cyl(0.08, 0.08, 0.16, 8, X + 4.9, 4.18, Z));
-    b.add(M.steel, U.tube({ x: X + 3.45, y: 3.9, z: Z - 1.2 },
-      { x: X + 3.35, y: 5.1, z: Z - 1.2 }, 0.022, 5));
-
-    b.flush(scene);
-  }
 
   /* ---------------- 仓库、筒仓与堆场机械 ---------------- */
   function buildings(scene) {
@@ -771,7 +705,7 @@
     water(scene);
     quay(scene);
     ship(scene);
-    truck(scene);
+    /* 作业卡车由 scene.js 的 _truck() 统一建模并整组运动，这里不再叠加静态细部 */
     buildings(scene);
     misc(scene);
     background(scene);

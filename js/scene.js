@@ -1,4 +1,4 @@
-/* =============================================================
+﻿/* =============================================================
  * scene.js — 渲染器、相机、光照、码头环境、散货船、自卸卡车
  * ============================================================= */
 (function (w) {
@@ -822,89 +822,172 @@
     S.truck = truck;
 
     var X = 0, Z = 0;
-    var g = [];
-
-    /* 车架（大梁 + 横梁） */
-    g.push(U.box(10.8, 0.46, 2.46, X, 0.98, Z));
-    for (var cr = -1; cr <= 1; cr += 2) {
-      g.push(U.box(10.4, 0.30, 0.30, X, 1.30, Z + cr * 0.92));
-    }
-
-    /* 车轮：前后各两轴，共 8 个 */
     var wr = 0.74;
-    for (var a = -1; a <= 1; a += 2) {
-      for (var b = -1; b <= 1; b += 2) {
-        for (var c2 = 0; c2 < 2; c2++) {
-          var wx = X + a * 3.30 + (a > 0 ? c2 * 1.42 : -c2 * 1.42);
-          var wg = new THREE.CylinderGeometry(wr, wr, 0.50, 20);
-          wg.applyMatrix4(new THREE.Matrix4()
-            .makeRotationX(Math.PI / 2)
-            .premultiply(new THREE.Matrix4()
-              .makeTranslation(wx, wr, Z + b * 1.02)));
-          g.push(wg);
-        }
-      }
-    }
-    U.mesh(U.merge(g), darkM, truck);
 
-    /* 轮毂 */
-    var hub = [];
-    for (var ha = -1; ha <= 1; ha += 2) {
-      for (var hb = -1; hb <= 1; hb += 2) {
-        for (var hc = 0; hc < 2; hc++) {
-          var hx = X + ha * 3.30 + (ha > 0 ? hc * 1.42 : -hc * 1.42);
-          var hg = new THREE.CylinderGeometry(0.34, 0.34, 0.56, 14);
-          hg.applyMatrix4(new THREE.Matrix4()
-            .makeRotationX(Math.PI / 2)
-            .premultiply(new THREE.Matrix4()
-              .makeTranslation(hx, wr, Z + hb * 1.04)));
-          hub.push(hg);
-        }
-      }
+    /* 按材质分桶，最后各合成一个网格，控制 drawcall */
+    var M = {
+      body: bodyM,
+      bodyDark: U.paint(0x255d94, { metalness: 0.45, roughness: 0.45 }),
+      dark: darkM,
+      steel: U.paint(0x9aa4b0, { metalness: 0.7, roughness: 0.4 }),
+      rubber: tireM,
+      white: U.paint(0xf2f4f6, { metalness: 0.1, roughness: 0.6 }),
+      chrome: U.paint(0xd7dde3, { metalness: 0.9, roughness: 0.25 }),
+      glass: U.paint(0x17222c, { metalness: 0.35, roughness: 0.28 }),
+      red: new THREE.MeshStandardMaterial({ color: 0x8f1d16, emissive: 0x6a120b, emissiveIntensity: 0.55, roughness: 0.5 }),
+      amber: new THREE.MeshStandardMaterial({ color: 0xd08a1f, emissive: 0x8a4f08, emissiveIntensity: 0.7, roughness: 0.45 }),
+    };
+    var bags = {};
+    function put(mat, geom) { (bags[mat] = bags[mat] || []).push(geom); }
+    function box(mat, sx, sy, sz, px, py, pz) { put(mat, U.box(sx, sy, sz, px, py, pz)); }
+    function tilt(mat, sx, sy, sz, px, py, pz, ang) {
+      var g = new THREE.BoxGeometry(sx, sy, sz);
+      g.rotateZ(ang); g.translate(px, py, pz); put(mat, g);
     }
-    U.mesh(U.merge(hub), U.paint(0x9aa4b0, { metalness: 0.75, roughness: 0.4 }), truck, false);
+    function cylX(mat, r, len, px, py, pz, seg) {
+      var g = new THREE.CylinderGeometry(r, r, len, seg || 12);
+      g.rotateZ(Math.PI / 2); g.translate(px, py, pz); put(mat, g);
+    }
 
-    /* 驾驶室 */
-    var cabG = [];
-    cabG.push(U.box(2.55, 2.45, 2.52, X + 4.35, 2.42, Z));
-    cabG.push(U.box(2.68, 0.38, 2.62, X + 4.35, 3.78, Z));
-    /* 前保险杠与踏板 */
-    cabG.push(U.box(0.35, 0.55, 2.60, X + 5.68, 1.18, Z));
-    cabG.push(U.box(2.2, 0.16, 0.55, X + 4.35, 1.34, Z + 1.35));
-    S.truckCabShell = U.mesh(U.merge(cabG), bodyM, truck);
+    /* 车架：两根大梁 + 横梁 + 前后桥 */
+    [-1, 1].forEach(function (s) { box('dark', 10.9, 0.30, 0.22, 0, 0.90, s * 0.84); });
+    [-4.9, -3.4, -1.2, 1.4, 3.6].forEach(function (bx) { box('dark', 0.22, 0.26, 1.88, bx, 0.90, 0); });
+    box('steel', 0.34, 0.26, 2.10, 3.95, 0.78, 0);
+    cylX('steel', 0.17, 2.10, -1.88, 0.74, 0, 10);
+    cylX('steel', 0.17, 2.10, -3.30, 0.74, 0, 10);
+
+    /* 驾驶室：下车身 + 上车身（前风窗后倾）+ 车顶与导流罩 */
+    var cabParts = [];
+    cabParts.push(U.box(2.52, 1.12, 2.52, 4.52, 1.76, 0));
+    cabParts.push(U.box(2.30, 1.50, 2.52, 4.45, 3.07, 0));
+    cabParts.push(U.box(2.32, 0.09, 2.54, 4.45, 3.86, 0));
+    cabParts.push(U.box(1.95, 0.16, 2.46, 4.42, 3.96, 0));      // 顶导流罩
+
+    /* 车门分缝与把手 */
+    [-1, 1].forEach(function (s) {
+      var zz = s * 1.263;
+      cabParts.push(U.box(0.025, 2.05, 0.02, 3.62, 2.42, zz));
+      cabParts.push(U.box(0.025, 2.05, 0.02, 5.02, 2.42, zz));
+      cabParts.push(U.box(1.42, 0.025, 0.02, 4.32, 1.36, zz));
+      cabParts.push(U.box(1.42, 0.025, 0.02, 4.32, 3.50, zz));
+      cabParts.push(U.box(0.16, 0.05, 0.05, 4.92, 2.62, s * 1.29)); // 把手
+      /* 后视镜支臂与镜体 */
+      cabParts.push(U.tube({ x: 4.56, y: 3.04, z: s * 1.30 }, { x: 4.76, y: 3.52, z: s * 1.86 }, 0.032, 6));
+      cabParts.push(U.box(0.09, 0.56, 0.22, 4.80, 3.54, s * 1.92));
+      /* 上车踏步 */
+      for (var st = 0; st < 3; st++) {
+        cabParts.push(U.box(0.86, 0.06, 0.30, 3.52, 1.02 + st * 0.34, s * 1.34));
+      }
+      /* 前照灯、转向灯、示廓灯 */
+      cabParts.push(U.box(0.08, 0.30, 0.46, 5.83, 1.58, s * 1.02));
+      cabParts.push(U.box(0.06, 0.16, 0.26, 5.84, 1.26, s * 1.14));
+      cabParts.push(U.box(0.06, 0.10, 0.18, 5.80, 3.30, s * 1.10));
+    });
+    S.truckCabShell = U.mesh(U.merge(cabParts), M.body, truck);
     S.truckCabShell.name = '货车驾驶室外壳';
 
-    var win = U.box(0.06, 1.12, 2.16, X + 5.66, 2.92, Z);
-    var glass = [U.mesh(win, U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), truck, false)];
-    for (var wsd = -1; wsd <= 1; wsd += 2) {
-      glass.push(U.mesh(U.box(2.1, 0.95, 0.05, X + 4.15, 2.92, Z + wsd * 1.27),
-        U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), truck, false));
-    }
-    /* 驾驶模式从车内看时临时隐藏玻璃，否则贴膜面会挡视线 */
-    S.truckGlass = glass;
-    /* 排气管 */
-    U.mesh(U.tube(
-      { x: X + 3.15, y: 3.35, z: Z - 1.28 },
-      { x: X + 3.15, y: 4.55, z: Z - 1.28 }, 0.11, 8),
-      U.paint(0x76808c, { metalness: 0.8, roughness: 0.42 }), truck);
+    /* 前脸：保险杠、格栅、牌照 */
+    box('dark', 0.34, 0.54, 2.66, 5.90, 1.02, 0);
+    box('chrome', 0.05, 0.12, 2.42, 6.07, 1.20, 0);
+    for (var gr = 0; gr < 4; gr++) box('dark', 0.05, 0.07, 1.52, 5.85, 1.60 + gr * 0.14, 0);
+    box('white', 0.04, 0.22, 0.70, 5.95, 1.12, 0);
 
-    /* 车厢（开口斗） */
+    /* 玻璃：后倾前风窗、侧窗、后窗（驾驶模式隐藏） */
+    var glassGeo = [];
+    var ws = new THREE.BoxGeometry(0.05, 1.24, 2.20);
+    ws.rotateZ(Math.atan2(0.20, 1.20));
+    ws.translate(5.70, 2.95, 0);
+    glassGeo.push(ws);
+    [-1, 1].forEach(function (s) {
+      glassGeo.push(U.box(1.30, 0.74, 0.035, 4.35, 3.02, s * 1.262));
+      glassGeo.push(U.box(0.42, 0.62, 0.035, 3.55, 2.96, s * 1.262));
+    });
+    glassGeo.push(U.box(0.05, 0.52, 1.10, 3.29, 3.04, 0));
+    S.truckGlass = [U.mesh(U.merge(glassGeo), M.glass, truck, false)];
+
+    /* 侧窗与风窗的窗框（深色） */
+    [-1, 1].forEach(function (s) {
+      box('dark', 1.34, 0.05, 0.03, 4.35, 3.40, s * 1.266);
+      box('dark', 1.34, 0.05, 0.03, 4.35, 2.64, s * 1.266);
+      box('dark', 0.05, 0.80, 0.03, 5.02, 3.02, s * 1.266);
+      box('dark', 0.05, 0.80, 0.03, 3.68, 3.02, s * 1.266);
+    });
+
+    /* 排气管、示廓灯、天线 */
+    U.mesh(U.tube({ x: 3.06, y: 1.85, z: -1.20 }, { x: 3.06, y: 4.46, z: -1.20 }, 0.10, 8),
+      U.paint(0x8f99a4, { metalness: 0.85, roughness: 0.35 }), truck);
+    put('amber', new THREE.CylinderGeometry(0.12, 0.12, 0.20, 10).translate(4.58, 4.02, 0));
+    put('chrome', new THREE.CylinderGeometry(0.05, 0.05, 0.10, 8).translate(4.58, 4.15, 0));
+    put('steel', U.tube({ x: 3.46, y: 3.92, z: -1.08 }, { x: 3.40, y: 5.02, z: -1.08 }, 0.02, 5));
+
+    /* 底盘附件：燃油箱、电瓶箱、储气筒、工具箱 */
+    cylX('steel', 0.40, 1.70, 1.05, 0.72, -1.30, 14);
+    [-0.45, 0.45].forEach(function (dx) { box('dark', 0.08, 0.86, 0.10, 1.05 + dx, 0.76, -1.02); });
+    box('dark', 0.62, 0.50, 0.56, 2.35, 0.94, 1.24);
+    cylX('steel', 0.20, 1.05, 0.15, 0.62, 1.30, 10);
+    box('dark', 0.82, 0.46, 0.52, -1.65, 0.72, 1.28);
+
+
+    /* 车厢（开口斗）：底板、侧板、前挡板、尾门、加强筋与附件 */
     var bedY = tk.bedY, bl = tk.bedL, bw2 = tk.bedW;
     var bedX = X - 1.35;
-    var bed = [];
-    bed.push(U.box(bl, 0.22, bw2, bedX, bedY, Z));
-    bed.push(U.box(bl, 1.42, 0.16, bedX, bedY + 0.75, Z + bw2 / 2));
-    bed.push(U.box(bl, 1.42, 0.16, bedX, bedY + 0.75, Z - bw2 / 2));
-    bed.push(U.box(0.16, 1.42, bw2, bedX - bl / 2, bedY + 0.75, Z));
-    /* 尾门 */
-    bed.push(U.box(0.18, 1.58, bw2, bedX + bl / 2, bedY + 0.80, Z));
-    /* 侧板加强筋 */
-    for (var rb = -1; rb <= 1; rb += 2) {
-      for (var rk = -2; rk <= 2; rk++) {
-        bed.push(U.box(0.10, 1.30, 0.09, bedX + rk * bl / 6, bedY + 0.74, Z + rb * (bw2 / 2 + 0.03)));
+    box('bodyDark', bl, 0.16, bw2, bedX, bedY, Z);
+    box('body', bl, 1.42, 0.14, bedX, bedY + 0.75, Z + (bw2 / 2 - 0.07));
+    box('body', bl, 1.42, 0.14, bedX, bedY + 0.75, Z - (bw2 / 2 - 0.07));
+    box('body', 0.16, 1.62, bw2, bedX + bl / 2, bedY + 0.81, Z);
+    box('body', 0.16, 1.52, bw2, bedX - bl / 2, bedY + 0.76, Z);
+    [-1, 1].forEach(function (s) {
+      box('bodyDark', bl, 0.10, 0.18, bedX, bedY + 1.48, Z + s * (bw2 / 2));
+      for (var rk = -4; rk <= 4; rk++) {
+        box('bodyDark', 0.11, 1.32, 0.09, bedX + rk * (bl / 9), bedY + 0.74, Z + s * (bw2 / 2 + 0.03));
       }
-    }
-    U.mesh(U.merge(bed), bodyM, truck);
+      box('white', bl - 0.4, 0.07, 0.02, bedX, bedY + 0.42, Z + s * (bw2 / 2 + 0.10));
+      /* 后轮挡泥板、挡泥皮与举升缸 */
+      box('bodyDark', 2.2, 0.10, 0.62, -2.60, 1.52, Z + s * 1.06);
+      box('rubber', 0.05, 0.52, 0.58, -3.72, 1.26, Z + s * 1.06);
+      put('steel', U.tube({ x: 2.18, y: 0.98, z: s * 0.74 }, { x: 0.60, y: 1.88, z: s * 0.74 }, 0.09, 8));
+      put('chrome', U.tube({ x: 1.30, y: 1.48, z: s * 0.74 }, { x: 0.60, y: 1.88, z: s * 0.74 }, 0.05, 6));
+      /* 侧防护栏与挡泥板支架 */
+      box('steel', 3.4, 0.08, 0.06, 0.10, 0.78, Z + s * 1.28);
+      box('steel', 0.08, 0.50, 0.08, -1.55, 0.55, Z + s * 1.28);
+      box('steel', 0.08, 0.50, 0.08, 1.72, 0.55, Z + s * 1.28);
+      box('dark', 0.10, 0.42, 0.10, -1.20, 1.28, Z + s * 1.04);
+      box('dark', 0.10, 0.42, 0.10, -4.00, 1.28, Z + s * 1.04);
+      /* 尾门铰链与灯具 */
+      box('dark', 0.22, 0.16, 0.18, bedX - bl / 2 + 0.10, bedY + 1.42, Z + s * 0.85);
+      box('red', 0.08, 0.26, 0.42, bedX - bl / 2 - 0.06, bedY + 0.55, Z + s * 0.92);
+      box('amber', 0.07, 0.14, 0.30, bedX - bl / 2 - 0.06, bedY + 0.92, Z + s * 0.92);
+      box('dark', 0.28, 0.92, 0.06, bedX - bl / 2 - 0.16, 0.52, Z + s * 1.16);
+    });
+    box('dark', 0.18, 0.30, 2.42, bedX - bl / 2 - 0.14, 0.95, Z);
+    box('white', 0.04, 0.24, 0.70, bedX - bl / 2 - 0.24, 1.34, Z);
+
+    /* 各材质合成网格 */
+    Object.keys(bags).forEach(function (k) {
+      U.mesh(U.merge(bags[k]), M[k], truck);
+    });
+
+    /* 车轮：4 轴 8 轮，独立 Group，可随车速滚动、前轮随转向偏转 */
+    S.truckWheels = [];
+    [4.72, 3.30, -1.88, -3.30].forEach(function (wx) {
+      [-1, 1].forEach(function (s) {
+        var grp = new THREE.Group();
+        grp.position.set(wx, wr, s * 1.06);
+        grp.rotation.order = 'YXZ';
+        var tire = new THREE.Mesh(new THREE.CylinderGeometry(wr, wr, 0.50, 20).rotateX(Math.PI / 2), M.rubber);
+        tire.castShadow = true; tire.receiveShadow = true; grp.add(tire);
+        var rim = new THREE.Mesh(new THREE.CylinderGeometry(0.44, 0.44, 0.52, 18).rotateX(Math.PI / 2), M.steel);
+        rim.castShadow = true; grp.add(rim);
+        grp.add(new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.17, 0.56, 12).rotateX(Math.PI / 2), M.chrome));
+        for (var k = 0; k < 6; k++) {
+          var nut = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.58, 6).rotateX(Math.PI / 2), M.dark);
+          nut.position.set(Math.cos(k * Math.PI / 3) * 0.27, Math.sin(k * Math.PI / 3) * 0.27, 0);
+          grp.add(nut);
+        }
+        truck.add(grp);
+        S.truckWheels.push({ grp: grp, spin: 0, front: wx > 0 });
+      });
+    });
 
     /* 斗内沙堆（高度随装载量变化） */
     var cargo = new THREE.Mesh(
@@ -930,7 +1013,7 @@
     S.truckBed = { x: tk.x + bedX, y: bedY, z: tk.z + Z, l: bl, w: bw2 };
     S.truckPose = { x: tk.x, z: tk.z, heading: 0 };
     /* 驾驶位（左舵）：局部坐标，镜头朝向 +x（车厢在 -x 侧） */
-    S.truckCab = { x: 3.98, y: 2.93, z: -0.56 };
+    S.truckCab = { x: 4.06, y: 3.02, z: -0.56 };
     S.truck.updateMatrixWorld(true);
     S.syncTruckBed();
   };
