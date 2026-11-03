@@ -56,6 +56,8 @@
       method: opts.method || 'GET',
       headers: headers,
       body: opts.body,
+      signal: opts.signal,
+      cache: opts.cache || 'default',
     });
   }
 
@@ -142,7 +144,7 @@
   S.refresh = function () {
     if (!S.enabled) return;
 
-    api('visits?select=id', { count: true, range: '0-0' })
+    api('visits?select=id&or=(ua.is.null,ua.neq.heartbeat)', { count: true, range: '0-0' })
       .then(function (r) {
         var cr = r.headers.get('content-range') || '';
         var n = parseInt((cr.split('/')[1] || '0'), 10);
@@ -165,12 +167,30 @@
 
   /* ---------------- 后台数据 ---------------- */
 
+  S.adminQuery = function (table, params, signal) {
+    if (!ready()) return Promise.reject(new Error('统计服务尚未配置'));
+    if (['visits', 'events', 'scores'].indexOf(table) < 0) return Promise.reject(new Error('不支持的数据类型'));
+    return api(table + '?' + new URLSearchParams(params).toString(), { count: true, signal: signal, cache: 'no-store' })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          if (!r.ok || !Array.isArray(data)) {
+            var err = new Error('读取失败（HTTP ' + r.status + '），请稍后重试');
+            err.code = data && data.code;
+            throw err;
+          }
+          var range = r.headers.get('content-range') || '';
+          var total = Number(range.split('/')[1]);
+          return { rows: data, total: Number.isFinite(total) ? total : null };
+        });
+      });
+  };
+
   S.fetchAll = function () {
     if (!ready()) return Promise.reject(new Error('未配置 Supabase'));
     var since = new Date(Date.now() - ONLINE_WINDOW).toISOString();
 
     return Promise.all([
-      api('visits?select=id', { count: true, range: '0-0' }).then(function (r) {
+      api('visits?select=id&or=(ua.is.null,ua.neq.heartbeat)', { count: true, range: '0-0' }).then(function (r) {
         var cr = r.headers.get('content-range') || '';
         return parseInt((cr.split('/')[1] || '0'), 10) || 0;
       }),

@@ -1,333 +1,42 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>数据看板 · 港口门座式起重机仿真平台</title>
-<script>
-  if ('serviceWorker' in navigator) {
-    addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261103b').catch(function () {});
-    });
-  }
-</script>
-<style>
-  :root{
-    --bg:#f5f7fa; --card:#ffffff; --border:#e3e8ef; --text:#16202e;
-    --sub:#6b7684; --blue:#2b6fb0; --green:#2e8b57; --red:#c0392b;
-  }
-  *{box-sizing:border-box;}
-  body{
-    margin:0;background:var(--bg);color:var(--text);
-    font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;
-    font-size:14px;line-height:1.6;
-  }
-  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 60px;}
-
-  /* 登录 */
-  #login{
-    max-width:340px;margin:14vh auto 0;background:var(--card);
-    border:1px solid var(--border);border-radius:14px;padding:26px 24px;
-    box-shadow:0 8px 30px rgba(20,30,45,.08);
-  }
-  #login h1{font-size:16px;margin:0 0 4px;font-weight:600;}
-  #login p{font-size:12px;color:var(--sub);margin:0 0 20px;}
-  #login label{display:block;font-size:12px;color:var(--sub);margin-bottom:12px;}
-  #login input{
-    width:100%;height:36px;margin-top:5px;border:1px solid var(--border);
-    border-radius:8px;padding:0 11px;font:inherit;font-size:13px;outline:none;
-  }
-  #login input:focus{border-color:rgba(43,111,176,.5);box-shadow:0 0 0 3px rgba(43,111,176,.08);}
-  #login button{
-    width:100%;height:38px;margin-top:6px;border:0;border-radius:9px;cursor:pointer;
-    background:linear-gradient(160deg,#3d7fb8,#2b6fb0);color:#fff;font:inherit;font-size:13.5px;
-  }
-  #login button:hover{filter:brightness(1.06);}
-  #login .err{color:var(--red);font-size:12px;margin-top:10px;display:none;}
-
-  /* 看板 */
-  .hidden{display:none!important;}
-  header{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
-  header h1{font-size:18px;margin:0;font-weight:600;}
-  header .sub{font-size:12px;color:var(--sub);}
-  header .sp{flex:1;}
-  header button{
-    padding:7px 16px;border-radius:8px;border:1px solid var(--border);
-    background:#fff;color:var(--text);font:inherit;font-size:12.5px;cursor:pointer;
-  }
-  header button:hover{background:#f2f5f9;}
-  #logout{color:var(--sub);}
-
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
-  .card{
-    background:var(--card);border:1px solid var(--border);border-radius:12px;
-    padding:16px 18px;
-  }
-  .card b{display:block;font-size:27px;font-weight:600;line-height:1.1;letter-spacing:-.01em;}
-  .card span{font-size:11.5px;color:var(--sub);}
-  .card.g b{color:var(--green);}
-  .card.r b{color:var(--red);}
-
-  section{margin-bottom:26px;}
-  section h2{
-    font-size:13px;margin:0 0 10px;font-weight:600;color:#33404f;
-    display:flex;align-items:baseline;gap:8px;
-  }
-  section h2 i{font-style:normal;font-size:11px;color:var(--sub);font-weight:400;}
-
-  .feat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px;}
-  .frow{display:flex;align-items:center;gap:10px;margin:9px 0;font-size:12.5px;}
-  .frow .fn{width:96px;flex:none;color:#33404f;}
-  .frow .fb{flex:1;height:9px;background:#eef1f5;border-radius:5px;overflow:hidden;}
-  .frow .fb i{display:block;height:100%;background:linear-gradient(90deg,#7fb0d9,#2b6fb0);border-radius:5px;}
-  .frow .fv{width:96px;flex:none;text-align:right;font-family:ui-monospace,monospace;font-size:11.5px;color:var(--sub);}
-
-  table{width:100%;border-collapse:collapse;background:var(--card);
-    border:1px solid var(--border);border-radius:12px;overflow:hidden;}
-  th,td{padding:9px 12px;text-align:left;font-size:12.5px;border-bottom:1px solid #eef1f5;}
-  th{background:#f7f9fb;font-weight:600;color:#4a5666;font-size:11.5px;letter-spacing:.02em;}
-  tbody tr:last-child td{border-bottom:0;}
-  tbody tr:hover td{background:#fafbfd;}
-  td.sc{font-family:ui-monospace,monospace;font-weight:600;}
-  td.tm{color:var(--sub);font-size:11.5px;font-family:ui-monospace,monospace;}
-  td.ip{font-family:ui-monospace,monospace;font-size:11.5px;color:#1f4f78;}
-  td.geo{font-size:11.5px;color:#33404f;}
-  td.ua{color:var(--sub);font-size:11px;}
-  .empty{padding:26px;text-align:center;color:var(--sub);font-size:12.5px;}
-  .badge{display:inline-block;font-size:10px;padding:1px 7px;border-radius:20px;
-    background:#eef1f5;color:#5a6675;margin-right:4px;}
-</style>
+<title>管理后台 · 港口门机仿真平台</title>
+<link rel="stylesheet" href="css/admin.css?v=20261103g">
+<script>if('serviceWorker' in navigator)addEventListener('load',function(){navigator.serviceWorker.register('sw.js?v=20261103g').catch(function(){});});</script>
 </head>
 <body>
-
-<!-- 登录 -->
-<div id="login">
-  <h1>数据看板</h1>
-  <p>港口门座式起重机运动控制仿真实验</p>
-  <label>账号<input id="u" autocomplete="username" placeholder="请输入账号"></label>
-  <label>密码<input id="p" type="password" autocomplete="current-password" placeholder="请输入密码"></label>
-  <button id="go">登录</button>
-  <div class="err" id="err">账号或密码不正确</div>
+<main id="login" class="login-shell">
+  <div class="login-story"><span class="eyebrow">PORT CRANE LAB</span><h1>看见每一次<br>学习与进步。</h1><p>港口门座式起重机运动控制仿真实验<br>访问分析 · 功能使用 · 实训成绩</p><div class="port-lines" aria-hidden="true"><i></i><i></i><i></i></div></div>
+  <form id="login-form" class="login-card">
+    <img src="assets/logo.jpg" alt="南京工程学院" width="48" height="48"><h2>管理后台</h2><p class="muted">登录后查看平台运行与实训数据</p>
+    <label>账号<input id="u" autocomplete="username" required placeholder="请输入管理账号"></label>
+    <label>密码<span class="password-field"><input id="p" type="password" autocomplete="current-password" required placeholder="请输入密码"><button type="button" id="show-password" aria-label="显示密码" aria-pressed="false">显示</button></span></label>
+    <p id="err" class="error hidden" role="alert">账号或密码不正确</p><button class="primary" type="submit">进入后台</button><a href="index.html" class="back-link">← 返回仿真平台</a>
+  </form>
+</main>
+<div id="dash" class="hidden">
+  <aside class="sidebar"><a class="brand" href="index.html"><img src="assets/logo.jpg" alt="" width="38" height="38"><span>港口门机实验室<small>管理后台</small></span></a>
+    <nav aria-label="后台导航"><button data-tab="overview" class="active" aria-current="page"><span>01</span>统计概览</button><button data-tab="visits"><span>02</span>访问记录</button><button data-tab="scores"><span>03</span>实训成绩</button></nav>
+    <div class="sidebar-foot"><a href="index.html" target="_blank" rel="noopener">打开仿真平台 ↗</a><button id="logout">退出登录</button></div>
+  </aside>
+  <main class="workspace">
+    <header class="page-head"><div><span class="eyebrow">教学与运行数据</span><h1 id="page-title">统计概览</h1><p id="meta" class="muted" role="status">准备读取数据</p></div><div class="header-actions"><label class="auto"><input id="auto-refresh" type="checkbox">每分钟刷新</label><button id="refresh" class="primary">刷新数据</button></div></header>
+    <form id="filters" class="filterbar"><label>统计时段<select id="period"><option value="7">最近 7 天</option><option value="30">最近 30 天</option><option value="today">今天</option><option value="all">全部时间</option><option value="custom">自定义</option></select></label><div id="custom-dates" class="hidden"><label>起始日期<input id="date-from" type="date"></label><label>结束日期<input id="date-to" type="date"></label><button type="submit">应用</button></div><span id="range-label" class="muted"></span></form>
+    <p id="global-message" class="notice hidden" role="status"></p>
+    <section id="view-overview" class="view">
+      <div class="metrics"><article><span>访问人次</span><strong id="k-total">—</strong><small>所选时段 · 已排除心跳</small></article><article class="live"><span><i></i>当前在线</span><strong id="k-online">—</strong><small>最近 5 分钟 · 按浏览器标识去重</small></article><article><span>功能使用次数</span><strong id="k-events">—</strong><small>所选时段 · 功能触发事件</small></article><article><span>实训成绩记录</span><strong id="k-scores">—</strong><small>所选时段 · 包含重复提交</small></article></div>
+      <div class="chart-grid"><article class="card"><div class="section-head"><div><h2>访问趋势</h2><p id="trend-note" class="muted">按日分布</p></div><span class="badge">访问</span></div><div id="trend" class="trend"></div></article><article class="card"><div class="section-head"><div><h2>功能使用分布</h2><p id="feat-note" class="muted">按触发次数统计</p></div></div><div id="feat"></div></article></div>
+      <div class="info-strip"><strong>统计口径</strong><p>访问人次按打开页面计数，不包含后台心跳；在线数按浏览器标识去重，并非独立用户数。成绩满分按提交记录中的任务数量计算。</p></div>
+    </section>
+    <section id="view-visits" class="view hidden"><article class="card table-card"><div class="section-head"><div><h2>访问记录</h2><p class="muted">查询页面访问与设备信息，自动排除心跳</p></div><button id="export-visits" disabled>导出本页 CSV</button></div><form id="search-visits" class="table-tools"><label class="search"><span class="sr-only">搜索访问记录</span><input id="query-visits" type="search" placeholder="搜索 IP、页面或设备" maxlength="100"></label><button type="submit">搜索</button><button type="button" id="clear-visits">清除</button><label>每页<select id="size-visits"><option>20</option><option>50</option><option>100</option></select></label></form><p id="message-visits" class="table-message" role="status"></p><div id="visitbox" class="table-scroll"></div><div class="pagination"><span id="count-visits"></span><div><button id="prev-visits">上一页</button><span id="page-visits">—</span><button id="next-visits">下一页</button></div></div></article></section>
+    <section id="view-scores" class="view hidden"><article class="card table-card"><div class="section-head"><div><h2>实训成绩</h2><p class="muted">查看每次提交及任务明细，支持按姓名或学号查询</p></div><button id="export-scores" disabled>导出本页 CSV</button></div><form id="search-scores" class="table-tools"><label class="search"><span class="sr-only">搜索实训成绩</span><input id="query-scores" type="search" placeholder="搜索姓名或学号" maxlength="100"></label><button type="submit">搜索</button><button type="button" id="clear-scores">清除</button><label>排序<select id="sort-scores"><option value="created_at.desc">最近提交</option><option value="total.desc">总分从高到低</option><option value="total.asc">总分从低到高</option></select></label><label>每页<select id="size-scores"><option>20</option><option>50</option><option>100</option></select></label></form><p id="message-scores" class="table-message" role="status"></p><div id="scorebox" class="table-scroll"></div><div class="pagination"><span id="count-scores"></span><div><button id="prev-scores">上一页</button><span id="page-scores">—</span><button id="next-scores">下一页</button></div></div></article></section>
+    <footer>南京工程学院 · 自动化学院 <span>港口门座式起重机运动控制仿真实验</span></footer>
+  </main>
 </div>
-
-<!-- 看板 -->
-<div class="wrap hidden" id="dash">
-  <header>
-    <h1>数据看板</h1>
-    <span class="sub" id="meta">—</span>
-    <span class="sp"></span>
-    <button id="refresh">刷新数据</button>
-    <button id="logout">退出</button>
-  </header>
-
-  <div class="cards">
-    <div class="card"><b id="k-total">—</b><span>累计访问人次</span></div>
-    <div class="card g"><b id="k-online">—</b><span>当前在线（5 分钟内）</span></div>
-    <div class="card"><b id="k-events">—</b><span>功能使用总次数</span></div>
-    <div class="card"><b id="k-scores">—</b><span>实训成绩记录</span></div>
-  </div>
-
-  <section>
-    <h2>功能使用率 <i id="feat-note"></i></h2>
-    <div class="feat" id="feat"><div class="empty">加载中…</div></div>
-  </section>
-
-  <section>
-    <h2>最近访问 <i id="visit-note"></i></h2>
-    <div id="visitbox"><div class="empty">加载中…</div></div>
-  </section>
-
-  <section>
-    <h2>实训成绩 <i id="score-note"></i></h2>
-    <div id="scorebox"><div class="empty">加载中…</div></div>
-  </section>
-</div>
-
-<script src="js/stats.js?v=20261103b"></script>
-<script>
-(function () {
-  var USER = 'njitzdh';
-  var PASS = 'njitzdh';
-  var KEY = 'crane.admin';
-
-  var el = function (id) { return document.getElementById(id); };
-
-  var FEAT_NAME = {
-    script: '脚本控制',
-    python: 'Python 控制',
-    ai: 'AI 控制',
-    ai_eval: 'AI 评估',
-    train: '实训面板',
-    report: '生成报告',
-    hover: '结构悬停',
-  };
-
-  /* ---- IP 归属地（ipwho.is，免费、支持 CORS、可出中文） ---- */
-  var GEO_CACHE = {};
-  try { GEO_CACHE = JSON.parse(localStorage.getItem('crane.geo') || '{}') || {}; } catch (e) { GEO_CACHE = {}; }
-
-  function isPrivate(ip) {
-    return /^(10\.|192\.168\.|127\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(ip);
-  }
-
-  function geoOf(ip) {
-    if (!ip) return Promise.resolve('—');
-    if (GEO_CACHE[ip]) return Promise.resolve(GEO_CACHE[ip]);
-    if (ip.indexOf(':') >= 0) return Promise.resolve('IPv6');
-    if (isPrivate(ip)) return Promise.resolve('内网地址');
-
-    return fetch('https://ipwho.is/' + encodeURIComponent(ip) + '?lang=zh-CN', { cache: 'force-cache' })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        var txt = (d && d.success)
-          ? [d.country, d.region, d.city].filter(Boolean).join(' ')
-          : '未解析';
-        GEO_CACHE[ip] = txt;
-        try { localStorage.setItem('crane.geo', JSON.stringify(GEO_CACHE)); } catch (e) {}
-        return txt;
-      })
-      .catch(function () { return '解析失败'; });
-  }
-
-  function fmtTime(s) {
-    if (!s) return '—';
-    var d = new Date(s);
-    return d.toLocaleString('zh-CN', { hour12: false, month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit' });
-  }
-
-  function show(bool) {
-    el('login').classList.toggle('hidden', bool);
-    el('dash').classList.toggle('hidden', !bool);
-  }
-
-  el('go').addEventListener('click', function () {
-    if (el('u').value.trim() === USER && el('p').value === PASS) {
-      try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
-      el('err').style.display = 'none';
-      show(true);
-      load();
-    } else {
-      el('err').style.display = 'block';
-    }
-  });
-  el('p').addEventListener('keydown', function (e) { if (e.key === 'Enter') el('go').click(); });
-
-  el('logout').addEventListener('click', function () {
-    try { sessionStorage.removeItem(KEY); } catch (e) {}
-    show(false);
-  });
-  el('refresh').addEventListener('click', load);
-
-  function load() {
-    if (!window.STATS) return;
-    if (!STATS.isEnabled()) {
-      el('feat').innerHTML = '<div class="empty">统计未启用：请在 js/stats.js 里填入 Supabase 的 URL 与 anon key。</div>';
-      el('scorebox').innerHTML = '<div class="empty">统计未启用。</div>';
-      return;
-    }
-    STATS.fetchAll().then(function (d) {
-      el('k-total').textContent = (d.totalVisits || 0).toLocaleString('zh-CN');
-      el('k-online').textContent = d.online || 0;
-      el('k-events').textContent = (d.eventTotal || 0).toLocaleString('zh-CN');
-      el('k-scores').textContent = (d.scores || []).length;
-      el('meta').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN', { hour12: false });
-
-      /* 功能使用率 */
-      var cnt = d.events || {};
-      var keys = Object.keys(cnt).sort(function (a, b) { return cnt[b] - cnt[a]; });
-      var max = keys.length ? cnt[keys[0]] : 1;
-      var total = d.eventTotal || 1;
-      if (!keys.length) {
-        el('feat').innerHTML = '<div class="empty">还没有功能使用记录。</div>';
-        el('feat-note').textContent = '';
-      } else {
-        var html = keys.map(function (k) {
-          var pct = (cnt[k] / total * 100).toFixed(1);
-          var w = Math.max(2, cnt[k] / max * 100);
-          return '<div class="frow"><span class="fn">' + (FEAT_NAME[k] || k) + '</span>'
-            + '<span class="fb"><i style="width:' + w + '%"></i></span>'
-            + '<span class="fv">' + cnt[k] + ' 次 · ' + pct + '%</span></div>';
-        }).join('');
-        el('feat').innerHTML = html;
-        el('feat-note').textContent = '按点击次数统计';
-      }
-
-      /* 最近访问 */
-      var rc = d.recent || [];
-      if (!rc.length) {
-        el('visitbox').innerHTML = '<div class="empty">还没有访问记录。</div>';
-        el('visit-note').textContent = '';
-      } else {
-        var vrows = rc.map(function (r) {
-          var ua = r.ua || '';
-          var short = ua.indexOf('Mobile') >= 0 ? '移动端'
-            : ua.indexOf('Windows') >= 0 ? 'Windows'
-            : ua.indexOf('Mac') >= 0 ? 'macOS'
-            : ua.indexOf('Linux') >= 0 ? 'Linux' : (ua.slice(0, 18) || '—');
-          var idx = rc.indexOf(r);
-          return '<tr><td class="ip">' + (r.ip || '<span style="color:#c9ced6">未记录</span>') + '</td>'
-            + '<td class="geo" id="geo-' + idx + '" data-ip="' + (r.ip || '') + '">…</td>'
-            + '<td class="tm">' + fmtTime(r.created_at) + '</td>'
-            + '<td class="ua">' + short + '</td>'
-            + '<td class="ua">' + (r.path || '—') + '</td></tr>';
-        }).join('');
-        el('visitbox').innerHTML =
-          '<table><thead><tr><th style="width:20%">IP 地址</th><th style="width:24%">归属地</th>'
-          + '<th style="width:16%">时间</th><th style="width:14%">设备</th><th>页面</th></tr></thead>'
-          + '<tbody>' + vrows + '</tbody></table>';
-        el('visit-note').textContent = '最近 ' + rc.length + ' 条（不含心跳）';
-
-        /* 异步补归属地：相同 IP 只查一次，结果缓存在 localStorage */
-        var seen = {};
-        rc.forEach(function (r, i) {
-          if (!r.ip || seen[r.ip]) {
-            if (r.ip && seen[r.ip]) {
-              var dup = document.getElementById('geo-' + i);
-              if (dup) dup.textContent = seen[r.ip];
-            }
-            return;
-          }
-          seen[r.ip] = '…';
-          geoOf(r.ip).then(function (txt) {
-            seen[r.ip] = txt;
-            var cell = document.getElementById('geo-' + i);
-            if (cell) cell.textContent = txt;
-          });
-        });
-      }
-
-      /* 成绩表 */
-      var sc = d.scores || [];
-      if (!sc.length) {
-        el('scorebox').innerHTML = '<div class="empty">还没有学生提交成绩（学生点「生成报告」后自动记录）。</div>';
-        el('score-note').textContent = '';
-      } else {
-        var rows = sc.map(function (r) {
-          var det = r.detail || [];
-          var done = det.filter(function (t) { return t.state === 'done'; }).length;
-          return '<tr><td>' + (r.name || '—') + '</td><td>' + (r.no || '—') + '</td>'
-            + '<td class="sc">' + (r.total || 0) + '<span style="color:#9aa5b4;font-weight:400"> / 500</span></td>'
-            + '<td>' + done + ' / ' + det.length + ' 项</td>'
-            + '<td class="tm">' + fmtTime(r.created_at) + '</td></tr>';
-        }).join('');
-        el('scorebox').innerHTML =
-          '<table><thead><tr><th style="width:18%">姓名</th><th style="width:22%">学号</th>'
-          + '<th style="width:18%">总分</th><th style="width:18%">完成</th><th>时间</th></tr></thead>'
-          + '<tbody>' + rows + '</tbody></table>';
-        el('score-note').textContent = '共 ' + sc.length + ' 条';
-      }
-    }).catch(function (e) {
-      el('feat').innerHTML = '<div class="empty">读取失败：' + e.message + '</div>';
-    });
-  }
-
-  /* 会话内保持登录 */
-  try {
-    if (sessionStorage.getItem(KEY) === '1') { show(true); load(); }
-  } catch (e) {}
-})();
-</script>
+<dialog id="score-dialog"><div class="section-head"><div><span class="eyebrow">实训提交详情</span><h2 id="detail-title"></h2></div><button id="close-detail" aria-label="关闭成绩详情">关闭</button></div><div id="detail-body"></div></dialog>
+<script src="js/stats.js?v=20261103g"></script><script src="js/admin.js?v=20261103g"></script>
 </body>
 </html>
