@@ -191,6 +191,7 @@
 
   /* ---------------- 进入 / 退出 ---------------- */
   T.setActive = function (active, from) {
+    if (active && w.WSAPI) w.WSAPI.localTakeover('货车驾驶接管');
     if (!panel) return;
     if (active === T.active) return;
 

@@ -133,6 +133,7 @@
 
   /* ---------------- 执行 ---------------- */
   S.run = function (text) {
+    if (w.WSAPI) w.WSAPI.localTakeover('页面脚本接管');
     var r = S.parse(text);
     if (r.errs.length) {
       S.status = r.errs[0];

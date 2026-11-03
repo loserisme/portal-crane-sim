@@ -578,6 +578,9 @@ table.kv tr:last-child td{border-bottom:0;}
 }
 .btnrow3 button:hover{border-color:rgba(43,111,176,.5);color:var(--blue);background:#f7fafd;}
 .btnrow3 #py-open{border-color:rgba(53,114,165,.45);color:#2d6187;font-weight:600;}
+#ws-panel{position:fixed;right:24px;top:90px;width:min(420px,calc(100vw - 32px));max-height:calc(100vh - 120px);overflow:auto;z-index:90;padding:20px;background:rgba(249,252,255,.97);color:#22374a;border:1px solid #c7d8e5;border-radius:14px;box-shadow:0 16px 50px #0e294533;font-size:13px;}
+#ws-panel label{display:block;margin:12px 0;}#ws-panel input{display:block;box-sizing:border-box;width:100%;margin-top:5px;padding:9px;border:1px solid #bacbd8;border-radius:6px;}
+#ws-panel p{line-height:1.6;}#ws-panel small{display:block;line-height:1.6;color:#657789;}#ws-panel a{display:block;margin-top:12px;color:#286393;}#ws-status{font-weight:600;color:#176d70;}
 
 #py-panel{
   position:fixed;right:18px;bottom:50px;width:496px;z-index:32;

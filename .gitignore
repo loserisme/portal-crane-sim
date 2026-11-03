@@ -1,6 +1,11 @@
 .DS_Store
 Thumbs.db
 node_modules/
+.deps/
+.venv/
+__pycache__/
+*.pyc
+python/test-results/
 *.log
 
 # 分析产物：曲线图入库，逐点数据可再生

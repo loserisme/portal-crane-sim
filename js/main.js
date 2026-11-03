@@ -32,6 +32,7 @@
   DEMO.toggle = function () { this.running ? this.stop() : this.start(); };
 
   DEMO.start = function () {
+    if (w.WSAPI) w.WSAPI.localTakeover('作业循环接管');
     this.running = true;
     this.idx = -1;
     this.hold = 0;
@@ -206,6 +207,7 @@
 
     KT.update(dtSim);
     KT.measure(dtSim);
+    if (w.WSAPI) w.WSAPI.update(dtSim);
 
     updateSandFlow();
     if (SCENE.holdSand) SCENE.holdSand.position.y = ST.holdLevel - 1.3;
@@ -379,6 +381,7 @@
     UI.syncSliders();
     CRANE.update(ST);
     if (w.DRIVER && w.DRIVER.active) { w.DRIVER.center(); w.DRIVER.updateCamera(); }
+    if (w.WSAPI) w.WSAPI.init();
 
     requestAnimationFrame(loop);
   }

@@ -1209,6 +1209,7 @@
     else if (w.DRIVER && w.DRIVER.active) el.stMode.textContent = w.DRIVER.emergency ? '司机操作 · 已急停' : '司机操作 · ' + (moving ? '机构运行中' : '待机');
     else if (w.TRUCK_DRIVER && w.TRUCK_DRIVER.active) el.stMode.textContent = '货车驾驶 · ' + (w.TRUCK_DRIVER.moving ? '行驶中' : '停放');
     else if (w.DEMO && w.DEMO.running) el.stMode.textContent = '循环 · ' + w.DEMO.label;
+    else if (w.WSAPI && w.WSAPI.active) el.stMode.textContent = 'WebSocket · 远程控制';
     else el.stMode.textContent = moving ? '机构运行中' : '待机';
     el.stDot.className = 'dot' + (over ? ' over' : (moving ? ' run' : ''));
     if (fps) {

@@ -126,7 +126,7 @@
     'import json',
     '',
     'class _Crane:',
-    '    """门机控制接口。所有角度单位为度，长度单位为米。"""',
+    '    """门机控制接口。回转/仰角单位为度，摆角为弧度，长度为米。"""',
     '',
     '    def status(self):',
     '        """返回当前状态 dict：slew/radius/hoist/grab/load/holdLevel/swayX..."""',
@@ -232,6 +232,7 @@
 
   /* ---------------- 运行 ---------------- */
   PY.run = async function (code) {
+    if (w.WSAPI) w.WSAPI.localTakeover('浏览器 Python 接管');
     PY.code = code;
     PY.console = [];
     PY.error = '';
@@ -243,6 +244,7 @@
       return false;
     }
     try {
+      if (w.WSAPI) w.WSAPI.localTakeover('浏览器 Python 接管');
       /* 每次运行清掉上一次的回调，避免残留 */
       PY.pyodide.runPython('try:\n    del control\nexcept NameError:\n    pass\ntry:\n    del setup\nexcept NameError:\n    pass\n');
       PY.pyodide.runPython(code);
@@ -333,6 +335,10 @@
   PY.notify = function () {
     if (typeof PY.onUpdate === 'function') PY.onUpdate(PY);
   };
+
+  // WebSocket 与 Pyodide 共用同一套桥接及曲线记录，不复制控制算法。
+  PY.bridge = buildBridge();
+  PY.recordRemote = function (dt) { PY.elapsed += dt; PY.ticks++; sample(dt); };
 
   /* ---------------- 示例 ---------------- */
   PY.SAMPLE = [

@@ -129,6 +129,7 @@
   D.setActive = function (active, from) {
     if (D.active === active || !panel) return;
     if (active) {
+      if (w.WSAPI) w.WSAPI.localTakeover('司机模式接管');
       previousView = from === 'free' || from === 'driver' ? 'iso' : from;
       if (w.DEMO) w.DEMO.stop();
       if (w.SCRIPT && w.SCRIPT.running) w.SCRIPT.stop();
