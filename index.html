@@ -7,14 +7,15 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致，crane-model.js 用它加载 GLB */
-  window.ASSET_VER = '20261103b';
+  window.ASSET_VER = '20261103c';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261103b').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261103c').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261103b">
+<link rel="stylesheet" href="css/style.css?v=20261103c">
+<link rel="icon" href="assets/logo.jpg">
 </head>
 <body>
 
@@ -47,6 +48,7 @@
       <option value="cab">视角 · 抓斗特写</option>
       <option value="roam">视角 · 自由漫游</option>
       <option value="driver">模式 · 司机操作</option>
+      <option value="truck">模式 · 货车驾驶</option>
       <option value="free" hidden>视角 · 自由观察</option>
     </select>
   </nav>
@@ -70,6 +72,19 @@
     <div><span>大车</span><button data-drive="travel:-1">Z · 后退</button><button data-drive="travel:1">X · 前进</button></div>
   </div>
   <p>按住操纵，松开减速制动 · 拖动画面转头观察 · 空格急停 · Esc 退出</p>
+</section>
+
+<section id="truck-panel" class="hidden" aria-label="货车驾驶台">
+  <div class="driver-head">
+    <strong>货车驾驶台 <span id="truck-state" role="status">停放</span></strong>
+    <div class="driver-actions">
+      <button id="truck-center">看向抓斗</button>
+      <button id="truck-reset">回到卸料位</button>
+      <button id="truck-exit">退出驾驶</button>
+    </div>
+  </div>
+  <div class="driver-instruments" id="truck-instruments"></div>
+  <p>W/S 加速与倒车 · A/D 转向 · 空格制动 · 拖动画面环视 · R 回位 · Esc 退出</p>
 </section>
 
 <aside id="panel-left" class="panel">
@@ -304,29 +319,30 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261103b"></script>
-<script src="lib/OrbitControls.js?v=20261103b"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261103b"></script>
-<script src="lib/DRACOLoader.js?v=20261103b"></script>
-<script src="lib/GLTFLoader.js?v=20261103b"></script>
-<script src="js/config.js?v=20261103b"></script>
-<script src="js/util.js?v=20261103b"></script>
-<script src="js/scene.js?v=20261103b"></script>
-<script src="js/environment-hd.js?v=20261103b"></script>
-<script src="js/environment-port.js?v=20261103b"></script>
-<script src="js/crane.js?v=20261103b"></script>
-<script src="js/crane-model.js?v=20261103b"></script>
-<script src="js/kinematics.js?v=20261103b"></script>
-<script src="js/script.js?v=20261103b"></script>
-<script src="js/ai.js?v=20261103b"></script>
-<script src="js/python.js?v=20261103b"></script>
-<script src="js/stats.js?v=20261103b"></script>
-<script src="js/report-docx.js?v=20261103b"></script>
-<script src="js/train.js?v=20261103b"></script>
-<script src="js/comprehensive.js?v=20261103b"></script>
-<script src="js/ui.js?v=20261103b"></script>
-<script src="js/dock.js?v=20261103b"></script>
-<script src="js/driver.js?v=20261103b"></script>
-<script src="js/main.js?v=20261103b"></script>
+<script src="lib/three.min.js?v=20261103c"></script>
+<script src="lib/OrbitControls.js?v=20261103c"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261103c"></script>
+<script src="lib/DRACOLoader.js?v=20261103c"></script>
+<script src="lib/GLTFLoader.js?v=20261103c"></script>
+<script src="js/config.js?v=20261103c"></script>
+<script src="js/util.js?v=20261103c"></script>
+<script src="js/scene.js?v=20261103c"></script>
+<script src="js/environment-hd.js?v=20261103c"></script>
+<script src="js/environment-port.js?v=20261103c"></script>
+<script src="js/crane.js?v=20261103c"></script>
+<script src="js/crane-model.js?v=20261103c"></script>
+<script src="js/kinematics.js?v=20261103c"></script>
+<script src="js/script.js?v=20261103c"></script>
+<script src="js/ai.js?v=20261103c"></script>
+<script src="js/python.js?v=20261103c"></script>
+<script src="js/stats.js?v=20261103c"></script>
+<script src="js/report-docx.js?v=20261103c"></script>
+<script src="js/train.js?v=20261103c"></script>
+<script src="js/comprehensive.js?v=20261103c"></script>
+<script src="js/ui.js?v=20261103c"></script>
+<script src="js/dock.js?v=20261103c"></script>
+<script src="js/driver.js?v=20261103c"></script>
+<script src="js/truck-driver.js?v=20261103c"></script>
+<script src="js/main.js?v=20261103c"></script>
 </body>
 </html>

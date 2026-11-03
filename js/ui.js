@@ -98,6 +98,7 @@
       KT.reset();
       KT.set('slew', -90);
       KT.setRadius(30);
+      if (w.SCENE && w.SCENE.resetTruck) w.SCENE.resetTruck();
       if (w.CRANE) w.CRANE.resetTrace();
       syncSliders();
     });
@@ -897,11 +898,15 @@
       help.classList.toggle('hidden', name !== 'roam');
       document.getElementById('camera-help').textContent = name === 'roam'
         ? '漫游：拖动观察 · WASD 移动 · Q/E 升降 · Shift 加速 · Esc 退出'
-        : '操作：左键拖动旋转 · 滚轮缩放 · 右键平移';
+        : name === 'driver' ? '司机：A/D 回转 · W/S 变幅 · ↑↓ 起升 · J/K 抓斗 · Z/X 大车 · 空格急停'
+          : name === 'truck' ? '货车：W/S 加速倒车 · A/D 转向 · 空格制动 · 拖动环视 · R 回位 · Esc 退出'
+            : '操作：左键拖动旋转 · 滚轮缩放 · 右键平移';
     };
     select.addEventListener('change', function () {
       SCENE.applyView(select.value);
-      if (select.value === 'roam' || select.value === 'driver') SCENE.renderer.domElement.focus({ preventScroll: true });
+      if (select.value === 'roam' || select.value === 'driver' || select.value === 'truck') {
+        SCENE.renderer.domElement.focus({ preventScroll: true });
+      }
     });
     SCENE.onViewChange(SCENE._view);
   }
@@ -1202,6 +1207,7 @@
 
     if (over) el.stMode.textContent = '超载报警';
     else if (w.DRIVER && w.DRIVER.active) el.stMode.textContent = w.DRIVER.emergency ? '司机操作 · 已急停' : '司机操作 · ' + (moving ? '机构运行中' : '待机');
+    else if (w.TRUCK_DRIVER && w.TRUCK_DRIVER.active) el.stMode.textContent = '货车驾驶 · ' + (w.TRUCK_DRIVER.moving ? '行驶中' : '停放');
     else if (w.DEMO && w.DEMO.running) el.stMode.textContent = '循环 · ' + w.DEMO.label;
     else el.stMode.textContent = moving ? '机构运行中' : '待机';
     el.stDot.className = 'dot' + (over ? ' over' : (moving ? ' run' : ''));

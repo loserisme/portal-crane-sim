@@ -36,6 +36,8 @@
     this.idx = -1;
     this.hold = 0;
     this.t = 0;
+    /* 作业循环默认卡车在卸料位待命 */
+    if (SCENE.resetTruck) SCENE.resetTruck();
     this._next();
     UI.setDemoButton(true);
   };
@@ -127,9 +129,7 @@
   };
 
   function overTruck(gp) {
-    var t = SCENE.truckBed;
-    return t && Math.abs(gp.x - t.x) < t.l / 2 - 0.15 &&
-      Math.abs(gp.z - t.z) < t.w / 2 - 0.15 && gp.y >= t.y + 0.11;
+    return SCENE.overTruck ? SCENE.overTruck(gp) : false;
   }
 
   function updateUnload(dt) {
@@ -191,6 +191,8 @@
     var dtSim = dt * (ST.timeScale || 1);
 
     var driving = w.DRIVER && w.DRIVER.active;
+    var trucking = w.TRUCK_DRIVER && w.TRUCK_DRIVER.active;
+    if (trucking) w.TRUCK_DRIVER.update(dt);
     if (driving) w.DRIVER.update();
     else {
       DEMO.update(dtSim);
@@ -214,6 +216,7 @@
     SCENE.updateFly(dt);
     SCENE.updateRoam(dt);
     if (driving) w.DRIVER.updateCamera();
+    else if (trucking) w.TRUCK_DRIVER.updateCamera();
     else if (SCENE._view === 'cab') updateHookCam();
     else if (SCENE.controls.enabled) SCENE.controls.update();
 
@@ -238,6 +241,7 @@
     if (w.CRANE_MODEL) w.CRANE_MODEL.load(CRANE);
     UI.init();
     if (w.DRIVER) w.DRIVER.init();
+    if (w.TRUCK_DRIVER) w.TRUCK_DRIVER.init();
     if (w.AI) w.AI.init();
 
     /* ---- 部件悬停介绍 ---- */
@@ -257,7 +261,7 @@
     }
 
     stage.addEventListener('mousemove', function (e) {
-      if (SCENE._view === 'roam' || SCENE._view === 'driver') {
+      if (SCENE._view === 'roam' || SCENE._view === 'driver' || SCENE._view === 'truck') {
         tipEl.classList.add('hidden');
         if (w.UI) w.UI.focusTag(null);
         stage.style.cursor = ''; hovering = false;

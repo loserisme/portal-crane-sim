@@ -22,6 +22,7 @@
     cab:   { follow: true },
     roam:  { roam: true },
     driver: { follow: true },
+    truck: { follow: true },
     free:  { orbit: true },
   };
 
@@ -813,7 +814,14 @@
       });
     })();
 
-    var X = tk.x, Z = tk.z;
+    /* 整车装进一个 Group：驾驶模式需要整体平移与转向，几何改用局部坐标 */
+    var truck = new THREE.Group();
+    truck.name = '自卸卡车';
+    truck.position.set(tk.x, 0, tk.z);
+    scene.add(truck);
+    S.truck = truck;
+
+    var X = 0, Z = 0;
     var g = [];
 
     /* 车架（大梁 + 横梁） */
@@ -837,7 +845,7 @@
         }
       }
     }
-    U.mesh(U.merge(g), darkM, scene);
+    U.mesh(U.merge(g), darkM, truck);
 
     /* 轮毂 */
     var hub = [];
@@ -854,7 +862,7 @@
         }
       }
     }
-    U.mesh(U.merge(hub), U.paint(0x9aa4b0, { metalness: 0.75, roughness: 0.4 }), scene, false);
+    U.mesh(U.merge(hub), U.paint(0x9aa4b0, { metalness: 0.75, roughness: 0.4 }), truck, false);
 
     /* 驾驶室 */
     var cabG = [];
@@ -863,19 +871,22 @@
     /* 前保险杠与踏板 */
     cabG.push(U.box(0.35, 0.55, 2.60, X + 5.68, 1.18, Z));
     cabG.push(U.box(2.2, 0.16, 0.55, X + 4.35, 1.34, Z + 1.35));
-    U.mesh(U.merge(cabG), bodyM, scene);
+    S.truckCabShell = U.mesh(U.merge(cabG), bodyM, truck);
+    S.truckCabShell.name = '货车驾驶室外壳';
 
     var win = U.box(0.06, 1.12, 2.16, X + 5.66, 2.92, Z);
-    U.mesh(win, U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), scene, false);
+    var glass = [U.mesh(win, U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), truck, false)];
     for (var wsd = -1; wsd <= 1; wsd += 2) {
-      U.mesh(U.box(2.1, 0.95, 0.05, X + 4.15, 2.92, Z + wsd * 1.27),
-        U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), scene, false);
+      glass.push(U.mesh(U.box(2.1, 0.95, 0.05, X + 4.15, 2.92, Z + wsd * 1.27),
+        U.paint(0x2a3b4d, { metalness: 0.8, roughness: 0.2 }), truck, false));
     }
+    /* 驾驶模式从车内看时临时隐藏玻璃，否则贴膜面会挡视线 */
+    S.truckGlass = glass;
     /* 排气管 */
     U.mesh(U.tube(
       { x: X + 3.15, y: 3.35, z: Z - 1.28 },
       { x: X + 3.15, y: 4.55, z: Z - 1.28 }, 0.11, 8),
-      U.paint(0x76808c, { metalness: 0.8, roughness: 0.42 }), scene);
+      U.paint(0x76808c, { metalness: 0.8, roughness: 0.42 }), truck);
 
     /* 车厢（开口斗） */
     var bedY = tk.bedY, bl = tk.bedL, bw2 = tk.bedW;
@@ -893,7 +904,7 @@
         bed.push(U.box(0.10, 1.30, 0.09, bedX + rk * bl / 6, bedY + 0.74, Z + rb * (bw2 / 2 + 0.03)));
       }
     }
-    U.mesh(U.merge(bed), bodyM, scene);
+    U.mesh(U.merge(bed), bodyM, truck);
 
     /* 斗内沙堆（高度随装载量变化） */
     var cargo = new THREE.Mesh(
@@ -912,9 +923,53 @@
     }
     cargoTop.computeVertexNormals();
     U.mesh(cargoTop, sandM, cargo);
-    scene.add(cargo);
+    truck.add(cargo);
     S.truckSand = cargo;
-    S.truckBed = { x: bedX, y: bedY, z: Z, l: bl, w: bw2 };
+    /* 车斗位置先按整车局部坐标记，世界坐标由 syncTruckBed() 随车位姿更新 */
+    S.truckBedLocal = { x: bedX, y: bedY, z: Z, l: bl, w: bw2 };
+    S.truckBed = { x: tk.x + bedX, y: bedY, z: tk.z + Z, l: bl, w: bw2 };
+    S.truckPose = { x: tk.x, z: tk.z, heading: 0 };
+    /* 驾驶位（左舵）：局部坐标，镜头朝向 +x（车厢在 -x 侧） */
+    S.truckCab = { x: 3.98, y: 2.93, z: -0.56 };
+    S.truck.updateMatrixWorld(true);
+    S.syncTruckBed();
+  };
+
+  /* ---------------- 货车位姿 / 卸料判定 ---------------- */
+  var _tp = new V3(), _tb = new V3(), _tinv = new THREE.Matrix4();
+
+  S.syncTruckBed = function () {
+    var b = S.truckBedLocal;
+    if (!S.truck || !b) return;
+    _tb.set(b.x, 0, b.z).applyMatrix4(S.truck.matrixWorld);
+    S.truckBed.x = _tb.x;
+    S.truckBed.z = _tb.z;
+    S.truckBed.y = b.y;
+  };
+
+  S.setTruckPose = function (x, z, heading) {
+    if (!S.truck) return;
+    S.truck.position.x = x;
+    S.truck.position.z = z;
+    S.truck.rotation.y = heading;
+    S.truck.updateMatrixWorld(true);
+    S.truckPose.x = x; S.truckPose.z = z; S.truckPose.heading = heading;
+    S.syncTruckBed();
+  };
+
+  S.resetTruck = function () {
+    S.setTruckPose(C.scene.truck.x, C.scene.truck.z, 0);
+  };
+
+  /* 落料点是否在车斗内：换算到整车局部坐标，车体转过后判定仍成立 */
+  S.overTruck = function (p) {
+    var b = S.truckBedLocal;
+    if (!S.truck || !b) return false;
+    _tinv.copy(S.truck.matrixWorld).invert();
+    _tp.copy(p).applyMatrix4(_tinv);
+    return Math.abs(_tp.x - b.x) < b.l / 2 - 0.15 &&
+      Math.abs(_tp.z - b.z) < b.w / 2 - 0.15 &&
+      _tp.y >= b.y + 0.11;
   };
 
   /* ---------------- 视角 ---------------- */
@@ -923,6 +978,7 @@
     if (!v) return;
     var previous = S._view;
     if (w.DRIVER) w.DRIVER.setActive(name === 'driver', previous);
+    if (w.TRUCK_DRIVER) w.TRUCK_DRIVER.setActive(name === 'truck', previous);
     if (previous === 'roam' && !v.roam) {
       S.camera.getWorldDirection(roamForward);
       S.controls.target.copy(S.camera.position).addScaledVector(roamForward, 30);
