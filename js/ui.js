@@ -901,7 +901,7 @@
     };
     select.addEventListener('change', function () {
       SCENE.applyView(select.value);
-      if (select.value === 'roam') SCENE.renderer.domElement.focus({ preventScroll: true });
+      if (select.value === 'roam' || select.value === 'driver') SCENE.renderer.domElement.focus({ preventScroll: true });
     });
     SCENE.onViewChange(SCENE._view);
   }
@@ -1201,6 +1201,7 @@
       Math.abs(st.vGrab) > 0.02;
 
     if (over) el.stMode.textContent = '超载报警';
+    else if (w.DRIVER && w.DRIVER.active) el.stMode.textContent = w.DRIVER.emergency ? '司机操作 · 已急停' : '司机操作 · ' + (moving ? '机构运行中' : '待机');
     else if (w.DEMO && w.DEMO.running) el.stMode.textContent = '循环 · ' + w.DEMO.label;
     else el.stMode.textContent = moving ? '机构运行中' : '待机';
     el.stDot.className = 'dot' + (over ? ' over' : (moving ? ' run' : ''));

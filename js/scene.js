@@ -21,6 +21,7 @@
     yard:  { pos: [390, 330, 305], tgt: [0, 0, -170] },
     cab:   { follow: true },
     roam:  { roam: true },
+    driver: { follow: true },
     free:  { orbit: true },
   };
 
@@ -921,6 +922,7 @@
     var v = S.views[name];
     if (!v) return;
     var previous = S._view;
+    if (w.DRIVER) w.DRIVER.setActive(name === 'driver', previous);
     if (previous === 'roam' && !v.roam) {
       S.camera.getWorldDirection(roamForward);
       S.controls.target.copy(S.camera.position).addScaledVector(roamForward, 30);

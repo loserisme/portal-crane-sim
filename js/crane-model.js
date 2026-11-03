@@ -387,11 +387,13 @@
     grabShell.name = 'CAD_抓斗顶部'; jawNeg.name = 'CAD_左颚板'; jawPos.name = 'CAD_右颚板';
     grab.add(grabShell); grab.add(jawNeg); grab.add(jawPos);
 
+    var cabNode = null;
     var children = source.children.slice();
     children.forEach(function (node) {
       var name = node.name || '';
       if (name === '对象076' || isRope(name)) return;
-      if (name === '臂架-动画3') boom.add(node);
+      if (name === '司机室总') cabNode = node;
+      else if (name === '臂架-动画3') boom.add(node);
       else if (name === '臂架动画2') head.add(node);
       else if (name === '臂架动画1') tie.add(node);
       else if (name === '组002') splitRack(node, rackDrive, rackSlider);
@@ -404,6 +406,8 @@
     });
 
     mergeGroup(lower); mergeGroup(upper); mergeGroup(boom);
+    // 独立保留司机室外壳，室内视角使用内饰，避免封闭的 CAD 外壳遮住视线。
+    if (cabNode) { upper.add(cabNode); cabNode.name = 'CAD_司机室外壳'; }
     mergeGroup(head); mergeGroup(tie); mergeGroup(grabShell);
     mergeGroup(jawNeg); mergeGroup(jawPos);
     var cargoMaterial = K.mat.sand.clone();
@@ -451,6 +455,10 @@
       CM.ready = false;
       console.warn('高精度模型加载失败，保留原模型：', err);
     });
+  };
+
+  CM.driverEye = function () {
+    return upperLocal({ x: 7.15, y: 34.55, z: 6.49 });
   };
 
   CM.update = function (st) {

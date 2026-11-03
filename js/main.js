@@ -190,13 +190,17 @@
     /* 倍速只作用于仿真时间轴，相机过渡与界面刷新仍按真实时间 */
     var dtSim = dt * (ST.timeScale || 1);
 
-    DEMO.update(dtSim);
-    if (w.SCRIPT) w.SCRIPT.update(dtSim);
+    var driving = w.DRIVER && w.DRIVER.active;
+    if (driving) w.DRIVER.update();
+    else {
+      DEMO.update(dtSim);
+      if (w.SCRIPT) w.SCRIPT.update(dtSim);
+    }
     KT.updateGrab(dtSim);
     updateUnload(dtSim);
     if (w.TRAIN) w.TRAIN.update();
     if (w.COMP) w.COMP.update();
-    if (w.PY) w.PY.update(dtSim);
+    if (w.PY && !driving) w.PY.update(dtSim);
 
     KT.update(dtSim);
     KT.measure(dtSim);
@@ -209,7 +213,8 @@
 
     SCENE.updateFly(dt);
     SCENE.updateRoam(dt);
-    if (SCENE._view === 'cab') updateHookCam();
+    if (driving) w.DRIVER.updateCamera();
+    else if (SCENE._view === 'cab') updateHookCam();
     else if (SCENE.controls.enabled) SCENE.controls.update();
 
     fpsAcc += dt; fpsFrames++;
@@ -232,6 +237,7 @@
     CRANE.build(SCENE.scene);
     if (w.CRANE_MODEL) w.CRANE_MODEL.load(CRANE);
     UI.init();
+    if (w.DRIVER) w.DRIVER.init();
     if (w.AI) w.AI.init();
 
     /* ---- 部件悬停介绍 ---- */
@@ -251,7 +257,7 @@
     }
 
     stage.addEventListener('mousemove', function (e) {
-      if (SCENE._view === 'roam') {
+      if (SCENE._view === 'roam' || SCENE._view === 'driver') {
         tipEl.classList.add('hidden');
         if (w.UI) w.UI.focusTag(null);
         stage.style.cursor = ''; hovering = false;
@@ -368,6 +374,7 @@
     KT.snap();
     UI.syncSliders();
     CRANE.update(ST);
+    if (w.DRIVER && w.DRIVER.active) { w.DRIVER.center(); w.DRIVER.updateCamera(); }
 
     requestAnimationFrame(loop);
   }

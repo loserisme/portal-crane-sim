@@ -58,6 +58,7 @@
     timeScale: 1,         // 仿真倍速（时间缩放）
     rateMode: false,      // 回转角速度直控（轨迹规划实验用）
     rateCmd: 0,           // 直控角速度 rad/s
+    driverMode: false,
 
     /* showTags：标注常显开关。默认关闭 —— 部件名称只在鼠标悬停到该部件时才出现 */
     showRadius: true, showTrace: false, showTags: false, showGrid: true,
@@ -70,6 +71,30 @@
   var bPrev1 = new V3(), bPrev2 = new V3(), bInit = 0;
   var aFx = 0, aFz = 0;
   var acc = 0;
+  var driverInput = { slew: 0, alpha: 0, hoist: 0, travel: 0, grab: 0 };
+  var driverAxes = Object.keys(driverInput);
+  var driverBounds = {
+    slew: [-Math.PI, Math.PI], alpha: [U.rad(C.upper.alphaMin), U.rad(C.upper.alphaMax)],
+    hoist: [C.hoist.minHeight, C.hoist.maxHeight], travel: [C.travel.min, C.travel.max], grab: [0, 1]
+  };
+
+  KT.drive = function (input) {
+    driverAxes.forEach(function (key) { driverInput[key] = U.clamp(input[key] || 0, -1, 1); });
+  };
+
+  KT.stopDriver = function () {
+    KT.drive({});
+    Object.keys(vel).forEach(function (key) { vel[key] = 0; });
+    ST.rateMode = false; ST.rateCmd = 0;
+    ST.cmd.slew = U.deg(ST.slew); ST.cmd.alpha = U.deg(ST.alpha);
+    ST.cmd.hoist = ST.hoist; ST.cmd.travel = ST.travel; ST.cmd.grab = ST.grabOpen;
+  };
+
+  KT.enableDriver = function (active) {
+    if (active) ST.slew = Math.atan2(Math.sin(ST.slew), Math.cos(ST.slew));
+    KT.stopDriver();
+    ST.driverMode = active;
+  };
 
   var tau = { slew: 1.10, alpha: 0.85, travel: 1.20, hoist: 0.42, grab: 0.30 };
   var VMAX = (function () {
@@ -221,7 +246,7 @@
     /* 开口保持张开时继续流料；闭斗时停止。不能只在开度变化的帧卸料，
        否则到达全开后会残留物料。 */
     var opening = ST.grabOpen > ST.grabPrev + 1e-4;
-    var heldOpen = ST.cmd.grab >= ST.grabOpen - 1e-4;
+    var heldOpen = ST.driverMode ? vel.grab >= -1e-4 && driverInput.grab >= 0 : ST.cmd.grab >= ST.grabOpen - 1e-4;
     if ((opening || heldOpen) && ST.grabOpen > 0.35 && ST.load > 0) {
       ST.releasedLoad = Math.min(ST.load, dt / 0.9);
       ST.load = Math.max(0, ST.load - ST.releasedLoad);
@@ -284,17 +309,28 @@
   };
 
   function substep(h) {
-    if (ST.rateMode) {
-      /* 直控模式：按给定角速度积分，用于复现手动/梯形/S 型/优化 S 型轨迹 */
-      ST.slew += ST.rateCmd * h;
-      vel.slew = ST.rateCmd;
+    if (ST.driverMode) {
+      driverAxes.forEach(function (key) {
+        var stateKey = key === 'grab' ? 'grabOpen' : key;
+        vel[key] = U.smooth(vel[key], driverInput[key] * VMAX[key], tau[key], h);
+        var next = ST[stateKey] + vel[key] * h;
+        ST[stateKey] = U.clamp(next, driverBounds[key][0], driverBounds[key][1]);
+        if (next !== ST[stateKey]) vel[key] = 0;
+        ST.cmd[key] = key === 'slew' || key === 'alpha' ? U.deg(ST[stateKey]) : ST[stateKey];
+      });
     } else {
-      follow('slew', U.rad(ST.cmd.slew), VMAX.slew, tau.slew, h);
+      if (ST.rateMode) {
+        /* 直控模式：按给定角速度积分，用于复现手动/梯形/S 型/优化 S 型轨迹 */
+        ST.slew += ST.rateCmd * h;
+        vel.slew = ST.rateCmd;
+      } else {
+        follow('slew', U.rad(ST.cmd.slew), VMAX.slew, tau.slew, h);
+      }
+      follow('alpha', U.rad(ST.cmd.alpha), VMAX.alpha, tau.alpha, h);
+      follow('travel', ST.cmd.travel, VMAX.travel, tau.travel, h);
+      follow('hoist', ST.cmd.hoist, VMAX.hoist, tau.hoist, h);
+      follow('grab', ST.cmd.grab, VMAX.grab, tau.grab, h, 'grabOpen');
     }
-    follow('alpha', U.rad(ST.cmd.alpha), VMAX.alpha, tau.alpha, h);
-    follow('travel', ST.cmd.travel, VMAX.travel, tau.travel, h);
-    follow('hoist', ST.cmd.hoist, VMAX.hoist, tau.hoist, h);
-    follow('grab', ST.cmd.grab, VMAX.grab, tau.grab, h, 'grabOpen');
 
     var c = solve(ST.alpha);
 
