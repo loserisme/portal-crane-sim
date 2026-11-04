@@ -306,7 +306,7 @@ class App:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--url', default='https://loserisme.github.io/portal-crane-sim/?v=20261103h')
+    parser.add_argument('--url', default='https://loserisme.github.io/portal-crane-sim/?v=20261104a')
     parser.add_argument('--port', type=int, default=8766)
     parser.add_argument('--start', action='store_true')
     parser.add_argument('--self-test', action='store_true')

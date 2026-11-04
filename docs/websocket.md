@@ -1,6 +1,6 @@
 # WebSocket 与本地 Python 控制台
 
-网页中的 **WebSocket** 按钮提供连接入口。WebSocket 与浏览器 Python 共用
+网页右上角 **设置（齿轮）→ WebSocket** 提供连接入口。关闭或最小化设置窗口不会断开连接。WebSocket 与浏览器 Python 共用
 `PY.bridge`，控制同一套门机物理状态、抓取卸料逻辑及对比曲线。
 
 ## 快速开始

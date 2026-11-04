@@ -124,7 +124,7 @@ body{
 #driver-panel #driver-stop{display:none;background:rgba(181,53,43,.8);border-color:#e2786b;font-weight:700;}
 #driver-panel.stopped #driver-stop{display:inline-block;}
 #driver-panel p{display:none;}
-body.driver-mode > :not(#stage):not(#driver-panel){display:none!important;}
+body.driver-mode > :not(#stage):not(#driver-panel):not(#settings-open):not(#settings-panel){display:none!important;}
 @media(max-width:760px){#driver-panel{width:100%;padding:8px 10px calc(8px + env(safe-area-inset-bottom));}.driver-head,.driver-actions{gap:6px;}.driver-head strong{font-size:13px;}}
 
 /* 货车驾驶台：沿用司机操作台的版式 */
@@ -141,7 +141,7 @@ body.driver-mode > :not(#stage):not(#driver-panel){display:none!important;}
 }
 #truck-panel button:focus-visible{outline:2px solid #ffca78;outline-offset:2px;}
 #truck-panel p{display:none;}
-body.truck-mode > :not(#stage):not(#truck-panel){display:none!important;}
+body.truck-mode > :not(#stage):not(#truck-panel):not(#settings-open):not(#settings-panel){display:none!important;}
 @media(max-width:760px){#truck-panel{width:100%;padding:8px 10px calc(8px + env(safe-area-inset-bottom));}}
 
 /* ---------- panels ---------- */

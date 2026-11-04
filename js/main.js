@@ -381,6 +381,7 @@
     UI.syncSliders();
     CRANE.update(ST);
     if (w.DRIVER && w.DRIVER.active) { w.DRIVER.center(); w.DRIVER.updateCamera(); }
+    if (w.SETTINGS) w.SETTINGS.init();
     if (w.WSAPI) w.WSAPI.init();
 
     requestAnimationFrame(loop);

@@ -7,14 +7,15 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致，crane-model.js 用它加载 GLB */
-  window.ASSET_VER = '20261103h';
+  window.ASSET_VER = '20261104a';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261103h').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261104a').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261103h">
+<link rel="stylesheet" href="css/style.css?v=20261104a">
+<link rel="stylesheet" href="css/settings.css?v=20261104a">
 <link rel="icon" href="assets/logo.jpg">
 </head>
 <body>
@@ -53,6 +54,7 @@
     </select>
   </nav>
 </header>
+<button id="settings-open" aria-label="打开设置" title="设置" aria-controls="settings-panel" aria-expanded="false"><svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m10 3-.6 2.2-1.8 1L5.4 6l-2 3.5L5 11v2l-1.6 1.5 2 3.5 2.2-.2 1.8 1 .6 2.2h4l.6-2.2 1.8-1 2.2.2 2-3.5L19 13v-2l1.6-1.5-2-3.5-2.2.2-1.8-1L14 3z"/><circle cx="12" cy="12" r="3.2"/></svg></button>
 <div id="roam-help" class="hidden" role="status">点击场景后：拖动观察 · WASD 移动 · Q / E 降低 / 升高 · Shift 加速 · Esc 退出</div>
 <section id="driver-panel" class="hidden" aria-label="司机操作台">
   <div class="driver-head">
@@ -123,13 +125,12 @@
     <div class="btnrow3">
       <button id="code-open">&lt;/&gt; 脚本</button>
       <button id="py-open">Python</button>
-      <button id="ws-open">WebSocket</button>
     </div>
     <button id="ai-open" class="widebtn aiwide">AI 控制</button>
   </section>
 
-  <section>
-    <h2>仿真设置</h2>
+  <section id="settings-basic" class="hidden">
+    <h2>仿真与显示</h2>
 
     <div class="row">
       <span class="row-label">仿真倍速</span>
@@ -308,8 +309,39 @@
   <div id="chart-eval" class="hidden"></div>
 </div>
 
+<section id="settings-panel" class="hidden" role="dialog" aria-labelledby="settings-title" aria-modal="false">
+  <div id="settings-head" tabindex="0" title="拖动移动窗口；方向键微调位置">
+    <div><strong id="settings-title">设置</strong><small>拖动标题栏移动</small></div>
+    <div class="settings-window-actions"><button id="settings-minimize" aria-label="最小化设置" title="最小化" aria-expanded="true">−</button><button id="settings-close" aria-label="关闭设置" title="关闭">×</button></div>
+  </div>
+  <div id="settings-content">
+    <div class="settings-tabs" role="tablist" aria-label="设置分类">
+      <button id="settings-tab-basic" role="tab" data-settings-tab="basic" aria-controls="settings-page-basic" aria-selected="true">基本参数</button>
+      <button id="settings-tab-connection" role="tab" data-settings-tab="connection" aria-controls="settings-page-connection" aria-selected="false" tabindex="-1">WebSocket</button>
+      <button id="settings-tab-help" role="tab" data-settings-tab="help" aria-controls="settings-page-help" aria-selected="false" tabindex="-1">使用说明</button>
+    </div>
+    <div class="settings-pages">
+      <section id="settings-page-basic" role="tabpanel" aria-labelledby="settings-tab-basic">
+        <p class="settings-intro">调整仿真运行与画面显示，修改后立即生效。</p><div id="settings-basic-host"></div>
+        <label class="settings-opacity" for="settings-opacity">设置窗口不透明度 <output id="settings-opacity-value">96%</output><input id="settings-opacity" type="range" min="40" max="100" value="96" step="1"></label>
+        <button id="settings-defaults" class="settings-secondary">恢复默认配置</button>
+      </section>
+      <section id="settings-page-connection" role="tabpanel" aria-labelledby="settings-tab-connection" class="hidden"><div id="settings-connection-host"></div></section>
+      <section id="settings-page-help" role="tabpanel" aria-labelledby="settings-tab-help" class="hidden">
+        <h3>观察场景</h3><p>左键拖动旋转，滚轮缩放，右键平移。右上角视角菜单可切换轴测、侧视、俯视、港区全景等视角。悬停部件可查看结构说明。</p>
+        <h3>操控门机</h3><p>左侧滑杆控制回转、变幅、起升、抓斗和大车行走。“作业循环”演示船舱抓料与卡车卸料；“复位”恢复初始作业状态。</p>
+        <h3>司机操作与漫游</h3><dl><dt>司机模式</dt><dd>A / D 回转，W / S 变幅，↑ / ↓ 起升，J / K 闭斗 / 开斗，Z / X 大车行走，空格急停，Esc 退出。</dd><dt>货车驾驶</dt><dd>W / S 加速与倒车，A / D 转向，空格制动，R 返回卸料位，Esc 退出。</dd><dt>自由漫游</dt><dd>点击场景后，WASD 移动、Q / E 降低 / 升高，拖动观察，Shift 加速，Esc 退出。</dd></dl>
+        <h3>Python 与远程控制</h3><p>左侧 Python 面板支持 setup() / control(dt) 算法；本地 Python GUI 可通过 WebSocket 页签连接，读取状态并控制门机。回转角单位为度，Python 返回的摆角单位为弧度。</p>
+        <h3>使用设置窗口</h3><p>拖动标题栏移动；标题栏获得焦点后可用方向键微调。点击“−”最小化，“＋”还原；“×”或 Esc 关闭。右上角齿轮可重新打开。关闭或最小化不会断开连接，停止远程控制请使用 WebSocket 页签中的按钮。</p>
+        <a href="docs/websocket.md" target="_blank" rel="noopener">查看完整 WebSocket / Python 使用文档 ↗</a>
+      </section>
+    </div>
+    <div class="settings-footer">配置即时生效 · 关闭窗口后保留当前配置</div>
+  </div>
+</section>
+
 <section id="ws-panel" class="hidden" aria-label="WebSocket 远程控制">
-  <div class="code-head"><strong>WebSocket · Python 远程控制</strong><button id="ws-close" class="iconbtn" aria-label="关闭连接面板">×</button></div>
+  <h3>连接本地 Python 控制台</h3>
   <p>启动本地 Python 控制台后连接。支持状态读取、机构控制、算法及对比曲线。</p>
   <form id="ws-form">
     <label>服务地址<input id="ws-url" value="ws://127.0.0.1:8766" required autocomplete="off"></label>
@@ -334,31 +366,32 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261103h"></script>
-<script src="lib/OrbitControls.js?v=20261103h"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261103h"></script>
-<script src="lib/DRACOLoader.js?v=20261103h"></script>
-<script src="lib/GLTFLoader.js?v=20261103h"></script>
-<script src="js/config.js?v=20261103h"></script>
-<script src="js/util.js?v=20261103h"></script>
-<script src="js/scene.js?v=20261103h"></script>
-<script src="js/environment-hd.js?v=20261103h"></script>
-<script src="js/environment-port.js?v=20261103h"></script>
-<script src="js/crane.js?v=20261103h"></script>
-<script src="js/crane-model.js?v=20261103h"></script>
-<script src="js/kinematics.js?v=20261103h"></script>
-<script src="js/script.js?v=20261103h"></script>
-<script src="js/ai.js?v=20261103h"></script>
-<script src="js/python.js?v=20261103h"></script>
-<script src="js/stats.js?v=20261103h"></script>
-<script src="js/report-docx.js?v=20261103h"></script>
-<script src="js/train.js?v=20261103h"></script>
-<script src="js/comprehensive.js?v=20261103h"></script>
-<script src="js/ui.js?v=20261103h"></script>
-<script src="js/dock.js?v=20261103h"></script>
-<script src="js/driver.js?v=20261103h"></script>
-<script src="js/truck-driver.js?v=20261103h"></script>
-<script src="js/websocket.js?v=20261103h"></script>
-<script src="js/main.js?v=20261103h"></script>
+<script src="lib/three.min.js?v=20261104a"></script>
+<script src="lib/OrbitControls.js?v=20261104a"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261104a"></script>
+<script src="lib/DRACOLoader.js?v=20261104a"></script>
+<script src="lib/GLTFLoader.js?v=20261104a"></script>
+<script src="js/config.js?v=20261104a"></script>
+<script src="js/util.js?v=20261104a"></script>
+<script src="js/scene.js?v=20261104a"></script>
+<script src="js/environment-hd.js?v=20261104a"></script>
+<script src="js/environment-port.js?v=20261104a"></script>
+<script src="js/crane.js?v=20261104a"></script>
+<script src="js/crane-model.js?v=20261104a"></script>
+<script src="js/kinematics.js?v=20261104a"></script>
+<script src="js/script.js?v=20261104a"></script>
+<script src="js/ai.js?v=20261104a"></script>
+<script src="js/python.js?v=20261104a"></script>
+<script src="js/stats.js?v=20261104a"></script>
+<script src="js/report-docx.js?v=20261104a"></script>
+<script src="js/train.js?v=20261104a"></script>
+<script src="js/comprehensive.js?v=20261104a"></script>
+<script src="js/ui.js?v=20261104a"></script>
+<script src="js/dock.js?v=20261104a"></script>
+<script src="js/driver.js?v=20261104a"></script>
+<script src="js/truck-driver.js?v=20261104a"></script>
+<script src="js/websocket.js?v=20261104a"></script>
+<script src="js/settings.js?v=20261104a"></script>
+<script src="js/main.js?v=20261104a"></script>
 </body>
 </html>

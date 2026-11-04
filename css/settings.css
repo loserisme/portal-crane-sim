@@ -1,0 +1,46 @@
+/* Settings chrome stays accessible in driver modes without restoring other HUDs. */
+#views{margin-right:48px}
+#settings-open{position:fixed;right:20px;top:16px;z-index:110;width:40px;height:40px;display:grid;place-items:center;color:#30485c;background:rgba(250,253,255,.95);border:1px solid #ccd8e2;border-radius:10px;box-shadow:0 4px 16px #172e4014;cursor:pointer}
+#settings-open:hover,#settings-open[aria-expanded=true]{color:#176d83;background:#e9f5f7;border-color:#88b7c2}
+#settings-panel{--settings-alpha:.96;position:fixed;top:78px;right:24px;z-index:120;width:min(520px,calc(100vw - 16px));max-height:calc(100dvh - 16px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #bccddc;border-radius:14px;background:rgba(248,251,254,var(--settings-alpha));color:#243c50;box-shadow:0 18px 60px #132d4840;font:13px/1.65 'Microsoft YaHei',system-ui,sans-serif}
+#settings-panel.hidden,#settings-panel .hidden{display:none!important}
+#settings-panel button,#settings-panel input{font:inherit}
+#settings-panel button{cursor:pointer}
+#settings-panel button:focus-visible,#settings-panel input:focus-visible,#settings-head:focus-visible,#settings-open:focus-visible{outline:2px solid #2e91a6;outline-offset:2px}
+#settings-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;padding:14px 18px;border-bottom:1px solid #dbe5ec;cursor:move;user-select:none;touch-action:none}
+#settings-head strong{font-size:16px;letter-spacing:.03em}
+#settings-head small{display:block;color:#788b9a;font-size:10px}
+.settings-window-actions{display:flex;gap:5px}
+.settings-window-actions button{display:grid;place-items:center;border:0;border-radius:7px;color:#60788b;background:transparent;width:32px;height:32px;font-size:22px!important;line-height:1}
+.settings-window-actions button:hover{background:#dcebf1;color:#1c596d}
+#settings-close:hover{background:#f9e4e2;color:#a23d32}
+#settings-content{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.settings-tabs{display:flex;gap:5px;padding:12px 18px 0;flex-shrink:0}
+.settings-tabs button{flex:1;padding:8px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:#708596;white-space:nowrap}
+.settings-tabs button[aria-selected=true]{color:#176d83;background:#e3f1f4;border-color:#bfdee6;font-weight:600}
+.settings-tabs button:hover{background:#eaf1f6}
+.settings-pages{overflow:auto;overscroll-behavior:contain;padding:16px 22px 20px;min-height:0}
+.settings-pages h2,.settings-pages h3{font-size:13px;color:#294d66;margin:4px 0 10px;font-weight:650}
+.settings-pages h3:not(:first-child){margin-top:22px}
+.settings-pages p{margin:6px 0 14px;line-height:1.8}
+.settings-intro{font-size:12px;color:#78909e}
+#settings-basic .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 0;border-bottom:1px solid #dfe7ee;margin:0}
+#settings-basic .row-label{font-size:12px;flex:none;color:#4d677a}
+#settings-basic .chips{justify-content:flex-end;flex-wrap:wrap}
+.settings-opacity{display:block;margin:18px 0;color:#4d677a;font-size:12px}
+.settings-opacity output{float:right;color:#16748b}
+#settings-opacity{width:100%;display:block;margin:12px 0;accent-color:#27879d}
+.settings-secondary{background:#fff8;border:1px solid #c7d6df;color:#4a6d81;padding:7px 12px;border-radius:7px}
+.settings-footer{padding:10px 18px;border-top:1px solid #dfe7ee;color:#7e929f;font-size:10px;flex-shrink:0}
+#settings-panel.settings-minimized{width:min(300px,calc(100vw - 16px))}
+#settings-panel.settings-minimized #settings-head{border-bottom:0;padding:9px 14px}
+#settings-panel.settings-minimized #settings-head small{display:none}
+#settings-panel #ws-panel{position:static;width:auto;max-height:none;overflow:visible;padding:0;background:none;border:0;box-shadow:none;border-radius:0;color:inherit;font:inherit}
+#settings-panel #ws-panel .btnrow{flex-wrap:wrap}
+#settings-panel #ws-panel .btnrow button{min-height:34px}
+#settings-panel #ws-panel input{background:#ffffffad}
+#settings-page-help dt{font-weight:600;margin-top:12px;color:#355e77}
+#settings-page-help dd{margin:4px 0 12px;color:#667f90;font-size:12px;line-height:1.9}
+#settings-page-help a{color:#176e8d;font-size:12px}
+@media(max-width:900px){#topbar{flex-wrap:wrap;gap:10px;right:70px}#views{margin-right:0;flex-wrap:wrap}#settings-open{right:16px}#settings-panel{top:70px}.settings-pages{padding:14px 16px}#settings-head{padding:12px 14px}}
+@media(max-width:480px){#topbar{left:12px}.brandtxt h1{font-size:11px;white-space:normal}.brandtxt p{display:none}.logo{width:34px;height:34px}.brand{gap:7px}.views button{padding:6px;font-size:10px}.views select{font-size:11px;max-width:160px}#settings-basic .seg button{padding:5px 8px}.settings-tabs{padding:10px 10px 0}.settings-tabs button{padding:8px 4px;font-size:12px}}

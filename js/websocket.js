@@ -125,8 +125,6 @@
     }
   };
   api.init = function () {
-    $('ws-open').addEventListener('click', function () { $('ws-panel').classList.toggle('hidden'); });
-    $('ws-close').addEventListener('click', function () { $('ws-panel').classList.add('hidden'); });
     $('ws-form').addEventListener('submit', function (e) { e.preventDefault(); api.connect($('ws-url').value.trim(), $('ws-token').value.trim()); });
     $('ws-disconnect').addEventListener('click', function () { api.disconnect(); });
     $('ws-release').addEventListener('click', function () { api.release('网页停止远程控制'); });
@@ -139,7 +137,7 @@
       var url = fragment.get('ws'), token = fragment.get('token') || '';
       fragment.delete('ws'); fragment.delete('token');
       history.replaceState(null, '', location.pathname + location.search + (fragment.toString() ? '#' + fragment : ''));
-      $('ws-url').value = url; $('ws-token').value = token; $('ws-panel').classList.remove('hidden'); api.connect(url, token);
+      $('ws-url').value = url; $('ws-token').value = token; w.SETTINGS.open('connection'); api.connect(url, token);
     }
   };
   w.WSAPI = api;
