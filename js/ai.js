@@ -111,7 +111,7 @@
       type: 'function',
       function: {
         name: 'write_script',
-        description: '把行式指令脚本写入「脚本」页（不自动运行）。每行一条：回转/变幅/起升/抓斗/行走/装载/等待/速度/复位。',
+        description: '把行式指令脚本写入「脚本操作」页（不自动运行）。每行一条：回转/变幅/起升/抓斗/行走/装载/等待/速度/复位。',
         parameters: {
           type: 'object',
           properties: {
@@ -126,7 +126,7 @@
       type: 'function',
       function: {
         name: 'write_python',
-        description: '把 Python 控制程序写入「Python」页（不自动运行）。必须定义 control(dt) 作为每帧回调，可选 setup()。'
+        description: '把 Python 算法程序写入「算法设计」页（不自动运行）。必须定义 control(dt) 作为每帧回调，可选 setup()。'
           + '可用接口：crane.status() 返回 dict，字段有 slew(回转角°)/alpha(臂架角°)/radius(幅度m)/hoist(起升m)/grab(开度0~1)/load(填充率0~1)/holdLevel(料面m)/holdRemain(舱内余料0~1)/swayX/swayZ(两向摆角,弧度)/swayVX/swayVZ(摆角速度)/swayMag(合成摆角,弧度)/travel(大车m)/grabPos{x,y,z}；'
           + 'crane.slew(deg)/radius(m)/hoist(m)/grab(0~1)/travel(m)/speed(倍速)/snap()/reset()/log(...)/plot(keys)/plot_compare(keys)/mark(name)/clear_plot()。',
         parameters: {
@@ -181,7 +181,7 @@
         return '已写入脚本页（未运行）';
       }
       if (name === 'write_python') {
-        if (!w.UI || !w.UI.setPyCode) return 'Python 面板不可用';
+        if (!w.UI || !w.UI.setPyCode) return '算法设计面板不可用';
         w.UI.setPyCode(args.code);
         if (args.run && w.PY) {
           w.PY.run(args.code);
@@ -423,8 +423,8 @@
       AI.msgs.push({
         role: 'assistant',
         content: AI.cfg.key
-          ? '你好，我可以直接操作这台门机，也能给你写控制程序。试试：「把抓斗转到船上抓一斗再卸到卡车上」，或者「写一段防摇摆的 Python 控制」。'
-          : '你好。先点右上角齿轮填入 API Key（默认 DeepSeek），之后我就能帮你操作门机、编写脚本或 Python 控制程序。Key 只存在本机浏览器里。',
+          ? '你好，我可以直接操作这台门机，也能给你写控制程序。试试：「把抓斗转到船上抓一斗再卸到卡车上」，或者「写一段防摇摆的算法设计」。'
+          : '你好。先点右上角齿轮填入 API Key（默认 DeepSeek），之后我就能帮你操作门机、编写脚本或算法设计程序。Key 只存在本机浏览器里。',
       });
       render();
     }

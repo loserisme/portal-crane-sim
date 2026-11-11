@@ -462,7 +462,7 @@
     box.classList.remove('hidden');
 
     if (!summary) {
-      box.innerHTML = '<span class="ev-title">AI 评估</span>还没有采集到数据，先运行一段 Python 控制程序。';
+      box.innerHTML = '<span class="ev-title">AI 评估</span>还没有采集到数据，先运行一段算法设计程序。';
       return;
     }
     if (!w.AI || !w.AI.cfg || !w.AI.cfg.key) {
@@ -490,7 +490,7 @@
     });
   };
 
-  /* ---------------- Python 控制面板 ---------------- */
+  /* ---------------- 算法设计面板 ---------------- */
   function bindPython() {
     var panel = document.getElementById('py-panel');
     var ta = document.getElementById('py-text');
@@ -831,7 +831,7 @@
     render();
   }
 
-  /* ---------------- 脚本控制面板 ---------------- */
+  /* ---------------- 脚本操作面板 ---------------- */
   function bindScript() {
     var panel = document.getElementById('code-panel');
     var ta = document.getElementById('code-text');

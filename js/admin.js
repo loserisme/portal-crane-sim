@@ -7,7 +7,7 @@
   var fmt = function (n) { return n == null ? '—' : Number(n).toLocaleString('zh-CN'); };
   var dateText = function (s) { var d = new Date(s); return s && Number.isFinite(+d) ? d.toLocaleString('zh-CN', { hour12: false }) : '—'; };
   var title = { overview: '统计概览', visits: '访问记录', scores: '实训成绩' };
-  var features = { script: '脚本控制', python: 'Python 控制', ai: 'AI 控制', ai_eval: 'AI 评估', train: '实训面板', report: '生成报告', hover: '结构悬停', docx: '实训 Word 导出', comp: '综合实验', comp_docx: '综合实验 Word 导出' };
+  var features = { script: '脚本操作', python: '算法设计', ai: 'AI 控制', ai_eval: 'AI 评估', train: '实训面板', report: '生成报告', hover: '结构悬停', docx: '实训 Word 导出', comp: '综合实验', comp_docx: '综合实验 Word 导出' };
   var state = { logged: false, tab: 'overview', from: null, to: null, job: null, timer: null, ip: true };
   var tables = { visits: { rows: [], page: 0, size: 20, query: '', total: null, valid: false }, scores: { rows: [], page: 0, size: 20, query: '', total: null, valid: false } };
   var geos = new Map(), geoJobs = new Map();
