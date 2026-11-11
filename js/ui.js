@@ -831,7 +831,7 @@
     render();
   }
 
-  /* ---------------- 脚本操作面板 ---------------- */
+  /* ---------------- 动作编程面板 ---------------- */
   function bindScript() {
     var panel = document.getElementById('code-panel');
     var ta = document.getElementById('code-text');

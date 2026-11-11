@@ -111,7 +111,7 @@
       type: 'function',
       function: {
         name: 'write_script',
-        description: '把行式指令脚本写入「脚本操作」页（不自动运行）。每行一条：回转/变幅/起升/抓斗/行走/装载/等待/速度/复位。',
+        description: '把行式指令脚本写入「动作编程」页（不自动运行）。每行一条：回转/变幅/起升/抓斗/行走/装载/等待/速度/复位。',
         parameters: {
           type: 'object',
           properties: {

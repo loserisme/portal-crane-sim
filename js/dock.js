@@ -1,8 +1,8 @@
 /* =============================================================
  * dock.js — 左右侧栏停靠
  *
- *  · 自动收起：鼠标离开面板约 1.2 s 后滑向屏幕侧边，只留一条拉手
- *  · 边缘滑出：鼠标碰到屏幕左右边缘立即滑出，点击拉手也可展开
+ *  · 自动收起：鼠标离开面板约 0.7 s 后滑向屏幕侧边，只留一条拉手
+ *  · 边缘滑出：鼠标碰到屏幕左右边缘（或拉手）立即滑出
  *  · 手动固定：面板顶部的「固定」按钮，锁定后不再自动收起
  *    （状态存 localStorage，刷新后保持）
  *  · 也可以点「收起」立即收进侧边
@@ -11,10 +11,10 @@
   'use strict';
 
   var KEY = 'pcrane.dock.v1';
-  var HIDE_DELAY = 1200;
+  var HIDE_DELAY = 700;
 
   var S = {
-    pinned: { left: true, right: false },
+    pinned: { left: false, right: false },
     tucked: { left: false, right: false },
     timer: { left: 0, right: 0 },
     onEdge: { left: false, right: false },
@@ -49,10 +49,10 @@
 
     var tab = $('dock-tab-' + side);
     if (tab) {
-      tab.textContent = side === 'left' ? '操控' : '状态';
+      tab.textContent = S.tucked[side]
+        ? (side === 'left' ? '›' : '‹')
+        : (side === 'left' ? '‹' : '›');
       tab.title = S.tucked[side] ? '展开面板' : '收起面板';
-      tab.setAttribute('aria-expanded', String(!S.tucked[side]));
-      tab.setAttribute('aria-label', (S.tucked[side] ? '展开' : '收起') + (side === 'left' ? '操控面板' : '状态面板'));
     }
 
     var pin = $('dock-pin-' + side);
@@ -67,7 +67,6 @@
       try { p.inert = S.tucked[side]; } catch (e) {}
       p.setAttribute('aria-hidden', S.tucked[side] ? 'true' : 'false');
     }
-    w.dispatchEvent(new Event('dockchange'));
   }
 
   /* ---------------- 动作 ---------------- */
@@ -98,12 +97,15 @@
     if (S.drag) return true;
     var a = document.activeElement;
     if (!a || !panels[side].contains(a)) return false;
-    return true; // Keep all focused controls available to keyboard users.
+    var tag = (a.tagName || '').toLowerCase();
+    if (tag === 'textarea' || tag === 'select') return true;
+    if (tag === 'input' && /^(text|number|search|email|password)$/i.test(a.type || 'text')) return true;
+    return false;
   }
 
   function scheduleHide(side) {
     clearTimeout(S.timer[side]);
-    if (S.pinned[side] || smallScreen()) return;
+    if (S.pinned[side]) return;
     S.timer[side] = setTimeout(function () {
       if (!busy(side) && !S.onEdge[side]) tuck(side);
     }, HIDE_DELAY);
@@ -115,7 +117,6 @@
     var head = document.createElement('div');
     head.className = 'dock-head';
     head.innerHTML =
-      '<strong>' + (side === 'left' ? '机构操控' : '实时状态') + '</strong>' +
       '<button class="dock-btn" id="dock-pin-' + side + '">固定</button>' +
       '<button class="dock-btn" id="dock-collapse-' + side + '">收起</button>';
     p.insertBefore(head, p.firstChild);
@@ -141,14 +142,12 @@
       edge.id = 'dock-edge-' + side;
       document.body.appendChild(edge);
 
-      var tab = document.createElement('button');
-      tab.type = 'button';
-      tab.setAttribute('aria-controls', 'panel-' + side);
+      var tab = document.createElement('div');
       tab.className = 'dock-tab';
       tab.id = 'dock-tab-' + side;
       document.body.appendChild(tab);
 
-      tab.addEventListener('mouseenter', function () { S.onEdge[side] = true; });
+      tab.addEventListener('mouseenter', function () { S.onEdge[side] = true; untuck(side); });
       tab.addEventListener('mouseleave', function () { S.onEdge[side] = false; scheduleHide(side); });
       tab.addEventListener('click', function () {
         if (S.tucked[side]) untuck(side);
@@ -189,6 +188,7 @@
     ['left', 'right'].forEach(function (side) {
       injectHead(side);
       bindPanel(side);
+      if (smallScreen()) S.pinned[side] = true;
       render(side);
     });
     buildChrome();

@@ -223,7 +223,7 @@
       stage: 'C',
       title: '连续作业（3 斗）',
       goal: '继续完成装卸循环，让卡车累计再装 3 斗，体会作业节拍。',
-      hint: '可以手动操作，也可以切到「脚本操作」用程序跑。抓取 → 起升 → 回转 → 卸料，注意路径安全。',
+      hint: '可以手动操作，也可以切到「动作编程」用程序跑。抓取 → 起升 → 回转 → 卸料，注意路径安全。',
       init: function () { this.t0 = (w.DEMO ? w.DEMO.truckLoad : 0); this.t0s = Date.now(); },
       check: function () {
         var truck = w.DEMO ? w.DEMO.truckLoad : 0;
@@ -241,8 +241,8 @@
     /* ---- 阶段四 · 程序控制 ---- */
     {
       stage: 'D',
-      title: '脚本操作入门',
-      goal: '打开「脚本操作」面板，直接运行内置示例脚本，观察门机按指令序列自动作业。',
+      title: '动作编程入门',
+      goal: '打开「动作编程」面板，直接运行内置示例脚本，观察门机按指令序列自动作业。',
       hint: '脚本按行执行：回转/变幅/起升/抓斗 指令 + 目标值。运行前确认抓斗在舱内上方。',
       init: function () { this.doneN = 0; },
       onScript: function (info) { if (info.event === 'done') this.doneN = (this.doneN || 0) + 1; },
