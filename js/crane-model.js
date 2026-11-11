@@ -489,7 +489,8 @@
     draco.setWorkerLimit(2);
     var loader = new THREE.GLTFLoader();
     loader.setDRACOLoader(draco);
-    loader.load('assets/models/portal-crane.glb?v=' + (window.ASSET_VER || '20261102a'), function (gltf) {
+    /* 模型缓存键用独立的 MODEL_VER：仅 GLB 内容变化时递增，界面代码改版不影响模型缓存 */
+    loader.load('assets/models/portal-crane.glb?v=' + (window.MODEL_VER || window.ASSET_VER || '20261102a'), function (gltf) {
       try {
         setup(K, gltf.scene);
         draco.dispose();
