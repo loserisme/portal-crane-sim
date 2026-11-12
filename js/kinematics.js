@@ -362,8 +362,9 @@
     if (ST.swayOn) {
       var w2 = G / Math.max(l, 2.0);
       var damp = 2 * C.sway.damping * Math.sqrt(w2);
-      ST.thvx += (-w2 * ST.thx - damp * ST.thvx - aFx / l) * h;
-      ST.thvz += (-w2 * ST.thz - damp * ST.thvz - aFz / l) * h;
+      var wind = w.WEATHER ? w.WEATHER.acceleration() : { x: 0, z: 0 };
+      ST.thvx += (-w2 * ST.thx - damp * ST.thvx + (wind.x - aFx) / l) * h;
+      ST.thvz += (-w2 * ST.thz - damp * ST.thvz + (wind.z - aFz) / l) * h;
       ST.thx += ST.thvx * h;
       ST.thz += ST.thvz * h;
       var lim = C.sway.maxAngle;

@@ -180,6 +180,7 @@
     dome.frustumCulled = false;
     dome.renderOrder = -2;
     scene.add(dome);
+    HD.sky = sh;
 
     var sunTex = tex(128, function (g, s) {
       var gr = g.createRadialGradient(s / 2, s / 2, 2, s / 2, s / 2, s / 2);
@@ -194,6 +195,7 @@
     }));
     sun.position.set(230, 185, 260); sun.scale.set(70, 70, 1);
     scene.add(sun);
+    HD.sunSprite = sun;
 
     var cloudTex = tex(256, function (g, s) {
       g.clearRect(0, 0, s, s);
@@ -208,12 +210,14 @@
       }
     }, 1, 1, false);
     var cloudMat = new THREE.SpriteMaterial({ map: cloudTex, transparent: true, depthWrite: false, opacity: 0.7 });
+    HD.clouds = [];
     var cloudPos = [[-210, 80, 180], [50, 92, 210], [180, 76, 120], [-90, 70, 120], [150, 88, -60], [-180, 96, -100]];
     cloudPos.forEach(function (p, i) {
       var sp = new THREE.Sprite(cloudMat.clone());
       sp.position.set(p[0] * 3, p[1] + 300, p[2] * 3);
       sp.scale.set(80 + i * 9, 26 + i * 3, 1);
       sp.material.opacity = 0.33 + (i % 3) * 0.09;
+      HD.clouds.push(sp);
       scene.add(sp);
     });
 
@@ -701,6 +705,7 @@
 
   S._environmentHD = function (scene) {
     materials();
+    HD.concrete = M.concrete;
     sky(scene);
     water(scene);
     quay(scene);

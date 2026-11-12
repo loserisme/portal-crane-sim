@@ -95,7 +95,8 @@
 
   S._lights = function () {
     var scene = S.scene;
-    scene.add(new THREE.HemisphereLight(0xeef5fd, 0x9aa7b4, 0.46));
+    S.hemisphere = new THREE.HemisphereLight(0xeef5fd, 0x9aa7b4, 0.46);
+    scene.add(S.hemisphere);
 
     var sun = new THREE.DirectionalLight(0xfff3e2, 1.48);
     sun.position.set(58, 76, 46);
@@ -115,10 +116,12 @@
     var fill = new THREE.DirectionalLight(0xcfe2f5, 0.24);
     fill.position.set(-50, 28, -38);
     scene.add(fill);
+    S.fill = fill;
 
     var rim = new THREE.DirectionalLight(0xffffff, 0.16);
     rim.position.set(-12, 20, 64);
     scene.add(rim);
+    S.rim = rim;
   };
 
   /* ---------------- 码头环境 ---------------- */
@@ -1191,8 +1194,10 @@
   };
 
   S.render = function () {
+    if (w.WEATHER) w.WEATHER.update();
     if (S._hdTick) S._hdTick(performance.now() * 0.001);
     S.renderer.render(S.scene, S.camera);
+    if (w.DRIVER_CAB) w.DRIVER_CAB.renderMonitors();
   };
 
   w.SCENE = S;

@@ -1,0 +1,41 @@
+/* Driver additions stay out of the central operating sight line. */
+body.driver-mode>#driver-monitors{display:flex!important}
+body.driver-mode>#driver-monitors.hidden{display:none!important}
+#driver-panel{width:min(1100px,calc(100vw - 24px));background:rgba(16,28,39,.55)}
+#driver-panel #driver-stop{display:inline-block}
+#driver-weather{font:11px var(--mono);color:#b1dce9;margin-top:5px;text-align:right}
+#cab-controls{display:none;align-items:center;justify-content:space-between;gap:16px;padding-top:10px}
+#driver-panel.cab-expanded #cab-controls{display:flex}
+.cab-stick-block{text-align:center;font-size:11px;color:#c0d4df;flex:0 0 114px}
+.cab-pad{width:106px;height:106px;margin:7px auto 0;border-radius:50%;background:radial-gradient(circle,#526779 0,#263848 37%,#0e1b26 65%);border:2px solid #688499;position:relative;touch-action:none;user-select:none;box-shadow:inset 0 0 16px #0009}
+.cab-pad:before,.cab-pad:after{content:'';position:absolute;background:#8ea6b433;left:12%;right:12%;top:50%;height:1px}
+.cab-pad:after{top:12%;bottom:12%;left:50%;width:1px;height:auto}
+.cab-pad i{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#a8bdcc,#3a5264);border:2px solid #b4cbd9;box-shadow:0 5px 10px #000b;z-index:2;pointer-events:none}
+.cab-pad b{position:absolute;top:5px;left:0;right:0;font:9px sans-serif;color:#b1c9d6;pointer-events:none}.cab-pad small{position:absolute;bottom:6px;left:-4px;right:-4px;font:9px sans-serif;pointer-events:none}
+.cab-switches{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;max-width:650px}
+#driver-panel .cab-switches button{font-size:11px;padding:6px 9px}
+.cab-switches button[aria-pressed=true]{border-color:#5db5bd!important;background:#23646d99!important}
+.cab-switches>span{flex-basis:100%;text-align:center;font-size:10px;line-height:1.7;color:#abc1ce}
+.cab-travel{display:flex;gap:8px}
+#driver-monitors{position:fixed;z-index:24;right:16px;top:70px;width:230px;display:none;flex-direction:column;gap:7px;max-height:calc(100dvh - 205px);overflow:auto;scrollbar-width:thin}
+.monitor-title{color:#bed8e8;font:10px var(--mono);text-shadow:0 1px 3px #000;background:#102434cc;padding:6px 9px;border-radius:7px}
+.monitor-card{position:relative;border:1px solid #7595a7;border-radius:8px;background:#152330;overflow:hidden;flex-shrink:0}
+.monitor-card canvas{display:block;width:100%;aspect-ratio:360/202}
+.monitor-card select{position:absolute;left:5px;top:5px;max-width:calc(100% - 10px);background:#0c2036cf;border:1px solid #7998ae66;border-radius:5px;color:#e5f4fc;font-size:10px;padding:3px 5px}
+.monitor-card select option{background:#172b3b}
+.weather-config{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;border:1px solid #ccdae5;border-radius:10px;margin-top:16px}
+.weather-config legend{padding:0 6px;font-weight:600;color:#29576f}
+.weather-config label{display:flex;flex-direction:column;gap:5px;font-size:12px}
+.weather-config select,.weather-config input[type=number]{width:100%;min-width:0;padding:7px;border:1px solid #bacdda;border-radius:6px;background:white;color:#203d50}
+.weather-config .weather-force{grid-column:1/-1;flex-direction:row;align-items:center}.weather-config small{grid-column:1/-1;color:#708394;font-size:11px;line-height:1.6}
+#weather-overview{font-size:10px;white-space:nowrap;overflow:hidden;max-width:calc(100vw - 150px)}
+@media(max-width:760px){
+ #driver-monitors{top:8px;left:8px;right:62px;width:auto;max-height:none;flex-direction:row;gap:4px;overflow:visible}
+ .monitor-title{display:none}.monitor-card{flex:1;min-width:0}.monitor-card select{font-size:9px;left:2px;top:2px;padding:1px;width:calc(100% - 4px)}
+ #driver-panel{width:100%;padding:8px}.driver-head strong{font-size:12px}.driver-actions{gap:5px}
+ #driver-panel .driver-actions button,#driver-panel select{font-size:10px;padding:5px 6px}
+ .driver-instruments{font-size:10px;margin-top:5px}#driver-weather{font-size:9px}#cab-controls{gap:4px}
+ .cab-stick-block{flex-basis:83px;font-size:9px}.cab-pad{width:78px;height:78px}.cab-pad i{width:26px;height:26px}
+ #driver-panel .cab-switches button{font-size:9px;padding:4px 5px}.cab-switches{gap:4px}.cab-switches>span{font-size:8px}.cab-pad small{font-size:7px}.cab-pad b{font-size:8px}
+}
+@media(max-height:520px){#driver-monitors{width:170px;max-height:calc(100dvh - 90px)}#driver-panel.cab-expanded{max-height:65dvh;overflow:auto}}

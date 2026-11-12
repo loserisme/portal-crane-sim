@@ -18,6 +18,7 @@
 
   function clearInput() {
     keys = {}; pointers = {}; drag = null;
+    if (w.DRIVER_CAB) w.DRIVER_CAB.release();
     if (buttons) buttons.forEach(function (b) { b.classList.remove('held'); });
     if (D.active) w.KT.stopDriver();
   }
@@ -41,6 +42,9 @@
   };
 
   function buildInterior() {
+    if (w.DRIVER_CAB) {
+      interior = w.DRIVER_CAB.build(); w.CRANE.upper.add(interior); interior.visible = false; return;
+    }
     var g = new THREE.Group(); g.name = '司机室内饰';
     var frame = new THREE.MeshStandardMaterial({ color: 0x33495d, roughness: 0.65, metalness: 0.35 });
     var trim = new THREE.MeshStandardMaterial({ color: 0x202a34, roughness: 0.85 });
@@ -124,6 +128,7 @@
     function endDrag() { drag = null; }
     canvas.addEventListener('pointerup', endDrag); canvas.addEventListener('pointercancel', endDrag); canvas.addEventListener('lostpointercapture', endDrag);
     buildInterior();
+    if (w.DRIVER_CAB) w.DRIVER_CAB.init();
   };
 
   D.setActive = function (active, from) {
@@ -142,7 +147,7 @@
       panel.classList.remove('hidden', 'stopped'); document.body.classList.add('driver-mode');
       document.getElementById('driver-state').textContent = '手动控制';
       document.getElementById('driver-stop').textContent = '急停 · 空格';
-      D.center(); D.updateCamera();
+      yaw = 0; pitch = -0.38; D.updateCamera();
     } else {
       clearInput(); w.KT.enableDriver(false); D.active = false;
       panel.classList.add('hidden'); document.body.classList.remove('driver-mode');
@@ -151,6 +156,7 @@
       w.SCENE.camera.fov = saved.fov; w.SCENE.camera.near = saved.near; w.SCENE.camera.updateProjectionMatrix();
       w.UI.setSpeed(saved.speed); w.UI.syncSliders();
     }
+    if (w.DRIVER_CAB) w.DRIVER_CAB.setActive(active);
   };
 
   D.update = function () {
@@ -159,20 +165,23 @@
     Object.keys(pointers).forEach(function (id) { held[pointers[id]] = true; });
     var input = {}, speed = +document.getElementById('driver-speed').value;
     Object.keys(held).forEach(function (id) { var m = id.split(':'); input[m[0]] = (input[m[0]] || 0) + (+m[1]) * speed; });
+    if (w.DRIVER_CAB) w.DRIVER_CAB.input(input, speed);
     buttons.forEach(function (b) { b.classList.toggle('held', !!held[b.dataset.drive] && !D.emergency); });
     w.KT.drive(D.emergency ? {} : input);
+    if (w.DRIVER_CAB) w.DRIVER_CAB.update(D.emergency ? {} : input);
   };
 
   D.updateCamera = function () {
     if (!D.active) return;
     var K = w.CRANE, st = w.KT.ST, cam = w.SCENE.camera;
     var ready = !!(w.CRANE_MODEL && w.CRANE_MODEL.ready);
-    if (ready !== usingCAD) { usingCAD = ready; D.center(); }
+    if (ready !== usingCAD) { usingCAD = ready; D.forward(); }
     var shell = w.SCENE.scene.getObjectByName('CAD_司机室外壳') || K.cab;
     if (shell && !hiddenShells.some(function (s) { return s.object === shell; })) {
       hiddenShells.push({ object: shell, visible: shell.visible }); shell.visible = false;
     }
     interior.position.copy(seat()); interior.visible = true;
+    D.interior = interior;
     K.upper.updateWorldMatrix(true, false);
     cam.position.copy(eye); K.upper.localToWorld(cam.position);
     direction.set(Math.cos(pitch) * Math.cos(yaw), Math.sin(pitch), Math.cos(pitch) * Math.sin(yaw));
@@ -182,6 +191,8 @@
     document.getElementById('driver-instruments').textContent = '幅度 ' + st.radius.toFixed(1) + ' m  ·  高度 ' + st.height.toFixed(1) +
       ' m  ·  回转 ' + U.deg(st.slew).toFixed(1) + '°  ·  开斗 ' + Math.round(st.grabOpen * 100) + '%  ·  斗内 ' + Math.round(st.load * 100) + '%';
   };
+
+  D.forward = function () { yaw = 0; pitch = -0.38; };
 
   w.DRIVER = D;
 })(window);

@@ -380,8 +380,9 @@
     KT.snap();
     UI.syncSliders();
     CRANE.update(ST);
-    if (w.DRIVER && w.DRIVER.active) { w.DRIVER.center(); w.DRIVER.updateCamera(); }
+    if (w.DRIVER && w.DRIVER.active) { w.DRIVER.forward(); w.DRIVER.updateCamera(); }
     if (w.SETTINGS) w.SETTINGS.init();
+    if (w.WEATHER) w.WEATHER.init();
     if (w.WSAPI) w.WSAPI.init();
 
     requestAnimationFrame(loop);

@@ -124,7 +124,7 @@ body{
 #driver-panel #driver-stop{display:none;background:rgba(181,53,43,.8);border-color:#e2786b;font-weight:700;}
 #driver-panel.stopped #driver-stop{display:inline-block;}
 #driver-panel p{display:none;}
-body.driver-mode > :not(#stage):not(#driver-panel):not(#settings-open):not(#settings-panel){display:none!important;}
+body.driver-mode > :not(#stage):not(#driver-panel):not(#driver-monitors):not(#settings-open):not(#settings-panel){display:none!important;}
 @media(max-width:760px){#driver-panel{width:100%;padding:8px 10px calc(8px + env(safe-area-inset-bottom));}.driver-head,.driver-actions{gap:6px;}.driver-head strong{font-size:13px;}}
 
 /* 货车驾驶台：沿用司机操作台的版式 */
@@ -583,30 +583,88 @@ table.kv tr:last-child td{border-bottom:0;}
 #ws-panel p{line-height:1.6;}#ws-panel small{display:block;line-height:1.6;color:#657789;}#ws-panel a{display:block;margin-top:12px;color:#286393;}#ws-status{font-weight:600;color:#176d70;}
 
 #py-panel{
-  position:fixed;right:18px;bottom:50px;width:496px;z-index:32;
-  background:var(--card);backdrop-filter:blur(14px);
-  border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);
-  padding:12px;display:flex;flex-direction:column;gap:8px;
+  position:fixed;right:20px;bottom:38px;width:min(900px,calc(100vw - 40px));
+  height:min(620px,calc(100vh - 100px));min-width:600px;min-height:420px;z-index:42;
+  background:rgba(248,251,253,.98);backdrop-filter:blur(18px);
+  border:1px solid #cbd8e2;border-radius:16px;
+  box-shadow:0 22px 70px rgba(18,37,54,.28),0 2px 8px rgba(18,37,54,.10);
+  padding:0;display:flex;flex-direction:column;gap:0;overflow:hidden;
 }
 #py-panel.hidden{display:none;}
-#py-text{
-  width:100%;height:250px;resize:vertical;box-sizing:border-box;
-  border:1px solid var(--border-strong);border-radius:8px;
-  padding:8px 10px;font-family:var(--mono);font-size:11.5px;line-height:1.62;
-  color:#1f2a38;background:#fbfcfe;outline:none;tab-size:4;
+#py-panel.maximized{inset:18px!important;width:auto!important;height:auto!important;min-width:0;min-height:0;transform:none!important;z-index:115!important;}
+#py-panel .code-head{
+  min-height:55px;padding:0 14px 0 16px;border-bottom:1px solid #d9e3ea;
+  background:linear-gradient(180deg,#fff,#f4f8fa);box-sizing:border-box;
 }
-#py-text:focus{border-color:rgba(43,111,176,.5);box-shadow:0 0 0 3px rgba(43,111,176,.08);}
+#py-panel .code-head.panel-head-drag{padding:0 14px 0 16px;margin:0;border-radius:16px 16px 0 0;}
+#py-panel .code-head.panel-head-drag::before{display:none;}
+.py-title{display:flex;align-items:center;gap:10px;min-width:0;}
+.py-title span{font-size:14px;letter-spacing:.04em;text-transform:none;color:#1d3447;}
+.py-title small{padding-left:10px;border-left:1px solid #cedbe4;font-size:10.5px;font-weight:400;color:#718493;white-space:nowrap;}
+.py-window-actions{display:flex;align-items:center;gap:4px;margin-left:auto;}
+.py-window-actions .iconbtn,#py-panel>.code-head>.minbtn{display:flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0!important;margin:0!important;border-radius:7px;color:#607587!important;font-size:16px!important;}
+.py-window-actions .iconbtn:hover,#py-panel>.code-head>.minbtn:hover{background:#e6eef3!important;color:#1d394d!important;}
+.py-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:7px 14px;border-bottom:1px solid #d9e3ea;background:#f7fafc;box-sizing:border-box;}
+.py-samples,.py-tools{display:flex;align-items:center;gap:5px;min-width:0;}
+.py-samples>span{margin-right:4px;font-size:10.5px;color:#738493;}
+.py-samples button,.py-tools button,.py-pane-head button{
+  height:29px;padding:0 10px;border:1px solid #d5e0e8;border-radius:7px;background:#fff;
+  color:#52697b;font:inherit;font-size:10.5px;cursor:pointer;transition:.15s;
+}
+.py-samples button:hover,.py-tools button:hover,.py-pane-head button:hover{border-color:#91b9ca;background:#eef6f8;color:#17677a;}
+.py-samples button.on{border-color:#8ac2c7;background:#e6f4f3;color:#166d73;font-weight:600;}
+.py-tools{color:#97a5b0;font-size:9px;white-space:nowrap;}
+.py-tools kbd{padding:2px 5px;border:1px solid #ccd8e1;border-bottom-width:2px;border-radius:4px;background:#fff;color:#647887;font:9px var(--mono);}
+.py-tools i{font-style:normal;}
+.py-workspace{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.8fr);gap:1px;flex:1;min-height:0;background:#d9e3ea;}
+.py-editor-pane,.py-output-pane{display:flex;flex-direction:column;min-width:0;min-height:0;background:#fbfdfe;}
+.py-pane-head{display:flex;align-items:center;justify-content:space-between;height:35px;box-sizing:border-box;padding:0 11px;border-bottom:1px solid #e1e8ed;background:#f3f7f9;color:#667b8c;font-size:10px;}
+.py-pane-head span{display:flex;align-items:center;gap:6px;font-family:var(--mono);}
+.py-pane-head span b{width:6px;height:6px;border-radius:50%;background:#51a36b;box-shadow:0 0 0 3px rgba(81,163,107,.12);}
+.py-pane-head em{font-style:normal;color:#91a0ac;}
+.py-pane-head button{height:24px;padding:0 8px;background:transparent;}
+.py-editor-wrap{display:grid;grid-template-columns:42px minmax(0,1fr);flex:1;min-height:0;background:#fff;}
+#py-gutter{margin:0;padding:12px 9px 18px 0;overflow:hidden;border-right:1px solid #edf1f4;background:#f7f9fb;color:#a0adb8;text-align:right;font:11.5px/1.65 var(--mono);user-select:none;white-space:pre;}
+#py-text{
+  width:100%;height:100%;min-height:0;resize:none;box-sizing:border-box;border:0;
+  padding:12px 14px 18px;font-family:var(--mono);font-size:11.5px;line-height:1.65;
+  color:#213345;background:#fff;outline:none;tab-size:4;white-space:pre;overflow:auto;
+}
+#py-text:focus{box-shadow:inset 3px 0 #55a6b0;}
+#py-text::selection{background:#cce6ec;}
+.py-output-pane{background:#111b24;}
+.py-output-pane .py-pane-head{border-color:#263746;background:#192631;color:#aebdc8;}
+.py-output-pane .py-pane-head button{border-color:#3a4d5c;color:#aebdc8;}
 #py-console{
-  margin:0;height:104px;overflow-y:auto;box-sizing:border-box;
-  background:#0f1720;color:#9fd09a;border-radius:8px;padding:7px 10px;
-  font-family:var(--mono);font-size:10.5px;line-height:1.6;white-space:pre-wrap;
+  margin:0;flex:1;min-height:90px;overflow:auto;box-sizing:border-box;
+  background:#111b24;color:#9dd7a7;padding:13px 14px;
+  font-family:var(--mono);font-size:10.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;
 }
 #py-console::-webkit-scrollbar{width:6px;}
 #py-console::-webkit-scrollbar-thumb{background:rgba(255,255,255,.16);border-radius:3px;}
-#py-status{margin-left:auto;font-size:10.5px;color:var(--sub);font-family:var(--mono);
-  max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-#py-status.run{color:var(--green);}
-#py-status.err{color:var(--red);}
+.py-console-empty{color:#657785;}
+.py-api-help{border-top:1px solid #263746;background:#16222c;color:#9cadba;font-size:10px;}
+.py-api-help summary{padding:9px 13px;cursor:pointer;color:#bac8d2;user-select:none;}
+.py-api-help>div{display:flex;justify-content:space-between;gap:8px;padding:4px 13px;}
+.py-api-help>div:last-child{padding-bottom:10px;}
+.py-api-help code{color:#8fc8d4;font:10px var(--mono);}.py-api-help span{color:#728695;}
+.py-footer{min-height:56px;padding:8px 14px;border-top:1px solid #d7e1e8;background:#f7fafc;box-sizing:border-box;justify-content:space-between;}
+.py-run-actions{display:flex;align-items:center;gap:7px;}
+.py-footer button{height:34px;padding:0 15px;}
+.py-footer button:disabled{opacity:.45;cursor:not-allowed;}
+.py-state{display:flex;align-items:center;min-width:0;color:#687c8c;font:10.5px var(--mono);}
+.py-state b{width:8px;height:8px;margin-right:7px;border-radius:50%;background:#a4b0ba;}
+#py-status{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.py-state:has(#py-status.run) b{background:#36a466;box-shadow:0 0 0 4px rgba(54,164,102,.13);}
+.py-state:has(#py-status.err) b{background:#cf4a34;box-shadow:0 0 0 4px rgba(207,74,52,.12);}
+#py-status.run{color:#237a4d;}#py-status.err{color:var(--red);}
+
+@media(max-width:760px){
+  #py-panel,#py-panel.maximized{inset:68px 8px 8px!important;width:auto!important;height:auto!important;min-width:0;min-height:0;border-radius:13px;}
+  #py-panel .code-head{min-height:48px}.py-title small{display:none}.py-toolbar{min-height:45px;padding:6px 8px;overflow-x:auto}.py-samples>span,.py-tools kbd,.py-tools i{display:none}.py-samples button,.py-tools button{padding:0 8px;white-space:nowrap}
+  .py-workspace{grid-template-columns:1fr;grid-template-rows:minmax(220px,1fr) minmax(120px,.55fr)}
+  .py-output-pane{border-top:1px solid #263746}.py-api-help{display:none}.py-footer{min-height:52px;padding:7px 9px}.py-footer button{height:34px;padding:0 11px}.py-state{justify-content:flex-end}#py-status{max-width:112px}
+}
 
 
 /* ---------- 部件悬停提示 ---------- */

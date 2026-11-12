@@ -7,18 +7,19 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致（代码/样式改动时递增） */
-  window.ASSET_VER = '20261111d';
+  window.ASSET_VER = '20261112b';
   /* 模型版本号：独立于 ASSET_VER，仅在 portal-crane.glb 内容变化时递增。
      7.45 MB 的 GLB 缓存键不再跟随界面小改版失效，避免反复整包下载导致长时间显示旧程序化模型。 */
   window.MODEL_VER = '20261111c';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261111d').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261112b').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261111d">
-<link rel="stylesheet" href="css/settings.css?v=20261111d">
+<link rel="stylesheet" href="css/style.css?v=20261112b">
+<link rel="stylesheet" href="css/settings.css?v=20261112b">
+<link rel="stylesheet" href="css/driver-cab.css?v=20261112b">
 <link rel="icon" href="assets/logo.jpg">
 </head>
 <body>
@@ -246,21 +247,61 @@
   <div id="cp-body"></div>
 </aside>
 
-<div id="py-panel" class="hidden">
+<div id="py-panel" class="hidden" role="dialog" aria-label="Python 算法设计">
   <div class="code-head">
-    <span>算法设计</span>
-    <button id="py-close" class="iconbtn">×</button>
+    <div class="py-title">
+      <span>算法设计</span>
+      <small>浏览器内 Python 控制器</small>
+    </div>
+    <div class="py-window-actions">
+      <button id="py-expand" class="iconbtn" type="button" title="全屏编辑" aria-label="全屏编辑">□</button>
+      <button id="py-close" class="iconbtn" type="button" title="关闭" aria-label="关闭">×</button>
+    </div>
   </div>
-  <textarea id="py-text" spellcheck="false"></textarea>
-  <div class="code-foot">
-    <button id="py-run" class="primary">▶ 运行</button>
-    <button id="py-stop">停止</button>
-    <button id="py-sample">定量抓取</button>
-    <button id="py-sway">防摇摆</button>
-    <button id="py-traj">轨迹对比</button>
-    <span id="py-status">未加载</span>
+  <div class="py-toolbar">
+    <div class="py-samples" role="group" aria-label="示例程序">
+      <span>示例</span>
+      <button id="py-sample" type="button" class="on">定量抓取</button>
+      <button id="py-sway" type="button">防摇摆</button>
+      <button id="py-traj" type="button">轨迹对比</button>
+    </div>
+    <div class="py-tools">
+      <button id="py-copy-code" type="button">复制代码</button>
+      <kbd>Ctrl</kbd><i>+</i><kbd>Enter</kbd>
+    </div>
   </div>
-  <pre id="py-console"></pre>
+  <div class="py-workspace">
+    <section class="py-editor-pane" aria-label="Python 代码编辑器">
+      <div class="py-pane-head"><span><b></b> main.py</span><em id="py-line-count">1 行</em></div>
+      <div class="py-editor-wrap">
+        <pre id="py-gutter" aria-hidden="true">1</pre>
+        <textarea id="py-text" spellcheck="false" aria-label="Python 程序代码"></textarea>
+      </div>
+    </section>
+    <section class="py-output-pane" aria-label="运行输出">
+      <div class="py-pane-head">
+        <span>运行输出</span>
+        <button id="py-clear-console" type="button">清空</button>
+      </div>
+      <pre id="py-console" aria-live="polite"><span class="py-console-empty">运行程序后将在这里显示日志与错误</span></pre>
+      <details class="py-api-help">
+        <summary>常用控制接口</summary>
+        <div><code>crane.state()</code><span>读取完整状态</span></div>
+        <div><code>crane.slew(角度)</code><span>回转</span></div>
+        <div><code>crane.radius(米)</code><span>变幅</span></div>
+        <div><code>crane.hoist(米)</code><span>起升</span></div>
+        <div><code>crane.grab(0~1)</code><span>抓斗开合</span></div>
+        <div><code>crane.log(内容)</code><span>输出日志</span></div>
+      </details>
+    </section>
+  </div>
+  <div class="code-foot py-footer">
+    <div class="py-run-actions">
+      <button id="py-run" class="primary" type="button">▶ 运行程序</button>
+      <button id="py-stop" type="button" disabled>■ 停止</button>
+    </div>
+    <div class="py-state"><b aria-hidden="true"></b><span id="py-status">运行时未加载</span></div>
+  </div>
 </div>
 
 <div id="code-panel" class="hidden">
@@ -369,32 +410,34 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261111d"></script>
-<script src="lib/OrbitControls.js?v=20261111d"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261111d"></script>
-<script src="lib/DRACOLoader.js?v=20261111d"></script>
-<script src="lib/GLTFLoader.js?v=20261111d"></script>
-<script src="js/config.js?v=20261111d"></script>
-<script src="js/util.js?v=20261111d"></script>
-<script src="js/scene.js?v=20261111d"></script>
-<script src="js/environment-hd.js?v=20261111d"></script>
-<script src="js/environment-port.js?v=20261111d"></script>
-<script src="js/crane.js?v=20261111d"></script>
-<script src="js/crane-model.js?v=20261111d"></script>
-<script src="js/kinematics.js?v=20261111d"></script>
-<script src="js/script.js?v=20261111d"></script>
-<script src="js/ai.js?v=20261111d"></script>
-<script src="js/python.js?v=20261111d"></script>
-<script src="js/stats.js?v=20261111d"></script>
-<script src="js/report-docx.js?v=20261111d"></script>
-<script src="js/train.js?v=20261111d"></script>
-<script src="js/comprehensive.js?v=20261111d"></script>
-<script src="js/ui.js?v=20261111d"></script>
-<script src="js/dock.js?v=20261111d"></script>
-<script src="js/driver.js?v=20261111d"></script>
-<script src="js/truck-driver.js?v=20261111d"></script>
-<script src="js/websocket.js?v=20261111d"></script>
-<script src="js/settings.js?v=20261111d"></script>
-<script src="js/main.js?v=20261111d"></script>
+<script src="lib/three.min.js?v=20261112b"></script>
+<script src="lib/OrbitControls.js?v=20261112b"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261112b"></script>
+<script src="lib/DRACOLoader.js?v=20261112b"></script>
+<script src="lib/GLTFLoader.js?v=20261112b"></script>
+<script src="js/config.js?v=20261112b"></script>
+<script src="js/util.js?v=20261112b"></script>
+<script src="js/scene.js?v=20261112b"></script>
+<script src="js/environment-hd.js?v=20261112b"></script>
+<script src="js/environment-port.js?v=20261112b"></script>
+<script src="js/crane.js?v=20261112b"></script>
+<script src="js/crane-model.js?v=20261112b"></script>
+<script src="js/kinematics.js?v=20261112b"></script>
+<script src="js/script.js?v=20261112b"></script>
+<script src="js/ai.js?v=20261112b"></script>
+<script src="js/python.js?v=20261112b"></script>
+<script src="js/stats.js?v=20261112b"></script>
+<script src="js/report-docx.js?v=20261112b"></script>
+<script src="js/train.js?v=20261112b"></script>
+<script src="js/comprehensive.js?v=20261112b"></script>
+<script src="js/ui.js?v=20261112b"></script>
+<script src="js/dock.js?v=20261112b"></script>
+<script src="js/weather.js?v=20261112b"></script>
+<script src="js/driver-cab.js?v=20261112b"></script>
+<script src="js/driver.js?v=20261112b"></script>
+<script src="js/truck-driver.js?v=20261112b"></script>
+<script src="js/websocket.js?v=20261112b"></script>
+<script src="js/settings.js?v=20261112b"></script>
+<script src="js/main.js?v=20261112b"></script>
 </body>
 </html>

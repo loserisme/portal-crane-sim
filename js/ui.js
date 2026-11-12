@@ -200,7 +200,9 @@
     btn.className = 'iconbtn minbtn';
     btn.textContent = '−';
     btn.title = '最小化 / 展开';
-    head.appendChild(btn);
+    var windowActions = head.querySelector('.py-window-actions');
+    if (windowActions) windowActions.insertBefore(btn, windowActions.firstChild);
+    else head.appendChild(btn);
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
       panel.classList.toggle('collapsed');
@@ -503,18 +505,56 @@
     var s1 = document.getElementById('py-sample');
     var s2 = document.getElementById('py-sway');
     var s3 = document.getElementById('py-traj');
+    var expand = document.getElementById('py-expand');
+    var copyCode = document.getElementById('py-copy-code');
+    var clearConsole = document.getElementById('py-clear-console');
+    var gutter = document.getElementById('py-gutter');
+    var lineCount = document.getElementById('py-line-count');
     if (!panel || !w.PY) return;
 
     ta.value = w.PY.SAMPLE;
 
+    function updateEditor() {
+      var count = ta.value.split('\n').length;
+      var nums = [];
+      for (var i = 1; i <= count; i++) nums.push(i);
+      gutter.textContent = nums.join('\n');
+      lineCount.textContent = count + ' 行';
+      gutter.scrollTop = ta.scrollTop;
+    }
+
+    function selectSample(button, code) {
+      ta.value = code;
+      [s1, s2, s3].forEach(function (b) { if (b) b.classList.toggle('on', b === button); });
+      updateEditor();
+      ta.focus();
+    }
+
+    function copyText(text, button) {
+      function done() {
+        var old = button.textContent;
+        button.textContent = '已复制';
+        setTimeout(function () { button.textContent = old; }, 1200);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {});
+      } else {
+        ta.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+      }
+    }
+
+    updateEditor();
+
     /* ?py=traj 直接打开轨迹对比示例（便于分享/演示） */
     var qm = (location.search.match(/[?&]py=([a-z]+)/) || [])[1];
     if (qm === 'traj' && w.PY.SAMPLE_TRAJ) {
-      ta.value = w.PY.SAMPLE_TRAJ;
+      selectSample(s3, w.PY.SAMPLE_TRAJ);
       setTimeout(function () { showPanel(true); }, 300);
     }
 
     w.PY.onPrint = function (line) {
+      if (con.querySelector('.py-console-empty')) con.textContent = '';
       con.textContent += line + '\n';
       con.scrollTop = con.scrollHeight;
     };
@@ -522,12 +562,18 @@
       if (p.running) {
         st.textContent = '运行中 ' + p.elapsed.toFixed(1) + 's';
         st.className = 'run';
+        run.disabled = true;
+        stop.disabled = false;
       } else if (p.error) {
         st.textContent = p.error.slice(0, 28);
         st.className = 'err';
+        run.disabled = false;
+        stop.disabled = true;
       } else {
-        st.textContent = p.ready ? '就绪' : '未加载';
+        st.textContent = p.ready ? '运行时就绪' : '运行时未加载';
         st.className = '';
+        run.disabled = false;
+        stop.disabled = true;
       }
     };
 
@@ -552,25 +598,57 @@
       con.textContent = '';
       st.textContent = '加载中…';
       st.className = '';
-      w.PY.run(ta.value);
+      run.disabled = true;
+      stop.disabled = true;
+      Promise.resolve(w.PY.run(ta.value)).then(function (ok) {
+        if (ok) return;
+        st.textContent = w.PY.error ? w.PY.error.slice(0, 28) : '程序未启动，请查看输出';
+        st.className = 'err';
+        run.disabled = false;
+        stop.disabled = true;
+      }).catch(function (e) {
+        st.textContent = (e && e.message || '运行失败').slice(0, 28);
+        st.className = 'err';
+        run.disabled = false;
+        stop.disabled = true;
+      });
     });
     stop.addEventListener('click', function () { w.PY.stop(); });
-    s1.addEventListener('click', function () { ta.value = w.PY.SAMPLE; });
-    s2.addEventListener('click', function () { ta.value = w.PY.SAMPLE_SWAY; });
-    if (s3) s3.addEventListener('click', function () { ta.value = w.PY.SAMPLE_TRAJ; });
+    s1.addEventListener('click', function () { selectSample(s1, w.PY.SAMPLE); });
+    s2.addEventListener('click', function () { selectSample(s2, w.PY.SAMPLE_SWAY); });
+    if (s3) s3.addEventListener('click', function () { selectSample(s3, w.PY.SAMPLE_TRAJ); });
+    clearConsole.addEventListener('click', function () {
+      con.innerHTML = '<span class="py-console-empty">运行程序后将在这里显示日志与错误</span>';
+    });
+    copyCode.addEventListener('click', function () { copyText(ta.value, copyCode); });
+    expand.addEventListener('click', function () {
+      panel.classList.toggle('maximized');
+      expand.textContent = panel.classList.contains('maximized') ? '❐' : '□';
+      expand.title = panel.classList.contains('maximized') ? '退出全屏' : '全屏编辑';
+      ta.focus();
+    });
 
     /* 供 AI 写入 */
     UI.setPyCode = function (code) {
       ta.value = code;
+      updateEditor();
       showPanel(true);
     };
 
     ta.addEventListener('keydown', function (e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var start = ta.selectionStart, end = ta.selectionEnd;
+        ta.setRangeText('    ', start, end, 'end');
+        updateEditor();
+      }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         run.click();
       }
     });
+    ta.addEventListener('input', updateEditor);
+    ta.addEventListener('scroll', function () { gutter.scrollTop = ta.scrollTop; });
   }
 
   /* ---------------- 实训面板 ---------------- */
