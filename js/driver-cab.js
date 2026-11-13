@@ -4,7 +4,7 @@
   var C = {}, group, sticks = [], wiper, light, screen, screenTexture, targets = [];
   var pads = [], station, monitors, monitorRenderer, cameras = [], modes = ['grab', 'head', 'truck'];
   var lastMonitor = 0, lastScreen = 0, wipe = false, lit = true, shown = true, clickStart = null;
-  var v = new THREE.Vector3(), goal = new THREE.Vector3(), ray = new THREE.Raycaster();
+  var goal = new THREE.Vector3(), ray = new THREE.Raycaster();
   var $ = function (id) { return document.getElementById(id); };
   function material(color, metal) { var m = new THREE.MeshStandardMaterial({ color: color, roughness: metal ? .4 : .8, metalness: metal ? .55 : .05 }); m.color.convertSRGBToLinear(); return m; }
   C.build = function () {
@@ -32,8 +32,8 @@
       box(group,[1.20,.40,.33],[.15,-.85,z*.55],navy);
       box(group,[1.24,.055,.35],[.15,-.62,z*.55],dark);
       box(group,[.30,.10,.27],[-.25,-.54,z*.55],rubber);
-      for(var j=0;j<6;j++) box(group,[.12,.008,.013],[.18,-.588,z*.55+(j-2.5)*.027],gray);
-      [-.12,.12].forEach(function(d){ cylinder(group,.012,.012,.008,[.65,-.586,z*.55+d],gray); });
+      for(var j=0;j<6;j++) box(group,[.10,.008,.013],[.10,-.588,z*.55+(j-2.5)*.027],gray);
+      [-.12,.12].forEach(function(d){ cylinder(group,.012,.012,.008,[z<0?0:.65,-.586,z*.55+d],gray); });
       var stick = new THREE.Group(); stick.position.set(.48,-.59,z*.55); group.add(stick); sticks.push(stick);
       for(var k=0;k<5;k++) cylinder(group,.065-k*.006,.072-k*.006,.025,[.48,-.60+k*.021,z*.55],rubber);
       cylinder(stick,.018,.023,.23,[0,.18,0],gray);
@@ -43,7 +43,7 @@
       for(var rib=0;rib<4;rib++){var ring=new THREE.Mesh(new THREE.TorusGeometry(.031,.003,6,16),dark);ring.rotation.x=Math.PI/2;ring.position.y=-.035+rib*.021;grip.add(ring);}
       cylinder(grip,.014,.014,.009,[0,.072,0],material(0xba2724));
       box(grip,[.018,.035,.012],[-.029,-.013,0],material(0x60859a));
-      label(z<0?'回转 / 变幅':'起升 / 抓斗',.31,.075,[.65,-.582,z*.55],[-Math.PI/2,0,-Math.PI/2]);
+      label(z<0?'回转 / 变幅':'起升 / 抓斗',.31,.075,[z<0?.29:.65,-.582,z*.55],[-Math.PI/2,0,-Math.PI/2]);
       for(var n=0;n<3;n++) {
         var colors = [0x40ad74,0xe4b842,0xcd3c30];
         cylinder(group,.027,.03,.023,[-.15+n*.10,-.58,z*.55+.10],material(colors[n]));
@@ -63,11 +63,15 @@
     screenTexture=new THREE.CanvasTexture(screen);screenTexture.encoding=THREE.sRGBEncoding;
     var face=new THREE.Mesh(new THREE.PlaneGeometry(.37,.225),new THREE.MeshBasicMaterial({map:screenTexture}));
     face.rotation.y=-Math.PI/2;face.position.x=-.031;display.add(face);
-    function actionButton(z,color,action) {
-      var b=cylinder(group,.045,.05,.035,[.57,-.60,z],material(color)); b.name='cab-button-'+action; b.userData.cabAction=action;targets.push(b);return b;
+    // The panel rests on the desk (top y=-.5925); each cap sits above its bezel.
+    // Keep the complete row inside the left desk and clear of the joystick boot.
+    var buttonPanel=box(group,[.19,.025,.32],[.66,-.58,-.5225],navy);buttonPanel.name='cab-button-panel';
+    function actionButton(z,color,action,text) {
+      cylinder(group,.043,.043,.018,[.68,-.5585,z],gray);
+      var b=cylinder(group,.037,.039,.025,[.68,-.537,z],material(color)); b.name='cab-button-'+action; b.userData.cabAction=action;targets.push(b);
+      label(text,.084,.04,[.59,-.566,z],[-Math.PI/2,0,-Math.PI/2]);return b;
     }
-    actionButton(-.31,0xd62720,'stop');actionButton(-.44,0x45b882,'light');actionButton(-.57,0x3d91bc,'wiper');
-    label('急停   照明   雨刷',.40,.055,[.48,-.579,-.44],[-Math.PI/2,0,-Math.PI/2]);
+    actionButton(-.415,0xd62720,'stop','急停');actionButton(-.5225,0x45b882,'light','照明');actionButton(-.63,0x3d91bc,'wiper','雨刷');
     // Front sill and wiper; slim members keep the load in view.
     box(group,[.06,.055,1.94],[.73,-1.35,0],navy);
     box(group,[.06,.055,1.94],[.73,.75,0],navy);
@@ -156,14 +160,21 @@
       monitorRenderer=new THREE.WebGLRenderer({antialias:false,alpha:false});monitorRenderer.setPixelRatio(1);monitorRenderer.setSize(360,202,false);
       monitorRenderer.outputEncoding=THREE.sRGBEncoding;monitorRenderer.toneMapping=THREE.ACESFilmicToneMapping;
     }
-    var S=w.SCENE,st=w.KT.ST,anchors=w.CRANE.anchors(st),shell=S.scene.getObjectByName('CAD_司机室外壳')||w.CRANE.cab;
+    var S=w.SCENE,st=w.KT.ST,shell=S.scene.getObjectByName('CAD_司机室外壳')||w.CRANE.cab;
     var interiorVisible=group.visible,shellVisible=shell&&shell.visible;group.visible=false;if(shell)shell.visible=true;
     monitorRenderer.toneMappingExposure=S.renderer.toneMappingExposure;
     try{
       monitors.querySelectorAll('.monitor-card canvas').forEach(function(cv,i){
         var cam=cameras[i],mode=modes[i];cam.up.set(0,1,0);
         if(mode==='grab'){cam.position.copy(st.grabPos).add(new THREE.Vector3(3,2.2,3));goal.copy(st.grabPos);goal.y-=1.2;}
-        if(mode==='head'){cam.position.copy(anchors.head).add(new THREE.Vector3(1.8,1.8,2));goal.copy(st.grabPos);goal.y-=1;}
+        if(mode==='head'){
+          // Stabilized downward camera beside the head-tip pulley. Follow the
+          // crane mount, never the swinging load. A horizontal up vector avoids
+          // the lookAt singularity of a vertical view with world-Y as up.
+          var cs=Math.cos(st.slew),sn=Math.sin(st.slew);
+          cam.position.copy(st.Cworld);cam.position.x+=.8*cs+1.2*sn;cam.position.y-=.8;cam.position.z+=-.8*sn+1.2*cs;
+          cam.up.set(cs,0,-sn);goal.copy(cam.position);goal.y-=20;
+        }
         if(mode==='truck'){w.SCENE.truck.getWorldPosition(goal);cam.position.copy(goal).add(new THREE.Vector3(12,12,12));goal.y+=1.5;}
         if(mode==='overview'){cam.position.set(st.travel+56,37,48);goal.set(st.travel,17,0);}
         cam.lookAt(goal);monitorRenderer.render(S.scene,cam);cv.getContext('2d').drawImage(monitorRenderer.domElement,0,0);
