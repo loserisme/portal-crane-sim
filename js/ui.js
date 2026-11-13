@@ -86,6 +86,8 @@
     applyFloating();
     resizeChart();
     w.addEventListener('resize', resizeChart);
+    var loadDetails = document.getElementById('load-chart-details');
+    if(loadDetails) loadDetails.addEventListener('toggle', function(){ if(this.open) resizeChart(); });
 
     el.demo.addEventListener('click', function () {
       if (w.DEMO) w.DEMO.toggle();
@@ -107,7 +109,16 @@
   };
 
   /* ---------------- 控件 ---------------- */
+  function paintRange(input) {
+    input.style.setProperty('--range-fill',((+input.value-input.min)/(input.max-input.min)*100)+'%');
+  }
   function bindSliders() {
+    ['slew','radius','hoist','grab','travel'].forEach(function(id){
+      var input=el[id],unit=id==='slew'?'°':id==='grab'?'%':' m';
+      var limits=document.createElement('div');limits.className='range-limits';limits.setAttribute('aria-hidden','true');
+      limits.innerHTML='<span>'+input.min+unit+'</span><span>'+input.max+unit+'</span>';input.after(limits);
+      input.addEventListener('input',function(){paintRange(input);});paintRange(input);
+    });
     el.slew.addEventListener('input', function () {
       if (w.DEMO && w.DEMO.running) w.DEMO.stop();
       KT.set('slew', parseFloat(this.value));
@@ -1035,6 +1046,7 @@
     el.hoistV.textContent = (+KT.ST.cmd.hoist).toFixed(1) + ' m';
     el.grabV.textContent = Math.round(KT.ST.cmd.grab * 100) + '%';
     el.travelV.textContent = (+KT.ST.cmd.travel).toFixed(1) + ' m';
+    ['slew','radius','hoist','grab','travel'].forEach(function(id){paintRange(el[id]);});
   }
   UI.syncSliders = syncSliders;
 
@@ -1306,7 +1318,9 @@
   function resizeChart() {
     var c = el.chart;
     if (!c) return;
-    var wpx = c.parentElement.clientWidth;
+    var parentStyle = getComputedStyle(c.parentElement);
+    var wpx = c.parentElement.clientWidth - parseFloat(parentStyle.paddingLeft || 0) - parseFloat(parentStyle.paddingRight || 0);
+    if(wpx<=0) return;
     var hpx = Math.max(88, Math.round(wpx * 0.44));
     c.width = Math.round(wpx * dpr);
     c.height = Math.round(hpx * dpr);

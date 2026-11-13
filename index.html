@@ -7,19 +7,20 @@
 <title>港口门座式起重机运动控制仿真实验</title>
 <script>
   /* 资源版本号：与各 script 的 ?v= 保持一致（代码/样式改动时递增） */
-  window.ASSET_VER = '20261113a';
+  window.ASSET_VER = '20261113b';
   /* 模型版本号：独立于 ASSET_VER，仅在 portal-crane.glb 内容变化时递增。
      7.45 MB 的 GLB 缓存键不再跟随界面小改版失效，避免反复整包下载导致长时间显示旧程序化模型。 */
   window.MODEL_VER = '20261111c';
   if ('serviceWorker' in navigator) {
     addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js?v=20261113a').catch(function () {});
+      navigator.serviceWorker.register('sw.js?v=20261113b').catch(function () {});
     });
   }
 </script>
-<link rel="stylesheet" href="css/style.css?v=20261113a">
-<link rel="stylesheet" href="css/settings.css?v=20261113a">
-<link rel="stylesheet" href="css/driver-cab.css?v=20261113a">
+<link rel="stylesheet" href="css/style.css?v=20261113b">
+<link rel="stylesheet" href="css/settings.css?v=20261113b">
+<link rel="stylesheet" href="css/driver-cab.css?v=20261113b">
+<link rel="stylesheet" href="css/sidebar.css?v=20261113b">
 <link rel="icon" href="assets/logo.jpg">
 </head>
 <body>
@@ -93,9 +94,9 @@
   <p>W/S 加速与倒车 · A/D 转向 · 空格制动 · 拖动画面环视 · R 回位 · Esc 退出</p>
 </section>
 
-<aside id="panel-left" class="panel">
-  <section>
-    <h2>机构操控</h2>
+<aside id="panel-left" class="panel" aria-label="机构操控">
+  <section class="mechanism-controls">
+    <div class="section-heading"><h2>目标参数</h2><span>拖动调节 · 方向键微调</span></div>
 
     <div class="ctrl">
       <div class="ctrl-head"><label for="slew">回转机构</label><span class="val" id="slew-v">-90.0°</span></div>
@@ -122,9 +123,12 @@
       <input type="range" id="travel" min="-26" max="26" step="0.1" value="0">
     </div>
 
+  </section>
+  <section class="operation-tools">
+    <div class="section-heading"><h2>作业工具</h2><span>演示与算法实验</span></div>
     <div class="btnrow">
       <button id="btn-demo" class="primary">▶ 作业循环</button>
-      <button id="btn-reset">复位</button>
+      <button id="btn-reset">↺ 复位</button>
     </div>
     <div class="btnrow3">
       <button id="code-open">&lt;/&gt; 动作编程</button>
@@ -180,9 +184,9 @@
   </section>
 </aside>
 
-<aside id="panel-right" class="panel">
-  <section>
-    <h2>实时状态</h2>
+<aside id="panel-right" class="panel" aria-label="实时状态">
+  <section class="status-overview">
+    <div class="section-heading"><h2>运行概览</h2><span class="live-caption">实时仿真</span></div>
     <div class="bigs">
       <div class="big"><b id="o-radius">30.0</b><i>工作幅度 R / m</i></div>
       <div class="big"><b id="o-height">3.0</b><i>起升高度 H / m</i></div>
@@ -190,30 +194,39 @@
 
     <table class="kv">
       <tbody>
+        <tr class="kv-group"><th colspan="2" scope="colgroup">机构状态</th></tr>
         <tr><td>回转角 φ</td><td id="o-slew">-90.0°</td></tr>
         <tr><td>臂架仰角 α</td><td id="o-alpha">40.0°</td></tr>
         <tr><td>抓斗开度</td><td id="o-grab">100%</td></tr>
         <tr><td>起升绳长</td><td id="o-rope">— m</td></tr>
-        <tr><td>起升 / 回转线速</td><td id="o-speed">0.00 / 0.00</td></tr>
+        <tr title="单位：米 / 秒"><td>起升 / 回转线速</td><td id="o-speed">0.00 / 0.00</td></tr>
+        <tr><td>大车位置</td><td id="o-travel">0.00 m</td></tr>
+        <tr title="世界坐标 X、Y、Z，单位：米"><td>抓斗坐标 / m</td><td id="o-pos">—</td></tr>
+      </tbody>
+      <tbody class="sway-readings">
+        <tr class="kv-group"><th colspan="2" scope="colgroup">吊载摆动</th></tr>
         <tr title="场景固定 X 方向，沿大车轨道；正负号表示摆动方向"><td>纵向摆角 θx</td><td id="o-sway-x">0.0°</td></tr>
         <tr title="场景固定 Z 方向，垂直大车轨道；正负号表示摆动方向"><td>横向摆角 θz</td><td id="o-sway-z">0.0°</td></tr>
         <tr title="纵向、横向摆角的平方和开方，表示总体摆幅"><td>合摆角</td><td id="o-sway">0.0°</td></tr>
-        <tr><td>抓斗坐标</td><td id="o-pos">—</td></tr>
-        <tr><td>大车位置</td><td id="o-travel">0.00 m</td></tr>
+      </tbody>
+      <tbody>
+        <tr class="kv-group"><th colspan="2" scope="colgroup">装卸进度</th></tr>
         <tr><td>斗内 / 舱内</td><td><b id="o-load">0%</b> / <b id="o-hold">100%</b></td></tr>
         <tr><td>卡车装载</td><td id="o-truck">0 / 3 斗</td></tr>
       </tbody>
     </table>
   </section>
 
-  <section>
-    <h2>起重量 — 幅度特性</h2>
-    <canvas id="chart" width="480" height="230"></canvas>
+  <section class="load-section">
     <div class="loadrow">
-      <span>当前工作点</span>
+      <h2>载荷校核</h2>
       <span id="o-loadstate" class="ok">安全</span>
     </div>
     <p class="caption" id="o-cap">Q(30.0 m) = 7.8 t ／ 载荷 9.8 t</p>
+    <details id="load-chart-details" open>
+      <summary>起重量 — 幅度曲线<span>展开 / 收起</span></summary>
+      <div class="load-chart-body"><canvas id="chart" width="480" height="230" aria-label="起重量与工作幅度特性曲线"></canvas></div>
+    </details>
   </section>
 </aside>
 
@@ -410,34 +423,34 @@
   <div class="st"><span id="st-fps">60 fps</span></div>
 </footer>
 
-<script src="lib/three.min.js?v=20261113a"></script>
-<script src="lib/OrbitControls.js?v=20261113a"></script>
-<script src="lib/BufferGeometryUtils.js?v=20261113a"></script>
-<script src="lib/DRACOLoader.js?v=20261113a"></script>
-<script src="lib/GLTFLoader.js?v=20261113a"></script>
-<script src="js/config.js?v=20261113a"></script>
-<script src="js/util.js?v=20261113a"></script>
-<script src="js/scene.js?v=20261113a"></script>
-<script src="js/environment-hd.js?v=20261113a"></script>
-<script src="js/environment-port.js?v=20261113a"></script>
-<script src="js/crane.js?v=20261113a"></script>
-<script src="js/crane-model.js?v=20261113a"></script>
-<script src="js/kinematics.js?v=20261113a"></script>
-<script src="js/script.js?v=20261113a"></script>
-<script src="js/ai.js?v=20261113a"></script>
-<script src="js/python.js?v=20261113a"></script>
-<script src="js/stats.js?v=20261113a"></script>
-<script src="js/report-docx.js?v=20261113a"></script>
-<script src="js/train.js?v=20261113a"></script>
-<script src="js/comprehensive.js?v=20261113a"></script>
-<script src="js/ui.js?v=20261113a"></script>
-<script src="js/dock.js?v=20261113a"></script>
-<script src="js/weather.js?v=20261113a"></script>
-<script src="js/driver-cab.js?v=20261113a"></script>
-<script src="js/driver.js?v=20261113a"></script>
-<script src="js/truck-driver.js?v=20261113a"></script>
-<script src="js/websocket.js?v=20261113a"></script>
-<script src="js/settings.js?v=20261113a"></script>
-<script src="js/main.js?v=20261113a"></script>
+<script src="lib/three.min.js?v=20261113b"></script>
+<script src="lib/OrbitControls.js?v=20261113b"></script>
+<script src="lib/BufferGeometryUtils.js?v=20261113b"></script>
+<script src="lib/DRACOLoader.js?v=20261113b"></script>
+<script src="lib/GLTFLoader.js?v=20261113b"></script>
+<script src="js/config.js?v=20261113b"></script>
+<script src="js/util.js?v=20261113b"></script>
+<script src="js/scene.js?v=20261113b"></script>
+<script src="js/environment-hd.js?v=20261113b"></script>
+<script src="js/environment-port.js?v=20261113b"></script>
+<script src="js/crane.js?v=20261113b"></script>
+<script src="js/crane-model.js?v=20261113b"></script>
+<script src="js/kinematics.js?v=20261113b"></script>
+<script src="js/script.js?v=20261113b"></script>
+<script src="js/ai.js?v=20261113b"></script>
+<script src="js/python.js?v=20261113b"></script>
+<script src="js/stats.js?v=20261113b"></script>
+<script src="js/report-docx.js?v=20261113b"></script>
+<script src="js/train.js?v=20261113b"></script>
+<script src="js/comprehensive.js?v=20261113b"></script>
+<script src="js/ui.js?v=20261113b"></script>
+<script src="js/dock.js?v=20261113b"></script>
+<script src="js/weather.js?v=20261113b"></script>
+<script src="js/driver-cab.js?v=20261113b"></script>
+<script src="js/driver.js?v=20261113b"></script>
+<script src="js/truck-driver.js?v=20261113b"></script>
+<script src="js/websocket.js?v=20261113b"></script>
+<script src="js/settings.js?v=20261113b"></script>
+<script src="js/main.js?v=20261113b"></script>
 </body>
 </html>
